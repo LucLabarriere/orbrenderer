@@ -14,7 +14,7 @@ AlignOperands: AlignAfterOperator
 PackConstructorInitializers: CurrentLine
 BinPackParameters: false
 BinPackArguments: false
-InsertBraces: true
+InsertBraces: false
 SpacesInContainerLiterals: true
 AllowShortBlocksOnASingleLine: Never
 AllowAllArgumentsOnNextLine: false

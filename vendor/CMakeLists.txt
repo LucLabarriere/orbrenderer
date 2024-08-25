@@ -11,9 +11,12 @@ add_library(orbimgui STATIC  imgui/imgui_widgets.cpp
                              imgui/imgui_draw.cpp
                              imgui/imgui.cpp
                              imgui/backends/imgui_impl_vulkan.cpp
-                             imgui/backends/imgui_impl_glfw.cpp)
+                             imgui/backends/imgui_impl_glfw.cpp
+                             imgui/misc/cpp/imgui_stdlib.cpp)
 add_library(orb::imgui ALIAS orbimgui)
 
-target_include_directories(orbimgui PUBLIC imgui imgui/backends)
+target_include_directories(orbimgui PUBLIC imgui
+                                           imgui/backends
+                                           imgui/misc/cpp/)
 target_link_libraries(orbimgui PUBLIC Vulkan::Vulkan
                                       glfw)
