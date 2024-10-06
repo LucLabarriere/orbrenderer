@@ -23,7 +23,6 @@ Diagnostics:
       - bugprone-exception-escape
 
     CheckOptions:
-      { key:   cppcoreguidelines-rvalue-reference-param-not-moved.AllowPartialMove,
-        value: true }
+      { key:   cppcoreguidelines-rvalue-reference-param-not-moved.AllowPartialMove, value: true }
 
   UnusedIncludes: None

@@ -3,7 +3,7 @@ BasedOnStyle: Microsoft
 AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
 AlignArrayOfStructures: Right
-AllowShortCaseLabelsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
 BracedInitializerIndentWidth: 4
 AlignConsecutiveAssignments:
   Enabled: true
@@ -16,16 +16,16 @@ BinPackParameters: false
 BinPackArguments: false
 InsertBraces: false
 SpacesInContainerLiterals: true
-AllowShortBlocksOnASingleLine: Never
+AllowShortBlocksOnASingleLine: Always
 AllowAllArgumentsOnNextLine: false
-AllowShortFunctionsOnASingleLine: None
+AllowShortFunctionsOnASingleLine: Inline
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 BreakConstructorInitializers: BeforeColon
 PenaltyBreakOpenParenthesis: 10
 PenaltyBreakBeforeFirstCallParameter: 0
 PenaltyBreakAssignment: 0
 AllowShortLoopsOnASingleLine: false
-AllowShortLambdasOnASingleLine: None
+AllowShortLambdasOnASingleLine: All
 LambdaBodyIndentation: Signature
 BreakBeforeBinaryOperators: NonAssignment
 AlwaysBreakTemplateDeclarations: Yes

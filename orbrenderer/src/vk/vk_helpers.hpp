@@ -9,22 +9,6 @@
 
 namespace orb::vk::details
 {
-    inline auto enum_instance_ext_props() -> result<std::vector<VkExtensionProperties>>
-    {
-        ui32                               count = 0;
-        std::vector<VkExtensionProperties> props;
-        vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
-        props.resize(count);
-        auto err = vkEnumerateInstanceExtensionProperties(nullptr, &count, props.data());
-
-        if (err != 0)
-        {
-            return error_t { "Could not enumerate instance extension properties: VkError {}" };
-        }
-
-        return props;
-    }
-
     inline auto get_phy_device_surface_formats(
         VkPhysicalDevice pdevice, VkSurfaceKHR surface) -> result<std::vector<VkSurfaceFormatKHR>>
     {
@@ -50,12 +34,32 @@ namespace orb::vk::details
         devices.resize(count);
         auto err = vkEnumeratePhysicalDevices(instance, &count, devices.data());
 
-        if (err != 0)
-        {
-            return error_t { "Could not enumerate physical devices: VkError {}", (int64_t)err };
-        }
+        if (err != 0) { return error_t { "Could not enumerate physical devices: VkError {}", (int64_t)err }; }
 
         return devices;
+    }
+
+    inline auto enum_queue_family_properties(
+        VkPhysicalDevice device) -> result<std::vector<VkQueueFamilyProperties>>
+    {
+        ui32 count {};
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &count, nullptr);
+        std::vector<VkQueueFamilyProperties> queues(count);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &count, queues.data());
+
+        return std::move(queues);
+    }
+
+    inline auto enum_device_extension_properties(
+        VkPhysicalDevice device) -> result<std::vector<VkExtensionProperties>>
+    {
+        ui32                               count {};
+        std::vector<VkExtensionProperties> properties;
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr);
+        properties.resize(count);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &count, properties.data());
+        return std::move(properties);
+
     }
 
     template <typename Func, typename TReturnType, typename... Args>
@@ -67,10 +71,7 @@ namespace orb::vk::details
         values.resize(count);
         auto err = func(std::forward<Args>(args)..., &count, values.data());
 
-        if (err != 0)
-        {
-            return error_t { "VkError {}", (int64_t)err };
-        }
+        if (err != 0) { return error_t { "VkError {}", (int64_t)err }; }
 
         return values;
     }
