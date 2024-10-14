@@ -31,6 +31,7 @@ namespace orb::glfw
         [[nodiscard]] auto get_fb_dimensions() const -> fb_dimensions_t;
 
         void destroy();
+        [[nodiscard]] auto should_close() const -> bool;
 
     private:
         friend glfw::driver_t;

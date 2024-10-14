@@ -114,7 +114,7 @@ namespace orb::vk
         create_info.ppEnabledLayerNames = val_layers.data();
 
         auto res = vkCreateInstance(&create_info, nullptr, &data.handle);
-        if (res != VK_SUCCESS) { return error_t { "Could not create Vulkan instance: {}", (i64)res }; }
+        if (res != VK_SUCCESS) { return error_t { "Could not create Vulkan instance: {}", vkres::get_repr(res) }; }
 
         begin_chrono();
         auto create_deb_callback_fn = proc_addresses::create_deb_callback(data.handle);

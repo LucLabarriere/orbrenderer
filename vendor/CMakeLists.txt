@@ -4,6 +4,9 @@ add_subdirectory(orblib SYSTEM)
 # GLFW
 add_subdirectory(glfw   SYSTEM)
 
+# VMA
+add_subdirectory(VulkanMemoryAllocator SYSTEM)
+
 # imgui
 add_library(orbimgui STATIC  imgui/imgui_widgets.cpp
                              imgui/imgui_tables.cpp

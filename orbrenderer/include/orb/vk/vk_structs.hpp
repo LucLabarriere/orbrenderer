@@ -1,6 +1,7 @@
 #pragma once
 
 #include "orb/vk/vk_types.hpp"
+#include "orb/vk/vma.hpp"
 
 #include <vulkan/vulkan_core.h>
 
@@ -56,6 +57,14 @@ namespace orb::vk::structs
             };
         }
 
+        [[nodiscard]] inline auto image() -> VkImageCreateInfo
+        {
+            return {
+                .sType     = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+                .imageType = image_types::_2d,
+            };
+        }
+
         [[nodiscard]] inline auto image_view() -> VkImageViewCreateInfo
         {
             return {
@@ -67,16 +76,83 @@ namespace orb::vk::structs
                     .b = component_swizzles::b,
                     .a = component_swizzles::a,
                 },
-                .subresourceRange = { image_aspect_flag::color, 0, 1, 0, 1 },
+                .subresourceRange = { image_aspect_flags::color, 0, 1, 0, 1 },
             };
         }
 
+        [[nodiscard]] inline auto framebuffer() -> VkFramebufferCreateInfo
+        {
+            return {
+                .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            };
+        }
+
+        [[nodiscard]] inline auto descriptor_pool() -> VkDescriptorPoolCreateInfo
+        {
+            return {
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            };
+        }
+
+        [[nodiscard]] inline auto render_pass() -> VkRenderPassCreateInfo
+        {
+            return {
+                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            };
+        }
+
+        [[nodiscard]] inline auto semaphore() -> VkSemaphoreCreateInfo
+        {
+            return {
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            };
+        }
+
+        [[nodiscard]] inline auto fence() -> VkFenceCreateInfo
+        {
+            return {
+                .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+                .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+            };
+        }
+
+        [[nodiscard]] inline auto cmd_buffer() -> VkCommandBufferAllocateInfo
+        {
+            return {
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            };
+        }
+
+        [[nodiscard]] inline auto cmd_pool() -> VkCommandPoolCreateInfo
+        {
+            return {
+                .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            };
+        }
+
+        [[nodiscard]] inline auto allocator() -> VmaAllocatorCreateInfo
+        {
+            return {};
+        }
+
+        [[nodiscard]] inline auto allocation() -> VmaAllocationCreateInfo
+        {
+            return {};
+        }
     } // namespace create
 
     [[nodiscard]] inline auto cmd_buffer_begin() -> VkCommandBufferBeginInfo
     {
         return {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        };
+    }
+
+    [[nodiscard]] inline auto one_time_cmd_buffer_begin() -> VkCommandBufferBeginInfo
+    {
+        return {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
         };
     }
 
@@ -100,4 +176,5 @@ namespace orb::vk::structs
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         };
     }
+
 } // namespace orb::vk::structs

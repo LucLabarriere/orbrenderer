@@ -1,3 +1,6 @@
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
 #include <array>
 #include <functional>
 #include <iostream>
@@ -5,39 +8,40 @@
 
 #include <orb/eval.hpp>
 #include <orb/flux.hpp>
+
+#include <GLFW/glfw3.h>
 #include <orb/glfw.hpp>
 #include <orb/vk.hpp>
+#include <orb/vk/image.hpp>
+#include <orb/vk/imgui_pass.hpp>
 
 auto main() -> int
 {
     using namespace orb;
 
+    constexpr auto portability = vk::khr_extensions::portability_enumeration;
+
     try
     {
-
         // Initialize GLFW and the window
         glfw::driver_t::initialize().throw_if_error();
         glfw::window_t window = glfw::driver_t::create_window_for_vk().unwrap();
 
         // Initialize the vulkan instance
-        vk::instance_t instance = orb::eval | [] {
-            constexpr auto portability = vk::khr_extensions::portability_enumeration;
+        auto instance_builder = vk::instance_builder_t::prepare().unwrap();
 
-            auto b = vk::instance_builder_t::prepare().unwrap();
+        if (instance_builder.is_ext_available(portability))
+        {
+            instance_builder.add_extension(portability);
+            instance_builder.create_info.flags |= vk::instance_create::portability;
+        }
 
-            if (b.is_ext_available(portability))
-            {
-                b.add_extension(portability);
-                b.create_info.flags |= vk::instance_create::portability;
-            }
-
-            return b.add_glfw_required_extensions()
-                .add_extension(vk::khr_extensions::device_properties_2)
-                .debug_layer(vk::validation_layers::validation)
-                .add_extension(vk::extensions::debug_report)
-                .build()
-                .unwrap();
-        };
+        vk::instance_t instance = instance_builder.add_glfw_required_extensions()
+                                      .add_extension(vk::khr_extensions::device_properties_2)
+                                      .debug_layer(vk::validation_layers::validation)
+                                      .add_extension(vk::extensions::debug_report)
+                                      .build()
+                                      .unwrap();
 
         // Select the GPU
         box<vk::gpu_t> gpu = orb::eval | [&] {
@@ -60,7 +64,7 @@ auto main() -> int
         };
 
         // Print informations on select gpu
-        describe_gpu(*gpu);
+        describe(*gpu);
 
         // Select queue family
         vk::queue_family_t graphics_queue_family = orb::eval | [&]() -> vk::queue_family_t& {
@@ -80,7 +84,7 @@ auto main() -> int
         constexpr std::array queue_priorities { 1.0f };
 
         vk::device_t device = //
-            vk::device_builder_t::prepare()
+            vk::device_builder_t::prepare(instance.handle)
                 .unwrap()
                 .add_extension(vk::khr_extensions::swapchain)
                 .add_queues(graphics_queue_family, queue_priorities)
@@ -88,6 +92,8 @@ auto main() -> int
                 .unwrap();
 
         println("- Created vulkan device");
+
+        constexpr ui32 max_frames_in_flight = 2;
 
         // Create swapchain
         vk::swapchain_t swapchain = //
@@ -109,18 +115,135 @@ auto main() -> int
                 .present_mode(vk::present_modes::immediate_khr)
                 .present_mode(vk::present_modes::fifo_khr)
 
+                .semaphores(max_frames_in_flight)
+
                 .build()
                 .unwrap();
 
         println("- Created swapchain");
 
+        vk::imgui_pass_t imgui_pass = //
+            vk::imgui_pass_builder_t::prepare(weak { &window },
+                                              weak { &instance },
+                                              gpu.getmut(),
+                                              weak { &device },
+                                              weak { &swapchain })
+                .unwrap()
+                .desc_pool_size(vk::desc_types::sampler, 1)
+                .cmds(max_frames_in_flight)
+                .fences(max_frames_in_flight)
+                .framebuffers(max_frames_in_flight)
+                .semaphores(max_frames_in_flight)
+                .build()
+                .unwrap();
+
+        vk::render_info_t render_info {
+            .device    = device.handle,
+            .pass      = imgui_pass.handle,
+            .queue     = device.queues.back(),
+            .swapchain = weak { &swapchain },
+        };
+
+        ui32 frame    = 0;
+        ui32 sc_frame = 0;
+
+        VkExtent2D extent {
+            .width  = swapchain.width,
+            .height = swapchain.height,
+        };
+
+        describe(render_info);
+
+        while (!window.should_close())
+        {
+            glfwPollEvents();
+
+            render_info.fb         = imgui_pass.fbs.at(frame);
+            render_info.cmd        = imgui_pass.cmds.at(frame);
+            render_info.wait_fence = imgui_pass.fences.at(frame);
+
+            // Start the Dear ImGui frame
+            ImGui_ImplVulkan_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
+            vk::render_begin(render_info).throw_if_error();
+
+            ImGui::ShowDemoWindow();
+            ImGui::Render();
+            ImDrawData* draw_data = ImGui::GetDrawData();
+            ImGui_ImplVulkan_RenderDrawData(draw_data, render_info.cmd);
+
+            vk::render_end(render_info).throw_if_error();
+
+            {
+                auto r = vkAcquireNextImageKHR(device.handle,
+                                               swapchain.handle,
+                                               UINT64_MAX,
+                                               imgui_pass.semaphores.at(frame),
+                                               nullptr,
+                                               &sc_frame);
+                if (r == vk::vkres::err_out_of_date_khr || r == vk::vkres::suboptimal_khr)
+                {
+                    println("Swapchain error: {}", vk::vkres::get_repr(r));
+                    break;
+                }
+            }
+
+            auto copy_cmd       = vk::alloc_cmd(device, imgui_pass.cmd_pool).unwrap();
+            auto cmd_begin_info = vk::structs::one_time_cmd_buffer_begin();
+
+            vkBeginCommandBuffer(copy_cmd, &cmd_begin_info);
+            vk::transition_layout(copy_cmd,
+                                  imgui_pass.images.at(frame),
+                                  vk::image_layouts::undefined,
+                                  vk::image_layouts::transfer_src_optimal);
+            vk::transition_layout(copy_cmd,
+                                  swapchain.images.at(sc_frame),
+                                  vk::image_layouts::undefined,
+                                  vk::image_layouts::transfer_dst_optimal);
+            vk::copy_img(copy_cmd, imgui_pass.images.at(frame), swapchain.images.at(sc_frame), extent);
+            vk::transition_layout(copy_cmd,
+                                  swapchain.images.at(sc_frame),
+                                  vk::image_layouts::transfer_dst_optimal,
+                                  vk::image_layouts::present_src_khr);
+            vkEndCommandBuffer(copy_cmd);
+
+            auto submit_copy_info                 = vk::structs::submit();
+            submit_copy_info.pCommandBuffers      = &copy_cmd;
+            submit_copy_info.commandBufferCount   = 1;
+            submit_copy_info.waitSemaphoreCount   = 1;
+            submit_copy_info.pWaitSemaphores      = &imgui_pass.semaphores.at(frame);
+            submit_copy_info.signalSemaphoreCount = 1;
+            submit_copy_info.pSignalSemaphores    = &swapchain.semaphores.at(frame);
+            vkQueueSubmit(device.queues.back(), 1, &submit_copy_info, nullptr);
+
+            auto info               = vk::structs::present();
+            info.waitSemaphoreCount = 1;
+            info.pWaitSemaphores    = &swapchain.semaphores.at(frame);
+            info.swapchainCount     = 1;
+            info.pSwapchains        = &swapchain.handle;
+            info.pImageIndices      = &sc_frame;
+
+            if (auto r = vkQueuePresentKHR(device.queues.back(), &info); r != vk::vkres::ok)
+            {
+                println("Could not present frame: {}", vk::vkres::get_repr(r));
+                break;
+            }
+
+            frame = (frame + 1) % max_frames_in_flight;
+        }
+
         // Terminate glfw
         window.destroy();
+        vk::device_idle(device);
         println("- Destroyed window");
 
+        vk::destroy(imgui_pass);
         vk::destroy(swapchain);
         vk::destroy(device);
         vk::destroy(instance);
+        println("- Terminated Vulkan");
 
         glfw::driver_t::terminate();
         println("- Terminated GLFW");

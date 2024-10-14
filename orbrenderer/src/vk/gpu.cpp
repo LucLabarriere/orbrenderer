@@ -58,25 +58,26 @@ namespace orb::vk
         return d;
     }
 
-    void describe_gpu(const vk::gpu_t& gpu) {
-        println("--- Begin GPU description");
-        println("- GPU {}: {}", gpu.device_id, gpu.name);
-        println("- Driver: {}", gpu.driver_version);
-        println("- Vulkan handle: {}", orb::ptr(gpu.handle));
-        println("- GPU type: {}", gpu_types::strings[(size_t)gpu.device_type]);
-        println("- Available queue families");
+    void describe(const vk::gpu_t& gpu)
+    {
+        println("  --- Begin GPU description");
+        println("  - GPU {}: {}", gpu.device_id, gpu.name);
+        println("  - Driver: {}", gpu.driver_version);
+        println("  - Vulkan handle: {}", orb::ptr(gpu.handle));
+        println("  - GPU type: {}", gpu_types::strings[(size_t)gpu.device_type]);
+        println("  - Available queue families");
         for (const auto& [i, qf] : flux::enumerate(gpu.queue_families))
         {
-            println("  Queue family {}", i);
-            println("   * Queue count: {}", qf.properties.queueCount);
+            println("    Queue family {}", i);
+            println("     * Queue count: {}", qf.properties.queueCount);
 
-            print("   * Supports:");
+            print("     * Supports:");
             if (qf.properties.queueFlags & vk::queue_families::graphics) { print(" Graphics"); }
             if (qf.properties.queueFlags & vk::queue_families::transfer) { print(" Transfer"); }
             if (qf.properties.queueFlags & vk::queue_families::compute) { print(" Compute"); }
             println("");
         }
-        println("--- End GPU description");
+        println("  --- End    GPU description");
     };
 
 } // namespace orb::vk

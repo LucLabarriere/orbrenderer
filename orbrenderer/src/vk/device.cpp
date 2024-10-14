@@ -1,14 +1,17 @@
 #include "orb/vk/device.hpp"
 #include "orb/vk/gpu.hpp"
 #include "orb/vk/vk_structs.hpp"
+#include "orb/vk/vma.hpp"
 
 #include <orb/flux.hpp>
 
 namespace orb::vk
 {
-    auto device_builder_t::prepare() -> result<device_builder_t>
+    auto device_builder_t::prepare(VkInstance instance) -> result<device_builder_t>
     {
-        return device_builder_t {};
+        device_builder_t d;
+        d.m_instance = instance;
+        return d;
     }
 
     auto device_builder_t::add_queues(queue_family_t& qf, std::span<const priority_t> priorities)
@@ -44,11 +47,40 @@ namespace orb::vk
             }
         }
 
+        auto allocator_info             = structs::create::allocator();
+        allocator_info.physicalDevice   = gpu->handle;
+        allocator_info.device           = device.handle;
+        allocator_info.instance         = m_instance;
+        allocator_info.pVulkanFunctions = nullptr;
+
+        vmaCreateAllocator(&allocator_info, &device.allocator);
+
         return device;
+    }
+
+    auto alloc_cmd(device_t& device, VkCommandPool pool) -> result<VkCommandBuffer>
+    {
+        auto cmd_info               = vk::structs::create::cmd_buffer();
+        cmd_info.commandPool        = pool;
+        cmd_info.commandBufferCount = 1;
+        VkCommandBuffer cmd {};
+
+        if (auto r = vkAllocateCommandBuffers(device.handle, &cmd_info, &cmd); r != vk::vkres::ok)
+        {
+            return error_t { "Could not allocate cmd buffer: {}", vkres::get_repr(r) };
+        }
+
+        return cmd;
+    }
+
+    void device_idle(device_t& device)
+    {
+        vkDeviceWaitIdle(device.handle);
     }
 
     void destroy(device_t& device)
     {
+        vmaDestroyAllocator(device.allocator);
         vkDestroyDevice(device.handle, nullptr);
     }
 

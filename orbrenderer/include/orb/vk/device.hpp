@@ -8,6 +8,8 @@
 #include <span>
 #include <vector>
 
+using VmaAllocator = struct VmaAllocator_T*;
+
 namespace orb::vk
 {
     struct gpu_t;
@@ -19,12 +21,13 @@ namespace orb::vk
     {
         VkDevice             handle {};
         std::vector<VkQueue> queues {};
+        VmaAllocator         allocator {};
     };
 
     class device_builder_t
     {
     public:
-        static auto        prepare() -> result<device_builder_t>;
+        static auto        prepare(VkInstance instance) -> result<device_builder_t>;
         [[nodiscard]] auto build(weak<gpu_t>) -> result<device_t>;
 
         auto add_extension(const char* ext) -> device_builder_t&
@@ -38,11 +41,14 @@ namespace orb::vk
     private:
         device_builder_t() = default;
 
+        VkInstance                           m_instance {};
         std::vector<const char*>             m_extensions;
         weak<gpu_t>                          m_gpu;
         std::vector<VkDeviceQueueCreateInfo> m_queue_infos;
     };
 
-    void destroy(device_t& device);
+    auto alloc_cmd(device_t&, VkCommandPool) -> result<VkCommandBuffer>;
+    void device_idle(device_t&);
+    void destroy(device_t&);
 
 } // namespace orb::vk

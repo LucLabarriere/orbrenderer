@@ -141,7 +141,7 @@ namespace orb::vk
             info.imageFormat      = sc.format.format;
             info.imageColorSpace  = sc.format.colorSpace;
             info.imageArrayLayers = 1;
-            info.imageUsage       = image_usage_flag::color_attachment;
+            info.imageUsage       = image_usage_flags::color_attachment | image_usage_flags::transfer_dst;
             info.imageSharingMode = sharing_modes::exclusive; // Assume that graphics family == present family
             info.preTransform     = surface_transform_flag::identity_khr;
             info.compositeAlpha   = composite_alpha_flag::opaque_khr;
@@ -151,9 +151,9 @@ namespace orb::vk
 
             VkSurfaceCapabilitiesKHR cap {};
             if (auto res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu->handle, sc.surface, &cap);
-                res != VK_SUCCESS)
+                res != vkres::ok)
             {
-                return error_t { "Could not retrieve surface capabilities: {}", (i64)res };
+                return error_t { "Could not retrieve surface capabilities: {}", vkres::get_repr(res) };
             }
 
             info.minImageCount = std::max(info.minImageCount, cap.minImageCount);
@@ -176,24 +176,34 @@ namespace orb::vk
                 info.imageExtent.height = cap.currentExtent.height;
             }
 
-            if (auto r = vkCreateSwapchainKHR(device->handle, &info, nullptr, &sc.handle); r != VK_SUCCESS)
+            if (auto r = vkCreateSwapchainKHR(device->handle, &info, nullptr, &sc.handle); r != vkres::ok)
             {
-                return error_t { "Could not create the swapchain: {}", (i64)r };
+                return error_t { "Could not create the swapchain: {}", vkres::get_repr(r) };
             }
 
             if (auto r = vkGetSwapchainImagesKHR(device->handle, sc.handle, &sc.img_count, nullptr);
-                r != VK_SUCCESS)
+                r != vkres::ok)
             {
-                return error_t { "Could not retrieve swapchain image count: {}", (i64)r };
+                return error_t { "Could not retrieve swapchain image count: {}", vkres::get_repr(r) };
+            }
+
+            auto sem_info = structs::create::semaphore();
+            sc.semaphores.resize(semaphore_count);
+            for (auto& sem : sc.semaphores)
+            {
+                if (auto res = vkCreateSemaphore(device->handle, &sem_info, nullptr, &sem); res != vkres::ok)
+                {
+                    return error_t { "Could not create Swapchain semaphore: {}", vkres::get_repr(res) };
+                }
             }
 
             sc.images.resize(sc.img_count);
             sc.views.resize(sc.img_count);
 
             if (auto r = vkGetSwapchainImagesKHR(device->handle, sc.handle, &sc.img_count, sc.images.data());
-                r != VK_SUCCESS)
+                r != vkres::ok)
             {
-                return error_t { "Could not retrieve swapchain images: {}", (i64)r };
+                return error_t { "Could not retrieve swapchain images: {}", vkres::get_repr(r) };
             }
         }
 
@@ -202,15 +212,15 @@ namespace orb::vk
             auto info   = structs::create::image_view();
             info.format = sc.format.format;
 
-            VkImageSubresourceRange image_range = { image_aspect_flag::color, 0, 1, 0, 1 };
+            VkImageSubresourceRange image_range = { image_aspect_flags::color, 0, 1, 0, 1 };
             info.subresourceRange               = image_range;
 
             for (auto [img, view] : flux::zip_all_mut(sc.images, sc.views))
             {
                 info.image = img;
-                if (auto r = vkCreateImageView(device->handle, &info, nullptr, &view); r != VK_SUCCESS)
+                if (auto r = vkCreateImageView(device->handle, &info, nullptr, &view); r != vkres::ok)
                 {
-                    return error_t { "Could not create swapchain image view: {}", (i64)r };
+                    return error_t { "Could not create swapchain image view: {}", vkres::get_repr(r) };
                 }
             }
         }
@@ -223,6 +233,11 @@ namespace orb::vk
         for (auto& view : swapchain.views)
         {
             vkDestroyImageView(swapchain.device, view, nullptr);
+        }
+
+        for (auto& sem : swapchain.semaphores)
+        {
+            vkDestroySemaphore(swapchain.device, sem, nullptr);
         }
 
         vkDestroySwapchainKHR(swapchain.device, swapchain.handle, nullptr);

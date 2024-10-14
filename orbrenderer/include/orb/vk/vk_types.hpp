@@ -1,5 +1,6 @@
 #pragma once
 
+#include "orb/vk/vma.hpp"
 #include <orb/assert.hpp>
 
 #include <array>
@@ -15,9 +16,10 @@ namespace orb::vk
         inline constexpr const char* portability_enumeration = //
             VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
 
-        inline constexpr const char* surface       = "VK_KHR_surface";
-        inline constexpr const char* win32_surface = "VK_KHR_win32_surface";
-        inline constexpr const char* swapchain     = "VK_KHR_swapchain";
+        inline constexpr const char* surface               = "VK_KHR_surface";
+        inline constexpr const char* win32_surface         = "VK_KHR_win32_surface";
+        inline constexpr const char* swapchain             = "VK_KHR_swapchain";
+        inline constexpr const char* buffer_device_address = "VK_KHR_buffer_device_address";
 
     } // namespace khr_extensions
 
@@ -32,7 +34,6 @@ namespace orb::vk
     }
 
     namespace gpu_types
-
     {
         using namespace std::literals;
         using enum_t                            = VkPhysicalDeviceType;
@@ -107,40 +108,40 @@ namespace orb::vk
         inline constexpr auto mutable_valve              = VK_DESCRIPTOR_TYPE_MUTABLE_VALVE;
     } // namespace desc_types
 
-    namespace attachment_load_op
+    namespace attachment_load_ops
     {
         using enum_t                    = VkAttachmentLoadOp;
         inline constexpr auto load      = VK_ATTACHMENT_LOAD_OP_LOAD;
         inline constexpr auto clear     = VK_ATTACHMENT_LOAD_OP_CLEAR;
         inline constexpr auto dont_care = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         inline constexpr auto none      = VK_ATTACHMENT_LOAD_OP_NONE_EXT;
-    } // namespace attachment_load_op
+    } // namespace attachment_load_ops
 
-    namespace attachment_store_op
+    namespace attachment_store_ops
     {
         using enum_t                    = VkAttachmentStoreOp;
         inline constexpr auto store     = VK_ATTACHMENT_STORE_OP_STORE;
         inline constexpr auto dont_care = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         inline constexpr auto none      = VK_ATTACHMENT_STORE_OP_NONE;
-    }; // namespace attachment_store_op
+    }; // namespace attachment_store_ops
 
-    namespace pipeline_bind_point
+    namespace pipeline_bind_points
     {
         using enum_t                          = VkPipelineBindPoint;
         inline constexpr auto graphics        = VK_PIPELINE_BIND_POINT_GRAPHICS;
         inline constexpr auto compute         = VK_PIPELINE_BIND_POINT_COMPUTE;
         inline constexpr auto ray_tracing_khr = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
         inline constexpr auto ray_tracing_nv  = VK_PIPELINE_BIND_POINT_RAY_TRACING_NV;
-    }; // namespace pipeline_bind_point
+    }; // namespace pipeline_bind_points
 
-    namespace cmd_buffer_level
+    namespace cmd_buffer_levels
     {
         using enum_t                    = VkCommandBufferLevel;
         inline constexpr auto primary   = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         inline constexpr auto secondary = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-    }; // namespace cmd_buffer_level
+    }; // namespace cmd_buffer_levels
 
-    namespace access_flag
+    namespace access_flags
     {
         using enum_t                                         = VkAccessFlagBits;
         inline constexpr auto indirect_command_read          = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
@@ -181,9 +182,9 @@ namespace orb::vk
         inline constexpr auto acceleration_structure_read_nv  = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
         inline constexpr auto acceleration_structure_write_nv = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV;
         inline constexpr auto none_khr                        = VK_ACCESS_NONE_KHR;
-    } // namespace access_flag
+    } // namespace access_flags
 
-    namespace image_aspect_flag
+    namespace image_aspect_flags
     {
         using enum_t                             = VkImageAspectFlagBits;
         inline constexpr auto color              = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -202,9 +203,9 @@ namespace orb::vk
         inline constexpr auto plane_1_khr        = VK_IMAGE_ASPECT_PLANE_1_BIT_KHR;
         inline constexpr auto plane_2_khr        = VK_IMAGE_ASPECT_PLANE_2_BIT_KHR;
         inline constexpr auto none_khr           = VK_IMAGE_ASPECT_NONE_KHR;
-    } // namespace image_aspect_flag
+    } // namespace image_aspect_flags
 
-    namespace pipeline_stage_flag
+    namespace pipeline_stage_flags
     {
         using enum_t                                      = VkPipelineStageFlagBits;
         inline constexpr auto top_of_pipe                 = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -245,72 +246,121 @@ namespace orb::vk
         inline constexpr auto task_shader_nv = VK_PIPELINE_STAGE_TASK_SHADER_BIT_NV;
         inline constexpr auto mesh_shader_nv = VK_PIPELINE_STAGE_MESH_SHADER_BIT_NV;
         inline constexpr auto none_khr       = VK_PIPELINE_STAGE_NONE_KHR;
-    } // namespace pipeline_stage_flag
+    } // namespace pipeline_stage_flags
 
     namespace vkres
     {
-        using enum_t                                             = VkResult;
-        inline constexpr auto success                            = VK_SUCCESS;
-        inline constexpr auto not_ready                          = VK_NOT_READY;
-        inline constexpr auto timeout                            = VK_TIMEOUT;
-        inline constexpr auto event_set                          = VK_EVENT_SET;
-        inline constexpr auto event_reset                        = VK_EVENT_RESET;
-        inline constexpr auto incomplete                         = VK_INCOMPLETE;
-        inline constexpr auto err_out_of_host_memory             = VK_ERROR_OUT_OF_HOST_MEMORY;
-        inline constexpr auto err_out_of_device_memory           = VK_ERROR_OUT_OF_DEVICE_MEMORY;
-        inline constexpr auto err_initialization_failed          = VK_ERROR_INITIALIZATION_FAILED;
-        inline constexpr auto err_device_lost                    = VK_ERROR_DEVICE_LOST;
-        inline constexpr auto err_memory_map_failed              = VK_ERROR_MEMORY_MAP_FAILED;
-        inline constexpr auto err_layer_not_present              = VK_ERROR_LAYER_NOT_PRESENT;
-        inline constexpr auto err_extension_not_present          = VK_ERROR_EXTENSION_NOT_PRESENT;
-        inline constexpr auto err_feature_not_present            = VK_ERROR_FEATURE_NOT_PRESENT;
-        inline constexpr auto err_incompatible_driver            = VK_ERROR_INCOMPATIBLE_DRIVER;
-        inline constexpr auto err_too_many_objects               = VK_ERROR_TOO_MANY_OBJECTS;
-        inline constexpr auto err_format_not_supported           = VK_ERROR_FORMAT_NOT_SUPPORTED;
-        inline constexpr auto err_fragmented_pool                = VK_ERROR_FRAGMENTED_POOL;
-        inline constexpr auto err_unknown                        = VK_ERROR_UNKNOWN;
-        inline constexpr auto err_out_of_pool_memory             = VK_ERROR_OUT_OF_POOL_MEMORY;
-        inline constexpr auto err_invalid_external_handle        = VK_ERROR_INVALID_EXTERNAL_HANDLE;
-        inline constexpr auto err_fragmentation                  = VK_ERROR_FRAGMENTATION;
-        inline constexpr auto err_invalid_opaque_capture_address = VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS;
-        inline constexpr auto pipeline_compile_required          = VK_PIPELINE_COMPILE_REQUIRED;
-        inline constexpr auto err_surface_lost_khr               = VK_ERROR_SURFACE_LOST_KHR;
-        inline constexpr auto err_native_window_in_use_khr       = VK_ERROR_NATIVE_WINDOW_IN_USE_KHR;
-        inline constexpr auto suboptimal_khr                     = VK_SUBOPTIMAL_KHR;
-        inline constexpr auto err_out_of_date_khr                = VK_ERROR_OUT_OF_DATE_KHR;
-        inline constexpr auto err_incompatible_display_khr       = VK_ERROR_INCOMPATIBLE_DISPLAY_KHR;
-        inline constexpr auto err_validation_failed_ext          = VK_ERROR_VALIDATION_FAILED_EXT;
-        inline constexpr auto err_invalid_shader_nv              = VK_ERROR_INVALID_SHADER_NV;
-        inline constexpr auto err_image_usage_not_supported_khr  = VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR;
-        inline constexpr auto err_video_picture_layout_not_supported_khr =
-            VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR;
-        inline constexpr auto err_video_profile_operation_not_supported_khr =
-            VK_ERROR_VIDEO_PROFILE_OPERATION_NOT_SUPPORTED_KHR;
-        inline constexpr auto err_video_profile_format_not_supported_khr =
-            VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR;
-        inline constexpr auto err_video_profile_codec_not_supported_khr =
-            VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR;
-        inline constexpr auto err_video_std_version_not_supported_khr =
-            VK_ERROR_VIDEO_STD_VERSION_NOT_SUPPORTED_KHR;
-        inline constexpr auto err_invalid_drm_format_modifier_plane_layout_ext =
-            VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT;
-        inline constexpr auto err_not_permitted_khr = VK_ERROR_NOT_PERMITTED_KHR;
-        inline constexpr auto err_full_screen_exclusive_mode_lost_ext =
-            VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT;
-        inline constexpr auto thread_idle_khr                 = VK_THREAD_IDLE_KHR;
-        inline constexpr auto thread_done_khr                 = VK_THREAD_DONE_KHR;
-        inline constexpr auto operation_deferred_khr          = VK_OPERATION_DEFERRED_KHR;
-        inline constexpr auto operation_not_deferred_khr      = VK_OPERATION_NOT_DEFERRED_KHR;
-        inline constexpr auto err_compression_exhausted_ext   = VK_ERROR_COMPRESSION_EXHAUSTED_EXT;
-        inline constexpr auto err_out_of_pool_memory_khr      = VK_ERROR_OUT_OF_POOL_MEMORY_KHR;
-        inline constexpr auto err_invalid_external_handle_khr = VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR;
-        inline constexpr auto err_fragmentation_ext           = VK_ERROR_FRAGMENTATION_EXT;
-        inline constexpr auto err_not_permitted_ext           = VK_ERROR_NOT_PERMITTED_EXT;
-        inline constexpr auto err_invalid_device_address_ext  = VK_ERROR_INVALID_DEVICE_ADDRESS_EXT;
-        inline constexpr auto err_invalid_opaque_capture_address_khr =
-            VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR;
-        inline constexpr auto pipeline_compile_required_ext     = VK_PIPELINE_COMPILE_REQUIRED_EXT;
-        inline constexpr auto err_pipeline_compile_required_ext = VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT;
+        using enum_t = VkResult;
+
+        template <enum_t res>
+        inline constexpr std::string_view repr = "unknown error";
+
+#define define_vkres(orbvar, vkvar)       \
+    inline constexpr auto orbvar = vkvar; \
+    template <>                           \
+    inline constexpr std::string_view repr<orbvar> = #orbvar;
+
+        // clang-format off
+        define_vkres(ok, VK_SUCCESS);
+        define_vkres(not_ready, VK_NOT_READY);
+        define_vkres(timeout, VK_TIMEOUT);
+        define_vkres(event_set, VK_EVENT_SET);
+        define_vkres(event_reset, VK_EVENT_RESET);
+        define_vkres(incomplete, VK_INCOMPLETE);
+        define_vkres(err_out_of_host_memory, VK_ERROR_OUT_OF_HOST_MEMORY);
+        define_vkres(err_out_of_device_memory, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+        define_vkres(err_initialization_failed, VK_ERROR_INITIALIZATION_FAILED);
+        define_vkres(err_device_lost, VK_ERROR_DEVICE_LOST);
+        define_vkres(err_memory_map_failed, VK_ERROR_MEMORY_MAP_FAILED);
+        define_vkres(err_layer_not_present, VK_ERROR_LAYER_NOT_PRESENT);
+        define_vkres(err_extension_not_present, VK_ERROR_EXTENSION_NOT_PRESENT);
+        define_vkres(err_feature_not_present, VK_ERROR_FEATURE_NOT_PRESENT);
+        define_vkres(err_incompatible_driver, VK_ERROR_INCOMPATIBLE_DRIVER);
+        define_vkres(err_too_many_objects, VK_ERROR_TOO_MANY_OBJECTS);
+        define_vkres(err_format_not_supported, VK_ERROR_FORMAT_NOT_SUPPORTED);
+        define_vkres(err_fragmented_pool, VK_ERROR_FRAGMENTED_POOL);
+        define_vkres(err_unknown, VK_ERROR_UNKNOWN);
+        define_vkres(err_out_of_pool_memory, VK_ERROR_OUT_OF_POOL_MEMORY);
+        define_vkres(err_invalid_external_handle, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+        define_vkres(err_fragmentation, VK_ERROR_FRAGMENTATION);
+        define_vkres(err_invalid_opaque_capture_address, VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS);
+        define_vkres(pipeline_compile_required, VK_PIPELINE_COMPILE_REQUIRED);
+        define_vkres(err_surface_lost_khr, VK_ERROR_SURFACE_LOST_KHR);
+        define_vkres(err_native_window_in_use_khr, VK_ERROR_NATIVE_WINDOW_IN_USE_KHR);
+        define_vkres(suboptimal_khr, VK_SUBOPTIMAL_KHR);
+        define_vkres(err_out_of_date_khr, VK_ERROR_OUT_OF_DATE_KHR);
+        define_vkres(err_incompatible_display_khr, VK_ERROR_INCOMPATIBLE_DISPLAY_KHR);
+        define_vkres(err_validation_failed_ext, VK_ERROR_VALIDATION_FAILED_EXT);
+        define_vkres(err_invalid_shader_nv, VK_ERROR_INVALID_SHADER_NV);
+        define_vkres(err_image_usage_not_supported_khr, VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR);
+        define_vkres(err_video_picture_layout_not_supported_khr, VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR);
+        define_vkres(err_video_profile_operation_not_supported_khr, VK_ERROR_VIDEO_PROFILE_OPERATION_NOT_SUPPORTED_KHR);
+        define_vkres(err_video_profile_format_not_supported_khr, VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR);
+        define_vkres(err_video_profile_codec_not_supported_khr, VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR);
+        define_vkres(err_video_std_version_not_supported_khr, VK_ERROR_VIDEO_STD_VERSION_NOT_SUPPORTED_KHR);
+        define_vkres(err_invalid_drm_format_modifier_plane_layout_ext, VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT);
+        define_vkres(err_not_permitted_khr, VK_ERROR_NOT_PERMITTED_KHR);
+        define_vkres(err_full_screen_exclusive_mode_lost_ext, VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT);
+        define_vkres(thread_idle_khr, VK_THREAD_IDLE_KHR);
+        define_vkres(thread_done_khr, VK_THREAD_DONE_KHR);
+        define_vkres(operation_deferred_khr, VK_OPERATION_DEFERRED_KHR);
+        define_vkres(operation_not_deferred_khr, VK_OPERATION_NOT_DEFERRED_KHR);
+        define_vkres(err_compression_exhausted_ext, VK_ERROR_COMPRESSION_EXHAUSTED_EXT);
+
+        inline constexpr auto get_repr(vkres::enum_t res) -> std::string_view
+        {
+            switch (res)
+            {
+            case vkres::ok: return repr<vkres::ok>;
+            case vkres::not_ready: return repr<vkres::not_ready>;
+            case vkres::timeout: return repr<vkres::timeout>;
+            case vkres::event_set: return repr<vkres::event_set>;
+            case vkres::event_reset: return repr<vkres::event_reset>;
+            case vkres::incomplete: return repr<vkres::incomplete>;
+            case vkres::err_out_of_host_memory: return repr<vkres::err_out_of_host_memory>;
+            case vkres::err_out_of_device_memory: return repr<vkres::err_out_of_device_memory>;
+            case vkres::err_initialization_failed: return repr<vkres::err_initialization_failed>;
+            case vkres::err_device_lost: return repr<vkres::err_device_lost>;
+            case vkres::err_memory_map_failed: return repr<vkres::err_memory_map_failed>;
+            case vkres::err_layer_not_present: return repr<vkres::err_layer_not_present>;
+            case vkres::err_extension_not_present: return repr<vkres::err_extension_not_present>;
+            case vkres::err_feature_not_present: return repr<vkres::err_feature_not_present>;
+            case vkres::err_incompatible_driver: return repr<vkres::err_incompatible_driver>;
+            case vkres::err_too_many_objects: return repr<vkres::err_too_many_objects>;
+            case vkres::err_format_not_supported: return repr<vkres::err_format_not_supported>;
+            case vkres::err_fragmented_pool: return repr<vkres::err_fragmented_pool>;
+            case vkres::err_unknown: return repr<vkres::err_unknown>;
+            case vkres::err_out_of_pool_memory: return repr<vkres::err_out_of_pool_memory>;
+            case vkres::err_invalid_external_handle: return repr<vkres::err_invalid_external_handle>;
+            case vkres::err_fragmentation: return repr<vkres::err_fragmentation>;
+            case vkres::err_invalid_opaque_capture_address: return repr<vkres::err_invalid_opaque_capture_address>;
+            case vkres::pipeline_compile_required: return repr<vkres::pipeline_compile_required>;
+            case vkres::err_surface_lost_khr: return repr<vkres::err_surface_lost_khr>;
+            case vkres::err_native_window_in_use_khr: return repr<vkres::err_native_window_in_use_khr>;
+            case vkres::suboptimal_khr: return repr<vkres::suboptimal_khr>;
+            case vkres::err_out_of_date_khr: return repr<vkres::err_out_of_date_khr>;
+            case vkres::err_incompatible_display_khr: return repr<vkres::err_incompatible_display_khr>;
+            case vkres::err_validation_failed_ext: return repr<vkres::err_validation_failed_ext>;
+            case vkres::err_invalid_shader_nv: return repr<vkres::err_invalid_shader_nv>;
+            case vkres::err_image_usage_not_supported_khr: return repr<vkres::err_image_usage_not_supported_khr>;
+            case vkres::err_video_picture_layout_not_supported_khr: return repr<vkres::err_video_picture_layout_not_supported_khr>;
+            case vkres::err_video_profile_operation_not_supported_khr: return repr<vkres::err_video_profile_operation_not_supported_khr>;
+            case vkres::err_video_profile_format_not_supported_khr: return repr<vkres::err_video_profile_format_not_supported_khr>;
+            case vkres::err_video_profile_codec_not_supported_khr: return repr<vkres::err_video_profile_codec_not_supported_khr>;
+            case vkres::err_video_std_version_not_supported_khr: return repr<vkres::err_video_std_version_not_supported_khr>;
+            case vkres::err_invalid_drm_format_modifier_plane_layout_ext: return repr<vkres::err_invalid_drm_format_modifier_plane_layout_ext>;
+            case vkres::err_not_permitted_khr: return repr<vkres::err_not_permitted_khr>;
+            case vkres::err_full_screen_exclusive_mode_lost_ext: return repr<vkres::err_full_screen_exclusive_mode_lost_ext>;
+            case vkres::thread_idle_khr: return repr<vkres::thread_idle_khr>;
+            case vkres::thread_done_khr: return repr<vkres::thread_done_khr>;
+            case vkres::operation_deferred_khr: return repr<vkres::operation_deferred_khr>;
+            case vkres::operation_not_deferred_khr: return repr<vkres::operation_not_deferred_khr>;
+            case vkres::err_compression_exhausted_ext: return repr<vkres::err_compression_exhausted_ext>;
+            default: return "unknown error";
+            }
+        }
+        // clang-format on
+
     } // namespace vkres
 
     namespace formats
@@ -689,7 +739,7 @@ namespace orb::vk
         inline constexpr auto dci_p3_linear_ext           = VK_COLOR_SPACE_DCI_P3_LINEAR_EXT;
     } // namespace color_spaces
 
-    namespace image_usage_flag
+    namespace image_usage_flags
     {
         using enum_t                                       = VkImageUsageFlagBits;
         inline constexpr auto transfer_src                 = VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
@@ -720,7 +770,7 @@ namespace orb::vk
 #ifdef VK_ENABLE_BETA_EXTENSIONS
         inline constexpr auto video_encode_dpb_khr = VK_IMAGE_USAGE_VIDEO_ENCODE_DPB_BIT_KHR;
 #endif
-    } // namespace image_usage_flag
+    } // namespace image_usage_flags
 
     namespace sharing_modes
     {
@@ -755,28 +805,165 @@ namespace orb::vk
         inline constexpr auto inherit_khr         = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
     } // namespace composite_alpha_flag
 
+    namespace image_tilings
+    {
+        using enum_t                                  = VkImageTiling;
+        inline constexpr auto optimal                 = VK_IMAGE_TILING_OPTIMAL;
+        inline constexpr auto linear                  = VK_IMAGE_TILING_LINEAR;
+        inline constexpr auto drm_format_modifier_ext = VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT;
+    } // namespace image_tilings
+
+    namespace image_types
+    {
+        using enum_t              = VkImageType;
+        inline constexpr auto _1d = VK_IMAGE_TYPE_1D;
+        inline constexpr auto _2d = VK_IMAGE_TYPE_2D;
+        inline constexpr auto _3d = VK_IMAGE_TYPE_3D;
+    } // namespace image_types
+
     namespace image_view_types
     {
-        using enum_t                   = VkImageViewType;
-        constexpr auto type_1d         = VK_IMAGE_VIEW_TYPE_1D;
-        constexpr auto type_2d         = VK_IMAGE_VIEW_TYPE_2D;
-        constexpr auto type_3d         = VK_IMAGE_VIEW_TYPE_3D;
-        constexpr auto type_cube       = VK_IMAGE_VIEW_TYPE_CUBE;
-        constexpr auto type_1d_array   = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
-        constexpr auto type_2d_array   = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-        constexpr auto type_cube_array = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+        using enum_t                          = VkImageViewType;
+        inline constexpr auto type_1d         = VK_IMAGE_VIEW_TYPE_1D;
+        inline constexpr auto type_2d         = VK_IMAGE_VIEW_TYPE_2D;
+        inline constexpr auto type_3d         = VK_IMAGE_VIEW_TYPE_3D;
+        inline constexpr auto type_cube       = VK_IMAGE_VIEW_TYPE_CUBE;
+        inline constexpr auto type_1d_array   = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+        inline constexpr auto type_2d_array   = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        inline constexpr auto type_cube_array = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
     } // namespace image_view_types
 
     namespace component_swizzles
     {
-        using enum_t            = VkComponentSwizzle;
-        constexpr auto identity = VK_COMPONENT_SWIZZLE_IDENTITY;
-        constexpr auto zero     = VK_COMPONENT_SWIZZLE_ZERO;
-        constexpr auto one      = VK_COMPONENT_SWIZZLE_ONE;
-        constexpr auto r        = VK_COMPONENT_SWIZZLE_R;
-        constexpr auto g        = VK_COMPONENT_SWIZZLE_G;
-        constexpr auto b        = VK_COMPONENT_SWIZZLE_B;
-        constexpr auto a        = VK_COMPONENT_SWIZZLE_A;
+        using enum_t                   = VkComponentSwizzle;
+        inline constexpr auto identity = VK_COMPONENT_SWIZZLE_IDENTITY;
+        inline constexpr auto zero     = VK_COMPONENT_SWIZZLE_ZERO;
+        inline constexpr auto one      = VK_COMPONENT_SWIZZLE_ONE;
+        inline constexpr auto r        = VK_COMPONENT_SWIZZLE_R;
+        inline constexpr auto g        = VK_COMPONENT_SWIZZLE_G;
+        inline constexpr auto b        = VK_COMPONENT_SWIZZLE_B;
+        inline constexpr auto a        = VK_COMPONENT_SWIZZLE_A;
     } // namespace component_swizzles
+
+    namespace sample_count_flags
+    {
+        using enum_t              = VkSampleCountFlagBits;
+        inline constexpr auto _1  = VK_SAMPLE_COUNT_1_BIT;
+        inline constexpr auto _2  = VK_SAMPLE_COUNT_2_BIT;
+        inline constexpr auto _4  = VK_SAMPLE_COUNT_4_BIT;
+        inline constexpr auto _8  = VK_SAMPLE_COUNT_8_BIT;
+        inline constexpr auto _16 = VK_SAMPLE_COUNT_16_BIT;
+        inline constexpr auto _32 = VK_SAMPLE_COUNT_32_BIT;
+        inline constexpr auto _64 = VK_SAMPLE_COUNT_64_BIT;
+    } // namespace sample_count_flags
+
+    namespace descriptor_pool_create_flags
+    {
+        using enum_t = VkDescriptorPoolCreateFlagBits;
+
+        inline constexpr auto free_descriptor_set_bit   = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        inline constexpr auto update_after_bind_bit     = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+        inline constexpr auto host_only_bit_ext         = VK_DESCRIPTOR_POOL_CREATE_HOST_ONLY_BIT_EXT;
+        inline constexpr auto update_after_bind_bit_ext = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
+        inline constexpr auto host_only_bit_valve       = VK_DESCRIPTOR_POOL_CREATE_HOST_ONLY_BIT_VALVE;
+    } // namespace descriptor_pool_create_flags
+
+    namespace image_layouts
+    {
+        using enum_t                                   = VkImageLayout;
+        inline constexpr auto undefined                = VK_IMAGE_LAYOUT_UNDEFINED;
+        inline constexpr auto general                  = VK_IMAGE_LAYOUT_GENERAL;
+        inline constexpr auto color_attachment_optimal = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        inline constexpr auto depth_stencil_attachment_optimal =
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        inline constexpr auto depth_stencil_read_only_optimal =
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+        inline constexpr auto shader_read_only_optimal = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        inline constexpr auto transfer_src_optimal     = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        inline constexpr auto transfer_dst_optimal     = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        inline constexpr auto preinitialized           = VK_IMAGE_LAYOUT_PREINITIALIZED;
+        inline constexpr auto depth_read_only_stencil_attachment_optimal =
+            VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL;
+        inline constexpr auto depth_attachment_stencil_read_only_optimal =
+            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
+        inline constexpr auto depth_attachment_optimal   = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        inline constexpr auto depth_read_only_optimal    = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+        inline constexpr auto stencil_attachment_optimal = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+        inline constexpr auto stencil_read_only_optimal  = VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
+        inline constexpr auto read_only_optimal          = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+        inline constexpr auto attachment_optimal         = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+        inline constexpr auto present_src_khr            = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        inline constexpr auto video_decode_dst_khr       = VK_IMAGE_LAYOUT_VIDEO_DECODE_DST_KHR;
+        inline constexpr auto video_decode_src_khr       = VK_IMAGE_LAYOUT_VIDEO_DECODE_SRC_KHR;
+        inline constexpr auto video_decode_dpb_khr       = VK_IMAGE_LAYOUT_VIDEO_DECODE_DPB_KHR;
+        inline constexpr auto shared_present_khr         = VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
+        inline constexpr auto fragment_density_map_optimal_ext =
+            VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+        inline constexpr auto fragment_shading_rate_attachment_optimal_khr =
+            VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+        inline constexpr auto attachment_feedback_loop_optimal_ext =
+            VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT;
+        inline constexpr auto depth_read_only_stencil_attachment_optimal_khr =
+            VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL_KHR;
+        inline constexpr auto depth_attachment_stencil_read_only_optimal_khr =
+            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL_KHR;
+        inline constexpr auto shading_rate_optimal_nv        = VK_IMAGE_LAYOUT_SHADING_RATE_OPTIMAL_NV;
+        inline constexpr auto depth_attachment_optimal_khr   = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL_KHR;
+        inline constexpr auto depth_read_only_optimal_khr    = VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL_KHR;
+        inline constexpr auto stencil_attachment_optimal_khr = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL_KHR;
+        inline constexpr auto stencil_read_only_optimal_khr  = VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL_KHR;
+        inline constexpr auto read_only_optimal_khr          = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR;
+        inline constexpr auto attachment_optimal_khr         = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+        inline constexpr auto video_encode_dst_khr = VK_IMAGE_LAYOUT_VIDEO_ENCODE_DST_KHR;
+#endif
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+        inline constexpr auto video_encode_src_khr = VK_IMAGE_LAYOUT_VIDEO_ENCODE_SRC_KHR;
+#endif
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+        inline constexpr auto video_encode_dpb_khr = VK_IMAGE_LAYOUT_VIDEO_ENCODE_DPB_KHR;
+#endif
+    } // namespace image_layouts
+
+    namespace command_pool_create_flags
+    {
+        using enum_t                                   = VkCommandPoolCreateFlagBits;
+        inline constexpr auto transient_bit            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        inline constexpr auto reset_command_buffer_bit = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        inline constexpr auto protected_bit            = VK_COMMAND_POOL_CREATE_PROTECTED_BIT;
+    } // namespace command_pool_create_flags
+
+    namespace memory_property_flags
+    {
+        using enum_t                                  = VkMemoryPropertyFlagBits;
+        inline constexpr auto device_local_bit        = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        inline constexpr auto host_visible_bit        = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+        inline constexpr auto host_coherent_bit       = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        inline constexpr auto host_cached_bit         = VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+        inline constexpr auto lazily_allocated_bit    = VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
+        inline constexpr auto protected_bit           = VK_MEMORY_PROPERTY_PROTECTED_BIT;
+        inline constexpr auto device_coherent_bit_amd = VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD;
+        inline constexpr auto device_uncached_bit_amd = VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD;
+        inline constexpr auto rdma_capable_bit_nv     = VK_MEMORY_PROPERTY_RDMA_CAPABLE_BIT_NV;
+    } // namespace memory_property_flags
+
+    namespace memory_usages
+    {
+        using enum_t                                   = VmaMemoryUsage;
+        inline constexpr auto unknown                  = VMA_MEMORY_USAGE_UNKNOWN;
+        inline constexpr auto gpu_lazily_allocated     = VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED;
+        inline constexpr auto usage_auto               = VMA_MEMORY_USAGE_AUTO;
+        inline constexpr auto usage_auto_prefer_device = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+        inline constexpr auto usage_auto_prefer_host   = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
+    } // namespace memory_usages
+
+    namespace filters
+    {
+        using enum_t                    = VkFilter;
+        inline constexpr auto nearest   = VK_FILTER_NEAREST;
+        inline constexpr auto linear    = VK_FILTER_LINEAR;
+        inline constexpr auto cubic_ext = VK_FILTER_CUBIC_EXT;
+        inline constexpr auto cubic_img = VK_FILTER_CUBIC_IMG;
+    } // namespace filter
 
 } // namespace orb::vk

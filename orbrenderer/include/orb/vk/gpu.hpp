@@ -29,7 +29,7 @@ namespace orb::vk
         std::vector<queue_family_t>      queue_families;
     };
 
-    void describe_gpu(const gpu_t& gpu);
+    void describe(const gpu_t& gpu);
 
     class available_gpus_t
     {

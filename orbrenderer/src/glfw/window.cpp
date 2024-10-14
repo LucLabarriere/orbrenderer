@@ -15,4 +15,9 @@ namespace orb::glfw
         glfwGetFramebufferSize(static_cast<GLFWwindow*>(m_handle), &dims.w, &dims.h);
         return dims;
     }
-} // namespace orb
+
+    auto window_t::should_close() const -> bool
+    {
+        return glfwWindowShouldClose(static_cast<GLFWwindow*>(m_handle));
+    }
+} // namespace orb::glfw

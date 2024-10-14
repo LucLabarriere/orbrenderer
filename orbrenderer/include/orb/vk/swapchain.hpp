@@ -29,9 +29,11 @@ namespace orb::vk
         VkSurfaceFormatKHR format {
             .colorSpace = color_spaces::srgb_nonlinear_khr,
         };
+        VkCommandBuffer          cmd {};
         VkPresentModeKHR         present_mode {};
         std::vector<VkImage>     images;
         std::vector<VkImageView> views;
+        std::vector<VkSemaphore> semaphores;
 
         ui32 width {};
         ui32 height {};
@@ -49,7 +51,9 @@ namespace orb::vk
 
         swapchain_t sc {};
 
-        ui32                               present_qf_index {};
+        ui32 present_qf_index {};
+        ui32 semaphore_count {};
+
         std::vector<formats::enum_t>       formats;
         std::vector<present_modes::enum_t> present_modes;
 
@@ -82,8 +86,17 @@ namespace orb::vk
             return *this;
         }
 
+        auto semaphores(ui32 count) -> swapchain_builder_t&
+        {
+            semaphore_count = count;
+            return *this;
+        }
+
         [[nodiscard]] auto build() -> result<swapchain_t>;
     };
+
+    void copy_to_swapchain(
+        swapchain_t& sc, VkCommandBuffer cmd, VkImage src, VkExtent2D src_size, ui32 frame_index);
 
     void destroy(swapchain_t& swapchain);
 } // namespace orb::vk
