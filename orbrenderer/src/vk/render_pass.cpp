@@ -1,4 +1,4 @@
-#include "orb/vk/imgui_pass.hpp"
+#include "orb/vk/render_pass.hpp"
 #include "orb/glfw/window.hpp"
 #include "orb/vk/device.hpp"
 #include "orb/vk/gpu.hpp"
@@ -7,22 +7,19 @@
 
 #include "glfw/glfw_header.hpp"
 
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
 #include <orb/flux.hpp>
 
 namespace orb::vk
 {
     inline constexpr auto render_img_format = formats::b8g8r8a8_unorm;
 
-    auto imgui_pass_builder_t::prepare(weak<glfw::window_t> window,
-                                       weak<instance_t>     instance,
-                                       weak<gpu_t>          gpu,
-                                       weak<device_t>       device,
-                                       weak<swapchain_t>    swapchain) -> result<imgui_pass_builder_t>
+    auto render_pass_builder_t::prepare(weak<glfw::window_t> window,
+                                        weak<instance_t>     instance,
+                                        weak<gpu_t>          gpu,
+                                        weak<device_t>       device,
+                                        weak<swapchain_t>    swapchain) -> result<render_pass_builder_t>
     {
-        imgui_pass_builder_t b;
+        render_pass_builder_t b;
         b.window    = window;
         b.instance  = instance;
         b.gpu       = gpu;
@@ -32,7 +29,7 @@ namespace orb::vk
         return b;
     }
 
-    auto imgui_pass_builder_t::desc_pool_size(desc_types::enum_t type, ui32 count) -> imgui_pass_builder_t&
+    auto render_pass_builder_t::desc_pool_size(desc_types::enum_t type, ui32 count) -> render_pass_builder_t&
     {
         pool_sizes.push_back({
             .type            = type,
@@ -42,33 +39,33 @@ namespace orb::vk
         return *this;
     }
 
-    auto imgui_pass_builder_t::semaphores(size_t count) -> imgui_pass_builder_t&
+    auto render_pass_builder_t::semaphores(size_t count) -> render_pass_builder_t&
     {
         semaphore_count = count;
         return *this;
     }
 
-    auto imgui_pass_builder_t::fences(size_t count) -> imgui_pass_builder_t&
+    auto render_pass_builder_t::fences(size_t count) -> render_pass_builder_t&
     {
         fence_count = count;
         return *this;
     }
 
-    auto imgui_pass_builder_t::cmds(size_t count) -> imgui_pass_builder_t&
+    auto render_pass_builder_t::cmds(size_t count) -> render_pass_builder_t&
     {
         cmd_count = count;
         return *this;
     }
 
-    auto imgui_pass_builder_t::framebuffers(size_t count) -> imgui_pass_builder_t&
+    auto render_pass_builder_t::framebuffers(size_t count) -> render_pass_builder_t&
     {
         framebuffer_count = count;
         return *this;
     }
 
-    auto imgui_pass_builder_t::build() -> result<imgui_pass_t>
+    auto render_pass_builder_t::build() -> result<render_pass_t>
     {
-        imgui_pass_t pass { .device = device };
+        render_pass_t pass { .device = device };
 
         auto pool_info          = structs::create::descriptor_pool();
         pool_info.flags         = descriptor_pool_create_flags::free_descriptor_set_bit;
@@ -76,10 +73,10 @@ namespace orb::vk
         pool_info.poolSizeCount = pool_sizes.size();
         pool_info.pPoolSizes    = pool_sizes.data();
 
-        if (auto res = vkCreateDescriptorPool(device->handle, &pool_info, nullptr, &pass.desc_pool);
-            res != vkres::ok)
+        if (auto r = vkCreateDescriptorPool(device->handle, &pool_info, nullptr, &pass.desc_pool);
+            r != vkres::ok)
         {
-            return error_t { "Could not create ImGui descriptor pool" };
+            return error_t { "Could not create descriptor pool: {}", vkres::get_repr(r) };
         }
 
         VkAttachmentDescription attachment = {
@@ -125,7 +122,7 @@ namespace orb::vk
         if (auto res = vkCreateRenderPass(device->handle, &pass_info, nullptr, &pass.handle);
             res != vkres::ok)
         {
-            return error_t { "Could not create render pass: {}", (i64)res };
+            return error_t { "Could not create render pass: {}", vkres::get_repr(res) };
         }
 
         auto cmd_pool_info             = structs::create::cmd_pool();
@@ -134,7 +131,7 @@ namespace orb::vk
         if (auto res = vkCreateCommandPool(device->handle, &cmd_pool_info, nullptr, &pass.cmd_pool);
             res != vkres::ok)
         {
-            return error_t { "Could not create ImGui command pool: {}", (i64)res };
+            return error_t { "Could not create command pool: {}", vkres::get_repr(res) };
         }
 
         if (cmd_count != 0)
@@ -148,7 +145,7 @@ namespace orb::vk
             if (auto res = vkAllocateCommandBuffers(device->handle, &cmd_info, pass.cmds.data());
                 res != vkres::ok)
             {
-                return error_t { "Could not allocate ImGui command buffer: {}", (i64)res };
+                return error_t { "Could not allocate command buffer: {}", vkres::get_repr(res) };
             }
         }
 
@@ -158,7 +155,7 @@ namespace orb::vk
         {
             if (auto res = vkCreateSemaphore(device->handle, &sem_info, nullptr, &sem); res != vkres::ok)
             {
-                return error_t { "Could not create ImGui semaphore: {}", (i64)res };
+                return error_t { "Could not create semaphore: {}", vkres::get_repr(res) };
             }
         }
 
@@ -168,7 +165,7 @@ namespace orb::vk
         {
             if (auto res = vkCreateFence(device->handle, &fence_info, nullptr, &fence); res != vkres::ok)
             {
-                return error_t { "Could not create ImGui fence: {}", (i64)res };
+                return error_t { "Could not create fence: {}", vkres::get_repr(res) };
             }
         }
 
@@ -230,45 +227,11 @@ namespace orb::vk
             }
         }
 
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO();
-        (void)io;
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
-
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-        // ImGui::StyleColorsLight();
-
-        // Setup Platform/Renderer backends
-        ImGui_ImplGlfw_InitForVulkan(window->get_handle<GLFWwindow>(), true);
-        ImGui_ImplVulkan_InitInfo init_info {};
-        init_info.Instance        = instance->handle;
-        init_info.PhysicalDevice  = gpu->handle;
-        init_info.Device          = device->handle;
-        init_info.QueueFamily     = 0;
-        init_info.Queue           = device->queues[0];
-        init_info.PipelineCache   = nullptr;
-        init_info.DescriptorPool  = pass.desc_pool;
-        init_info.RenderPass      = pass.handle;
-        init_info.Subpass         = 0;
-        init_info.MinImageCount   = swapchain->min_img_count;
-        init_info.ImageCount      = swapchain->img_count;
-        init_info.MSAASamples     = sample_count_flags::_1;
-        init_info.Allocator       = nullptr;
-        init_info.CheckVkResultFn = nullptr;
-        ImGui_ImplVulkan_Init(&init_info);
-
         return pass;
     }
 
-    void destroy(imgui_pass_t& pass)
+    void destroy(render_pass_t& pass)
     {
-        ImGui_ImplVulkan_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
-
         vkDestroyCommandPool(pass.device->handle, pass.cmd_pool, nullptr);
 
         for (auto& sem : pass.semaphores)

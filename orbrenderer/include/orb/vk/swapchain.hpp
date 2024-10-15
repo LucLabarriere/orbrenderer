@@ -7,6 +7,7 @@
 #include <orb/result.hpp>
 #include <orb/utility.hpp>
 
+#include <span>
 #include <vector>
 
 namespace orb::glfw
@@ -97,6 +98,30 @@ namespace orb::vk
 
     void copy_to_swapchain(
         swapchain_t& sc, VkCommandBuffer cmd, VkImage src, VkExtent2D src_size, ui32 frame_index);
+
+    struct img_res_t
+    {
+        std::variant<ui32, vkres::enum_t> content {};
+
+        [[nodiscard]] auto is_error() const -> bool { return content.index() == 1; };
+        [[nodiscard]] auto is_valid() const -> bool { return content.index() == 0; };
+        [[nodiscard]] auto error() const -> vkres::enum_t { return std::get<vkres::enum_t>(content); }
+        [[nodiscard]] auto require_sc_rebuild() const -> bool
+        {
+            println("is_valid()={} is_error()={}", is_valid(), is_error());
+            if (is_valid()) return false;
+
+            const auto res = std::get<vkres::enum_t>(content);
+            if (res == vkres::err_out_of_date_khr || res == vkres::suboptimal_khr) { return true; }
+
+            throw orb::exception("Error encountered during vkAcquireNextImageKHR: {}", vkres::get_repr(res));
+        }
+    };
+
+    [[nodiscard]] auto acquire_next_img(swapchain_t&, VkSemaphore, VkFence, ui64 timeout = UINT64_MAX)
+        -> img_res_t;
+
+    [[nodiscard]] auto present_img(swapchain_t&, VkQueue, std::span<VkSemaphore>, ui32 frame_index) -> img_res_t;
 
     void destroy(swapchain_t& swapchain);
 } // namespace orb::vk

@@ -6,4 +6,9 @@ find_package(Vulkan REQUIRED)
 
 add_subdirectory(orbrenderer)
 add_subdirectory(vendor)
-add_subdirectory(sandbox)
+
+option(ORBRENDERER_BUILD_SAMPLES "Build orbrenderer samples" ON)
+
+if (${ORBRENDERER_BUILD_SAMPLES})
+  add_subdirectory(samples)
+endif ()

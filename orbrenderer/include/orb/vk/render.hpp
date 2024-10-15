@@ -8,7 +8,7 @@
 
 namespace orb::vk
 {
-    struct imgui_pass_t;
+    struct render_pass_t;
     struct swapchain_t;
 
     struct render_info_t

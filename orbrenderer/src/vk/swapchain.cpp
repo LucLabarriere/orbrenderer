@@ -228,6 +228,46 @@ namespace orb::vk
         return sc;
     }
 
+    auto acquire_next_img(swapchain_t& sc, VkSemaphore sem, VkFence fence, ui64 timeout) -> img_res_t
+    {
+        ui32      frame {};
+        img_res_t res;
+
+        const auto r = vkAcquireNextImageKHR(sc.device, sc.handle, timeout, sem, fence, &frame);
+
+        if (r == vkres::ok)
+        {
+            res.content.emplace<0>(frame);
+            return res;
+        }
+
+        res.content.emplace<1>(r);
+        return res;
+    }
+
+    auto present_img(swapchain_t& sc, VkQueue queue, std::span<VkSemaphore> sem, ui32 frame_index)
+        -> img_res_t
+    {
+        static auto info        = vk::structs::present();
+        info.waitSemaphoreCount = 1;
+        info.pWaitSemaphores    = sem.data();
+        info.swapchainCount     = sem.size();
+        info.pSwapchains        = &sc.handle;
+        info.pImageIndices      = &frame_index;
+
+        img_res_t res;
+        const auto r = vkQueuePresentKHR(queue, &info);
+
+        if (r == vkres::ok)
+        {
+            res.content.emplace<0>(0);
+            return res;
+        }
+
+        res.content.emplace<1>(r);
+        return res;
+    }
+
     void destroy(swapchain_t& swapchain)
     {
         for (auto& view : swapchain.views)

@@ -1,8 +1,8 @@
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
 #include <array>
 #include <functional>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
 #include <iostream>
 #include <vector>
 
@@ -12,8 +12,7 @@
 #include <GLFW/glfw3.h>
 #include <orb/glfw.hpp>
 #include <orb/vk.hpp>
-#include <orb/vk/image.hpp>
-#include <orb/vk/imgui_pass.hpp>
+#include <orb/vk/imgui.hpp>
 
 auto main() -> int
 {
@@ -122,12 +121,12 @@ auto main() -> int
 
         println("- Created swapchain");
 
-        vk::imgui_pass_t imgui_pass = //
-            vk::imgui_pass_builder_t::prepare(weak { &window },
-                                              weak { &instance },
-                                              gpu.getmut(),
-                                              weak { &device },
-                                              weak { &swapchain })
+        vk::render_pass_t imgui_pass = //
+            vk::render_pass_builder_t::prepare(weak { &window },
+                                               weak { &instance },
+                                               gpu.getmut(),
+                                               weak { &device },
+                                               weak { &swapchain })
                 .unwrap()
                 .desc_pool_size(vk::desc_types::sampler, 1)
                 .cmds(max_frames_in_flight)
@@ -136,6 +135,16 @@ auto main() -> int
                 .semaphores(max_frames_in_flight)
                 .build()
                 .unwrap();
+
+        vk::imgui::initialize({
+                                  .window    = weak { &window },
+                                  .instance  = weak { &instance },
+                                  .gpu       = gpu.getmut(),
+                                  .device    = weak { &device },
+                                  .swapchain = weak { &swapchain },
+                                  .pass      = weak { &imgui_pass },
+                              })
+            .throw_if_error();
 
         vk::render_info_t render_info {
             .device    = device.handle,
@@ -162,32 +171,18 @@ auto main() -> int
             render_info.cmd        = imgui_pass.cmds.at(frame);
             render_info.wait_fence = imgui_pass.fences.at(frame);
 
-            // Start the Dear ImGui frame
-            ImGui_ImplVulkan_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui::NewFrame();
+            vk::imgui::new_frame();
+            ImGui::ShowDemoWindow();
+            vk::imgui::render();
 
             vk::render_begin(render_info).throw_if_error();
-
-            ImGui::ShowDemoWindow();
-            ImGui::Render();
-            ImDrawData* draw_data = ImGui::GetDrawData();
-            ImGui_ImplVulkan_RenderDrawData(draw_data, render_info.cmd);
-
+            vk::imgui::submit_render(render_info.cmd);
             vk::render_end(render_info).throw_if_error();
 
+            if (vk::acquire_next_img(swapchain, imgui_pass.semaphores.at(frame), nullptr)
+                    .require_sc_rebuild())
             {
-                auto r = vkAcquireNextImageKHR(device.handle,
-                                               swapchain.handle,
-                                               UINT64_MAX,
-                                               imgui_pass.semaphores.at(frame),
-                                               nullptr,
-                                               &sc_frame);
-                if (r == vk::vkres::err_out_of_date_khr || r == vk::vkres::suboptimal_khr)
-                {
-                    println("Swapchain error: {}", vk::vkres::get_repr(r));
-                    break;
-                }
+                throw orb::exception("Resize not supported");
             }
 
             auto copy_cmd       = vk::alloc_cmd(device, imgui_pass.cmd_pool).unwrap();
@@ -225,14 +220,17 @@ auto main() -> int
             info.pSwapchains        = &swapchain.handle;
             info.pImageIndices      = &sc_frame;
 
-            if (auto r = vkQueuePresentKHR(device.queues.back(), &info); r != vk::vkres::ok)
+            std::span present_sem = std::span { swapchain.semaphores }.subspan(frame, 1);
+
+            if (vk::present_img(swapchain, device.queues.back(), present_sem, sc_frame).require_sc_rebuild())
             {
-                println("Could not present frame: {}", vk::vkres::get_repr(r));
-                break;
+                throw orb::exception("Resize not supported");
             }
 
             frame = (frame + 1) % max_frames_in_flight;
         }
+
+        vk::imgui::terminate();
 
         // Terminate glfw
         window.destroy();

@@ -4,9 +4,10 @@ add_library(orbrenderer           STATIC src/vk/instance.cpp
                                          src/vk/device.cpp
                                          src/vk/render.cpp
                                          src/vk/swapchain.cpp
-                                         src/vk/imgui_pass.cpp
+                                         src/vk/render_pass.cpp
                                          src/vk/vma.cpp
                                          src/vk/image.cpp
+                                         src/vk/imgui.cpp
                                          src/glfw/driver.cpp
                                          src/glfw/vk_interoperability.cpp
                                          src/glfw/window.cpp)

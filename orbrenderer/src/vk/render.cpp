@@ -1,5 +1,5 @@
 #include "orb/vk/render.hpp"
-#include "orb/vk/imgui_pass.hpp"
+#include "orb/vk/render_pass.hpp"
 #include "orb/vk/swapchain.hpp"
 
 namespace orb::vk
