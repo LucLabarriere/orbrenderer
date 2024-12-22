@@ -1,6 +1,3 @@
-[submodule "vendor/orblib"]
-	path = vendor/orblib
-	url = git@github.com:LucLabarriere/orblib.git
 [submodule "vendor/imgui"]
 	path = vendor/imgui
 	url = git@github.com:ocornut/imgui.git

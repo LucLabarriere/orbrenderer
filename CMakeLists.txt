@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.26)
 
-project(orbrenderer VERSION 0.0)
+project(orbrenderer
+  LANGUAGES CXX
+  VERSION 0.1)
 
 find_package(Vulkan REQUIRED)
 
