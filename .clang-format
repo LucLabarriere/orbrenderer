@@ -47,7 +47,7 @@ NamespaceIndentation: All
 UseTab: Never
 IndentWidth: 4
 TabWidth: 4
-ColumnLimit: 110
+ColumnLimit: 0
 SpaceInEmptyBlock: true
 SpaceBeforeRangeBasedForLoopColon: true
 SpaceBeforeInheritanceColon: true

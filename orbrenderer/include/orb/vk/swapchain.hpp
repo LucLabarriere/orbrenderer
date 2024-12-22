@@ -23,15 +23,17 @@ namespace orb::vk
 
     struct swapchain_t
     {
-        VkSwapchainKHR     handle {};
-        VkDevice           device {};
-        VkInstance         instance {};
-        VkSurfaceKHR       surface {};
-        VkSurfaceFormatKHR format {
-            .colorSpace = color_spaces::srgb_nonlinear_khr,
+        VkSwapchainCreateInfoKHR info = structs::create::swapchain();
+        VkSurfaceCapabilitiesKHR cap {};
+        VkSwapchainKHR           handle {};
+        VkDevice                 device {};
+        VkInstance               instance {};
+        VkSurfaceFormatKHR       format {
+                  .colorSpace = color_spaces::srgb_nonlinear_khr,
         };
         VkCommandBuffer          cmd {};
         VkPresentModeKHR         present_mode {};
+        VkExtent2D               extent {};
         std::vector<VkImage>     images;
         std::vector<VkImageView> views;
         std::vector<VkSemaphore> semaphores;
@@ -39,7 +41,6 @@ namespace orb::vk
         ui32 width {};
         ui32 height {};
         ui32 img_count {};
-        ui32 min_img_count {};
     };
 
     class swapchain_builder_t
@@ -83,7 +84,7 @@ namespace orb::vk
         }
         auto min_img_count(ui32 count) -> swapchain_builder_t&
         {
-            sc.min_img_count = count;
+            sc.info.minImageCount = count;
             return *this;
         }
 
@@ -108,7 +109,6 @@ namespace orb::vk
         [[nodiscard]] auto error() const -> vkres::enum_t { return std::get<vkres::enum_t>(content); }
         [[nodiscard]] auto require_sc_rebuild() const -> bool
         {
-            println("is_valid()={} is_error()={}", is_valid(), is_error());
             if (is_valid()) return false;
 
             const auto res = std::get<vkres::enum_t>(content);
@@ -121,7 +121,8 @@ namespace orb::vk
     [[nodiscard]] auto acquire_next_img(swapchain_t&, VkSemaphore, VkFence, ui64 timeout = UINT64_MAX)
         -> img_res_t;
 
-    [[nodiscard]] auto present_img(swapchain_t&, VkQueue, std::span<VkSemaphore>, ui32 frame_index) -> img_res_t;
+    [[nodiscard]] auto present_img(swapchain_t&, VkQueue, std::span<VkSemaphore>, ui32 frame_index)
+        -> img_res_t;
 
     void destroy(swapchain_t& swapchain);
 } // namespace orb::vk

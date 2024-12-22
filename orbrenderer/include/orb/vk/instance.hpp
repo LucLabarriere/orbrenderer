@@ -13,7 +13,7 @@ namespace orb::vk
     struct instance_t
     {
         VkInstance               handle {};
-        VkDebugReportCallbackEXT debug_report {};
+        VkDebugUtilsMessengerEXT debug_utils {};
     };
 
     class instance_builder_t

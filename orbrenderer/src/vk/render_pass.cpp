@@ -225,6 +225,10 @@ namespace orb::vk
             {
                 return error_t { "Could not create framebuffer: {}", (i64)r };
             }
+
+            device->set_name(img, "Render pass img");
+            device->set_name(view, "Render pass view");
+            device->set_name(fb, "Render pass framebuffer");
         }
 
         return pass;

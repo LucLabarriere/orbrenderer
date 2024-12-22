@@ -21,9 +21,28 @@ namespace orb::vk::structs
         {
             return {
                 .sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
-                .flags = VK_DEBUG_REPORT_ERROR_BIT_EXT   //
-                       | VK_DEBUG_REPORT_WARNING_BIT_EXT //
+                .flags = VK_DEBUG_REPORT_ERROR_BIT_EXT
+                       | VK_DEBUG_REPORT_WARNING_BIT_EXT
                        | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT,
+                .pUserData = nullptr,
+            };
+        }
+
+        [[nodiscard]] inline auto debug_utils() -> VkDebugUtilsMessengerCreateInfoEXT
+        {
+            return {
+                .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+
+                .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+                                 | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
+                                 | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+                                 | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+
+                .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                             | VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+                             | VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT
+                             | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+
                 .pUserData = nullptr,
             };
         }
@@ -68,14 +87,14 @@ namespace orb::vk::structs
         [[nodiscard]] inline auto image_view() -> VkImageViewCreateInfo
         {
             return {
-                .sType        = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                .viewType     = image_view_types::type_2d,
+                .sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                .viewType   = image_view_types::type_2d,
                 .components = {
-                    .r = component_swizzles::r,
-                    .g = component_swizzles::g,
-                    .b = component_swizzles::b,
-                    .a = component_swizzles::a,
-                },
+                               .r = component_swizzles::r,
+                               .g = component_swizzles::g,
+                               .b = component_swizzles::b,
+                               .a = component_swizzles::a,
+                               },
                 .subresourceRange = { image_aspect_flags::color, 0, 1, 0, 1 },
             };
         }

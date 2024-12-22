@@ -51,22 +51,22 @@ namespace orb::vk
     {
         auto surface_res = glfw::driver_t::create_vk_surface(instance->handle, *window);
         if (!surface_res) return surface_res.error();
-        sc.surface = surface_res.value();
+        auto surface = surface_res.value();
 
         sc.device   = device->handle;
         sc.instance = instance->handle;
 
         // Check for WSI support
         VkBool32 res {};
-        vkGetPhysicalDeviceSurfaceSupportKHR(gpu->handle, present_qf_index, sc.surface, &res);
+        vkGetPhysicalDeviceSurfaceSupportKHR(gpu->handle, present_qf_index, surface, &res);
         if (res != VK_TRUE) { return error_t { "Error no WSI support on GPU." }; }
 
         sc.format.format = orb::eval | [&] {
             ui32                            count {};
             std::vector<VkSurfaceFormatKHR> avail_formats;
-            vkGetPhysicalDeviceSurfaceFormatsKHR(gpu->handle, sc.surface, &count, nullptr);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(gpu->handle, surface, &count, nullptr);
             avail_formats.resize(count);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(gpu->handle, sc.surface, &count, avail_formats.data());
+            vkGetPhysicalDeviceSurfaceFormatsKHR(gpu->handle, surface, &count, avail_formats.data());
 
             if (count == 1)
             {
@@ -102,9 +102,9 @@ namespace orb::vk
             // which is mandatory
             ui32                          count {};
             std::vector<VkPresentModeKHR> avail_modes;
-            vkGetPhysicalDeviceSurfacePresentModesKHR(gpu->handle, sc.surface, &count, nullptr);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(gpu->handle, surface, &count, nullptr);
             avail_modes.resize(count);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(gpu->handle, sc.surface, &count, avail_modes.data());
+            vkGetPhysicalDeviceSurfacePresentModesKHR(gpu->handle, surface, &count, avail_modes.data());
             for (const auto& request : present_modes)
             {
                 for (const auto& avail : avail_modes)
@@ -116,9 +116,9 @@ namespace orb::vk
             return present_modes::fifo_khr; // Always available
         };
 
-        if (sc.min_img_count == 0)
+        if (sc.info.minImageCount == 0)
         {
-            sc.min_img_count = orb::eval | [&] {
+            sc.info.minImageCount = orb::eval | [&] {
                 switch (sc.present_mode)
                 {
                 case vk::present_modes::mailbox_khr: return 3;
@@ -133,97 +133,100 @@ namespace orb::vk
             };
         }
 
-        // Create Swapchain
+        if (auto res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu->handle, surface, &sc.cap);
+            res != vkres::ok)
         {
-            auto info             = structs::create::swapchain();
-            info.surface          = sc.surface;
-            info.minImageCount    = sc.min_img_count;
-            info.imageFormat      = sc.format.format;
-            info.imageColorSpace  = sc.format.colorSpace;
-            info.imageArrayLayers = 1;
-            info.imageUsage       = image_usage_flags::color_attachment | image_usage_flags::transfer_dst;
-            info.imageSharingMode = sharing_modes::exclusive; // Assume that graphics family == present family
-            info.preTransform     = surface_transform_flag::identity_khr;
-            info.compositeAlpha   = composite_alpha_flag::opaque_khr;
-            info.presentMode      = sc.present_mode;
-            info.clipped          = VK_TRUE;
-            info.oldSwapchain     = nullptr;
+            return error_t { "Could not retrieve surface capabilities: {}", vkres::get_repr(res) };
+        }
 
-            VkSurfaceCapabilitiesKHR cap {};
-            if (auto res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu->handle, sc.surface, &cap);
-                res != vkres::ok)
+        sc.info.minImageCount = std::max(sc.info.minImageCount, sc.cap.minImageCount);
+
+        if (sc.cap.maxImageCount != 0)
+        {
+            sc.info.minImageCount = std::min(sc.info.minImageCount, sc.cap.maxImageCount);
+        }
+
+        auto sem_info = structs::create::semaphore();
+        sc.semaphores.resize(semaphore_count);
+        for (auto& sem : sc.semaphores)
+        {
+            if (auto res = vkCreateSemaphore(device->handle, &sem_info, nullptr, &sem); res != vkres::ok)
             {
-                return error_t { "Could not retrieve surface capabilities: {}", vkres::get_repr(res) };
+                return error_t { "Could not create Swapchain semaphore: {}", vkres::get_repr(res) };
             }
+        }
 
-            info.minImageCount = std::max(info.minImageCount, cap.minImageCount);
+        sc.info.surface          = surface;
+        sc.info.imageFormat      = sc.format.format;
+        sc.info.imageColorSpace  = sc.format.colorSpace;
+        sc.info.imageArrayLayers = 1;
+        sc.info.imageUsage       = image_usage_flags::color_attachment;
+        sc.info.imageSharingMode = sharing_modes::exclusive; // Assume that graphics family == present family
+        sc.info.preTransform     = surface_transform_flag::identity_khr;
+        sc.info.compositeAlpha   = composite_alpha_flag::opaque_khr;
+        sc.info.presentMode      = sc.present_mode;
+        sc.info.clipped          = VK_TRUE;
 
-            if (cap.maxImageCount != 0)
+        auto new_swapchain = [this](swapchain_t& sc) -> result<void> {
+            sc.info.oldSwapchain = sc.handle;
+
+            if (sc.cap.currentExtent.width == 0xffffffff)
             {
-                info.minImageCount = std::min(info.minImageCount, cap.maxImageCount);
-            }
-
-            if (cap.currentExtent.width == 0xffffffff)
-            {
-                info.imageExtent.width  = sc.width;
-                info.imageExtent.height = sc.height;
+                sc.info.imageExtent.width  = sc.width;
+                sc.info.imageExtent.height = sc.height;
             }
             else
             {
-                sc.width                = cap.currentExtent.width;
-                sc.height               = cap.currentExtent.height;
-                info.imageExtent.width  = cap.currentExtent.width;
-                info.imageExtent.height = cap.currentExtent.height;
+                sc.width                   = sc.cap.currentExtent.width;
+                sc.height                  = sc.cap.currentExtent.height;
+                sc.info.imageExtent.width  = sc.cap.currentExtent.width;
+                sc.info.imageExtent.height = sc.cap.currentExtent.height;
             }
+            sc.extent.width = sc.width;
+            sc.extent.height = sc.height;
 
-            if (auto r = vkCreateSwapchainKHR(device->handle, &info, nullptr, &sc.handle); r != vkres::ok)
+            if (auto r = vkCreateSwapchainKHR(sc.device, &sc.info, nullptr, &sc.handle); r != vkres::ok)
             {
                 return error_t { "Could not create the swapchain: {}", vkres::get_repr(r) };
             }
 
-            if (auto r = vkGetSwapchainImagesKHR(device->handle, sc.handle, &sc.img_count, nullptr);
+            if (auto r = vkGetSwapchainImagesKHR(sc.device, sc.handle, &sc.img_count, nullptr);
                 r != vkres::ok)
             {
                 return error_t { "Could not retrieve swapchain image count: {}", vkres::get_repr(r) };
             }
 
-            auto sem_info = structs::create::semaphore();
-            sc.semaphores.resize(semaphore_count);
-            for (auto& sem : sc.semaphores)
-            {
-                if (auto res = vkCreateSemaphore(device->handle, &sem_info, nullptr, &sem); res != vkres::ok)
-                {
-                    return error_t { "Could not create Swapchain semaphore: {}", vkres::get_repr(res) };
-                }
-            }
-
             sc.images.resize(sc.img_count);
-            sc.views.resize(sc.img_count);
 
-            if (auto r = vkGetSwapchainImagesKHR(device->handle, sc.handle, &sc.img_count, sc.images.data());
+            if (auto r = vkGetSwapchainImagesKHR(sc.device, sc.handle, &sc.img_count, sc.images.data());
                 r != vkres::ok)
             {
                 return error_t { "Could not retrieve swapchain images: {}", vkres::get_repr(r) };
             }
-        }
 
-        // Create image views
-        {
-            auto info   = structs::create::image_view();
-            info.format = sc.format.format;
+            sc.views.resize(sc.img_count);
+
+            auto view_info   = structs::create::image_view();
+            view_info.format = sc.format.format;
 
             VkImageSubresourceRange image_range = { image_aspect_flags::color, 0, 1, 0, 1 };
-            info.subresourceRange               = image_range;
+            view_info.subresourceRange          = image_range;
 
             for (auto [img, view] : flux::zip_all_mut(sc.images, sc.views))
             {
-                info.image = img;
-                if (auto r = vkCreateImageView(device->handle, &info, nullptr, &view); r != vkres::ok)
+                view_info.image = img;
+                if (auto r = vkCreateImageView(sc.device, &view_info, nullptr, &view); r != vkres::ok)
                 {
                     return error_t { "Could not create swapchain image view: {}", vkres::get_repr(r) };
                 }
+                device->set_name(img, "Swapchain image");
+                device->set_name(view, "Swapchain image view");
             }
-        }
+
+            return {};
+        };
+
+        if (auto r = new_swapchain(sc); !r) { return r.error(); };
 
         return sc;
     }
@@ -255,12 +258,12 @@ namespace orb::vk
         info.pSwapchains        = &sc.handle;
         info.pImageIndices      = &frame_index;
 
-        img_res_t res;
+        img_res_t  res;
         const auto r = vkQueuePresentKHR(queue, &info);
 
         if (r == vkres::ok)
         {
-            res.content.emplace<0>(0);
+            res.content.emplace<0>();
             return res;
         }
 
@@ -281,7 +284,7 @@ namespace orb::vk
         }
 
         vkDestroySwapchainKHR(swapchain.device, swapchain.handle, nullptr);
-        vkDestroySurfaceKHR(swapchain.instance, swapchain.surface, nullptr);
+        vkDestroySurfaceKHR(swapchain.instance, swapchain.info.surface, nullptr);
     }
 
 } // namespace orb::vk

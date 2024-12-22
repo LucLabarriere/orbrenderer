@@ -38,7 +38,7 @@ namespace orb::vk::imgui
         init_info.DescriptorPool  = args.pass->desc_pool;
         init_info.RenderPass      = args.pass->handle;
         init_info.Subpass         = 0;
-        init_info.MinImageCount   = args.swapchain->min_img_count;
+        init_info.MinImageCount   = args.swapchain->info.minImageCount;
         init_info.ImageCount      = args.swapchain->img_count;
         init_info.MSAASamples     = vk::sample_count_flags::_1;
         init_info.Allocator       = nullptr;

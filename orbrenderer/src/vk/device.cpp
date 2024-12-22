@@ -27,6 +27,8 @@ namespace orb::vk
 
     auto device_builder_t::build(weak<gpu_t> gpu) -> result<device_t>
     {
+        auto set_debug_name_fn = proc_addresses::set_debug_name(m_instance);
+
         auto create_info                    = structs::create::device();
         create_info.queueCreateInfoCount    = m_queue_infos.size();
         create_info.pQueueCreateInfos       = m_queue_infos.data();
@@ -55,6 +57,7 @@ namespace orb::vk
 
         vmaCreateAllocator(&allocator_info, &device.allocator);
 
+        device.set_debug_name_fb = set_debug_name_fn;
         return device;
     }
 
@@ -83,5 +86,4 @@ namespace orb::vk
         vmaDestroyAllocator(device.allocator);
         vkDestroyDevice(device.handle, nullptr);
     }
-
 } // namespace orb::vk

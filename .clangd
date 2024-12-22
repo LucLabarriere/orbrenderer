@@ -16,6 +16,7 @@ Diagnostics:
       - cppcoreguidelines-pro-type-union-access
       - cppcoreguidelines-avoid-non-const-global-variables
       - cppcoreguidelines-non-private-member-variables-in-classes
+      - cppcoreguidelines-macro-usage
       - misc-misplaced-const
       - misc-non-private-member-variables-in-classes
       - misc-confusable-identifiers

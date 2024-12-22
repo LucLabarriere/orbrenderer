@@ -9,22 +9,58 @@
 
 namespace
 {
-    inline VKAPI_ATTR auto VKAPI_CALL debug_report(VkDebugReportFlagsEXT      flags,
-                                                   VkDebugReportObjectTypeEXT objectType,
-                                                   uint64_t                   object,
-                                                   size_t                     location,
-                                                   int32_t                    messageCode,
-                                                   const char*                pLayerPrefix,
-                                                   const char*                pMessage,
-                                                   void*                      pUserData) -> VkBool32
+    VKAPI_ATTR auto VKAPI_CALL debug_report(
+        VkDebugUtilsMessageSeverityFlagBitsEXT      msg_sev,
+        VkDebugUtilsMessageTypeFlagsEXT             msg_type,
+        const VkDebugUtilsMessengerCallbackDataEXT* data,
+        void*                                       user_data) -> VkBool32
     {
-        (void)flags;
-        (void)object;
-        (void)location;
-        (void)messageCode;
-        (void)pUserData;
-        (void)pLayerPrefix;
-        orb::println("Vulkan error from {}: {}", (orb::i64)objectType, pMessage);
+        namespace flags = orb::vk::debug_utils_message_severity_flags;
+        namespace col   = orb::colors;
+
+        orb::ui32 severity = orb::eval | [&] {
+            if ((msg_sev & flags::error) == flags::error) return flags::error;
+            if ((msg_sev & flags::warning) == flags::warning) return flags::warning;
+            if ((msg_sev & flags::info) == flags::info) return flags::info;
+            if ((msg_sev & flags::verbose) == flags::verbose) return flags::verbose;
+            return flags::verbose;
+        };
+
+        switch (severity)
+        {
+        case orb::vk::debug_utils_message_severity_flags::verbose:
+        {
+            break;
+        }
+        case orb::vk::debug_utils_message_severity_flags::info:
+        {
+            break;
+        }
+        case orb::vk::debug_utils_message_severity_flags::warning:
+        {
+            orb::println("WARNING: {}", (uint32_t)msg_sev);
+            break;
+        }
+        case orb::vk::debug_utils_message_severity_flags::error:
+        {
+            orb::println("{}Vk error:{} {} ({})", col::red, col::reset, data->pMessageIdName, data->messageIdNumber);
+            for (auto obj : std::span { data->pObjects, data->objectCount })
+            {
+                if (obj.pObjectName)
+                {
+                    orb::println("Obj: {}{}{}", col::red, obj.pObjectName, col::reset);
+                }
+            }
+            orb::println("{}", data->pMessage);
+            break;
+        }
+        default:
+        {
+            orb::println("DEBUG: {}", (uint32_t)msg_sev);
+            break;
+        }
+        }
+
         return VK_FALSE;
     }
 
@@ -89,6 +125,10 @@ namespace orb::vk
         instance_t data;
         create_info.enabledExtensionCount   = (ui32)extensions.size();
         create_info.ppEnabledExtensionNames = extensions.data();
+        for (const char* ext : extensions)
+        {
+            orb::println("Adding extension: {}", ext);
+        }
 
         ui32 layer_count {};
         vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
@@ -113,32 +153,42 @@ namespace orb::vk
         create_info.enabledLayerCount   = val_layers.size();
         create_info.ppEnabledLayerNames = val_layers.data();
 
+        auto create_deb_info            = structs::create::debug_utils();
+        create_deb_info.pfnUserCallback = debug_report;
+        create_info.pNext               = &create_deb_info;
+
         auto res = vkCreateInstance(&create_info, nullptr, &data.handle);
         if (res != VK_SUCCESS) { return error_t { "Could not create Vulkan instance: {}", vkres::get_repr(res) }; }
 
-        begin_chrono();
-        auto create_deb_callback_fn = proc_addresses::create_deb_callback(data.handle);
+        // begin_chrono();
 
-        auto debug_report_ci        = structs::create::debug_report_callback();
-        debug_report_ci.pfnCallback = debug_report;
-
-        auto debug_res = create_deb_callback_fn(data.handle, &debug_report_ci, nullptr, &data.debug_report);
-        if (debug_res != VK_SUCCESS)
+        auto create_deb_utils_fn = proc_addresses::create_deb_utils(data.handle);
+        if (auto r = create_deb_utils_fn(data.handle, &create_deb_info, nullptr, &data.debug_utils); r != vkres::ok)
         {
-            return error_t { "Could not create debug report callback: {}", (i64)debug_res };
+            return error_t { "Could not create debug utils messenger: {}", vkres::get_repr(res) };
         }
 
-        print_chrono("- Create debug report callback: {}");
+        // auto create_deb_callback_fn = proc_addresses::create_deb_report_callback(data.handle);
+        // auto debug_report_ci        = structs::create::debug_report_callback();
+        // debug_report_ci.pfnCallback = debug_report;
+
+        // auto create_debug_res = create_deb_callback_fn(data.handle, &debug_report_ci, nullptr, &data.debug_report);
+        // if (create_debug_res != VK_SUCCESS)
+        //{
+        //     return error_t { "Could not create debug report callback: {}", (i64)create_debug_res };
+        // }
+
+        // print_chrono("- Create debug function: {}");
 
         return data;
     }
 
     void destroy(instance_t& instance)
     {
-        if (instance.debug_report)
+        if (instance.debug_utils)
         {
-            auto destroy_deb_callback_fn = proc_addresses::destroy_deb_callback(instance.handle);
-            destroy_deb_callback_fn(instance.handle, instance.debug_report, nullptr);
+            auto destroy_deb_callback_fn = proc_addresses::destroy_deb_utils(instance.handle);
+            destroy_deb_callback_fn(instance.handle, instance.debug_utils, nullptr);
         }
         vkDestroyInstance(instance.handle, nullptr);
     }
