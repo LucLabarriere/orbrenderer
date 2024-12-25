@@ -13,89 +13,94 @@
 #include <orb/glfw.hpp>
 #include <orb/vk.hpp>
 #include <orb/vk/imgui.hpp>
+#include <orb/vk/sync_objects.hpp>
 
-static VkRenderPass create_imgui_pass(VkDevice device,
-                                      VkFormat sc_img_format)
+namespace
 {
-    // Create the render pass
-    VkAttachmentDescription color_attachment = {};
-    color_attachment.format                  = sc_img_format;
-    color_attachment.samples                 = VK_SAMPLE_COUNT_1_BIT;
-    color_attachment.loadOp                  = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    color_attachment.storeOp                 = VK_ATTACHMENT_STORE_OP_STORE;
-    color_attachment.stencilLoadOp           = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    color_attachment.stencilStoreOp          = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    color_attachment.initialLayout           = VK_IMAGE_LAYOUT_UNDEFINED;
-    color_attachment.finalLayout             = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    VkAttachmentReference color_attachment_ref = {};
-    color_attachment_ref.attachment            = 0;
-    color_attachment_ref.layout                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkSubpassDescription subpass = {};
-    subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments    = &color_attachment_ref;
-
-    VkSubpassDependency dependency = {};
-    dependency.srcSubpass          = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass          = 0;
-    dependency.srcStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask       = 0;
-    dependency.dstStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    VkRenderPassCreateInfo render_pass_info = {};
-    render_pass_info.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    render_pass_info.attachmentCount        = 1;
-    render_pass_info.pAttachments           = &color_attachment;
-    render_pass_info.subpassCount           = 1;
-    render_pass_info.pSubpasses             = &subpass;
-    render_pass_info.dependencyCount        = 1;
-    render_pass_info.pDependencies          = &dependency;
-
-    VkRenderPass render_pass {};
-    if (vkCreateRenderPass(device, &render_pass_info, nullptr, &render_pass) != VK_SUCCESS)
+    auto create_imgui_pass(VkDevice device,
+                           VkFormat sc_img_format) -> VkRenderPass
     {
-        throw std::runtime_error("failed to create render pass!");
-    }
+        // Create the render pass
+        VkAttachmentDescription color_attachment = {};
+        color_attachment.format                  = sc_img_format;
+        color_attachment.samples                 = VK_SAMPLE_COUNT_1_BIT;
+        color_attachment.loadOp                  = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        color_attachment.storeOp                 = VK_ATTACHMENT_STORE_OP_STORE;
+        color_attachment.stencilLoadOp           = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        color_attachment.stencilStoreOp          = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        color_attachment.initialLayout           = VK_IMAGE_LAYOUT_UNDEFINED;
+        color_attachment.finalLayout             = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-    return render_pass;
-}
+        VkAttachmentReference color_attachment_ref = {};
+        color_attachment_ref.attachment            = 0;
+        color_attachment_ref.layout                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-static auto create_imgui_fbs(VkDevice               device,
-                             VkRenderPass           render_pass,
-                             VkExtent2D             sc_extent,
-                             std::span<VkImage>     sc_imgs,
-                             std::span<VkImageView> sc_views) -> std::vector<VkFramebuffer>
-{
-    std::vector<VkFramebuffer> framebuffers;
-    const size_t               sc_img_count = sc_imgs.size();
+        VkSubpassDescription subpass = {};
+        subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments    = &color_attachment_ref;
 
-    framebuffers.resize(sc_img_count);
-    for (size_t i = 0; i < sc_img_count; ++i)
-    {
-        std::array attachments = {
-            sc_views[i]
-        };
+        VkSubpassDependency dependency = {};
+        dependency.srcSubpass          = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass          = 0;
+        dependency.srcStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask       = 0;
+        dependency.dstStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-        VkFramebufferCreateInfo framebufferInfo = {};
-        framebufferInfo.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass              = render_pass;
-        framebufferInfo.attachmentCount         = 1;
-        framebufferInfo.pAttachments            = attachments.data();
-        framebufferInfo.width                   = sc_extent.width;
-        framebufferInfo.height                  = sc_extent.height;
-        framebufferInfo.layers                  = 1;
+        VkRenderPassCreateInfo render_pass_info = {};
+        render_pass_info.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        render_pass_info.attachmentCount        = 1;
+        render_pass_info.pAttachments           = &color_attachment;
+        render_pass_info.subpassCount           = 1;
+        render_pass_info.pSubpasses             = &subpass;
+        render_pass_info.dependencyCount        = 1;
+        render_pass_info.pDependencies          = &dependency;
 
-        if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &framebuffers[i]) != VK_SUCCESS)
+        VkRenderPass render_pass {};
+        if (vkCreateRenderPass(device, &render_pass_info, nullptr, &render_pass) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to create framebuffer!");
+            throw std::runtime_error("failed to create render pass!");
         }
+
+        return render_pass;
     }
 
-    return framebuffers;
-}
+    auto create_imgui_fbs(VkDevice               device,
+                          VkRenderPass           render_pass,
+                          VkExtent2D             sc_extent,
+                          std::span<VkImage>     sc_imgs,
+                          std::span<VkImageView> sc_views) -> std::vector<VkFramebuffer>
+    {
+        std::vector<VkFramebuffer> framebuffers;
+        const size_t               sc_img_count = sc_imgs.size();
+
+        framebuffers.resize(sc_img_count);
+        for (size_t i = 0; i < sc_img_count; ++i)
+        {
+            std::array attachments = {
+                sc_views[i]
+            };
+
+            VkFramebufferCreateInfo framebufferInfo = {};
+            framebufferInfo.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass              = render_pass;
+            framebufferInfo.attachmentCount         = 1;
+            framebufferInfo.pAttachments            = attachments.data();
+            framebufferInfo.width                   = sc_extent.width;
+            framebufferInfo.height                  = sc_extent.height;
+            framebufferInfo.layers                  = 1;
+
+            if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &framebuffers[i]) != VK_SUCCESS)
+            {
+                throw std::runtime_error("failed to create framebuffer!");
+            }
+        }
+
+        return framebuffers;
+    }
+
+} // namespace
 
 auto main() -> int
 {
@@ -236,41 +241,17 @@ auto main() -> int
         }
 
         // Synchronization
-        std::vector<VkSemaphore> img_avail_semaphores;
-        std::vector<VkSemaphore> render_finished_semaphores;
-        std::vector<VkFence>     fences;
+        auto sync_objects = vk::sync_objects_builder_t::prepare(&device)
+                                .unwrap()
+                                .semaphores(max_frames_in_flight * 2)
+                                .fences(max_frames_in_flight)
+                                .build()
+                                .unwrap();
 
-        auto sem_info = vk::structs::create::semaphore();
-        img_avail_semaphores.resize(max_frames_in_flight);
-        render_finished_semaphores.resize(max_frames_in_flight);
-        for (auto& sem : img_avail_semaphores)
-        {
-            if (auto res = vkCreateSemaphore(device.handle, &sem_info, nullptr, &sem); res != vk::vkres::ok)
-            {
-                println("Could not create semaphore: {}", vk::vkres::get_repr(res));
-                return 1;
-            }
-        }
-
-        for (auto& sem : render_finished_semaphores)
-        {
-            if (auto res = vkCreateSemaphore(device.handle, &sem_info, nullptr, &sem); res != vk::vkres::ok)
-            {
-                println("Could not create semaphore: {}", vk::vkres::get_repr(res));
-                return 1;
-            }
-        }
-
-        auto fence_info = vk::structs::create::fence();
-        fences.resize(max_frames_in_flight);
-        for (auto& fence : fences)
-        {
-            if (auto res = vkCreateFence(device.handle, &fence_info, nullptr, &fence); res != vk::vkres::ok)
-            {
-                println("Could not create fence: {}", vk::vkres::get_repr(res));
-                return 1;
-            }
-        }
+        std::span img_avail_semaphores = std::span { sync_objects.semaphores }
+                                             .subspan(0, max_frames_in_flight);
+        std::span render_finished_semaphores = std::span { sync_objects.semaphores }
+                                                   .subspan(max_frames_in_flight);
 
         // Execution
         VkCommandPool cmd_pool {};
@@ -353,14 +334,14 @@ auto main() -> int
             ImGui::Render();
 
             // Wait fences
-            const auto fence_res = vkWaitForFences(device.handle, 1, &fences[frame], VK_TRUE, UINT64_MAX);
+            const auto fence_res = vkWaitForFences(device.handle, 1, &sync_objects.fences[frame], VK_TRUE, UINT64_MAX);
             if (fence_res != VK_SUCCESS)
             {
                 println("failed to wait for fence!");
                 return 1;
             }
             // Reset the fence
-            const auto reset_fence = vkResetFences(device.handle, 1, &fences[frame]);
+            const auto reset_fence = vkResetFences(device.handle, 1, &sync_objects.fences[frame]);
             if (reset_fence != VK_SUCCESS)
             {
                 println("failed to reset fence!");
@@ -427,7 +408,7 @@ auto main() -> int
             submit_info.signalSemaphoreCount = 1;
             submit_info.pSignalSemaphores    = &render_finished_semaphores[frame];
 
-            if (vkQueueSubmit(device.queues[0], 1, &submit_info, fences[frame]) != VK_SUCCESS)
+            if (vkQueueSubmit(device.queues[0], 1, &submit_info, sync_objects.fences[frame]) != VK_SUCCESS)
             {
                 throw std::runtime_error("failed to submit draw command buffer!");
             }
@@ -458,6 +439,11 @@ auto main() -> int
         window.destroy();
         println("- Destroyed window");
 
+        ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+
+        vk::destroy(sync_objects);
         // vk::destroy(imgui_pass);
         vk::destroy(swapchain);
         vk::destroy(device);
