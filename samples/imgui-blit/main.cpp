@@ -13,6 +13,7 @@
 #include <orb/glfw.hpp>
 #include <orb/vk.hpp>
 #include <orb/vk/cmd_pool.hpp>
+#include <orb/vk/framebuffers.hpp>
 #include <orb/vk/imgui.hpp>
 #include <orb/vk/sync_objects.hpp>
 
@@ -214,11 +215,18 @@ auto main() -> int
         auto imgui_pass = create_imgui_pass(device.handle,
                                             swapchain.format.format);
 
-        auto imgui_fbs = create_imgui_fbs(device.handle,
-                                          imgui_pass,
-                                          swapchain.extent,
-                                          swapchain.images,
-                                          swapchain.views);
+        auto imgui_fbs_builder = vk::framebuffers_builder_t::prepare(&device, imgui_pass)
+                                     .unwrap()
+                                     .size(swapchain.width, swapchain.height);
+
+        for (auto& view : swapchain.views)
+        {
+            imgui_fbs_builder.attachment(view);
+        }
+
+        auto imgui_fbs = imgui_fbs_builder
+                             .build()
+                             .unwrap();
 
         // Create ImGui descriptor pool
         std::array<VkDescriptorPoolSize, 1> pool_sizes {};
@@ -330,7 +338,7 @@ auto main() -> int
             VkRenderPassBeginInfo renderPassInfo = {};
             renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             renderPassInfo.renderPass            = imgui_pass;
-            renderPassInfo.framebuffer           = imgui_fbs[img_index];
+            renderPassInfo.framebuffer           = imgui_fbs.handles[img_index];
             renderPassInfo.renderArea.offset     = { .x = 0, .y = 0 };
             renderPassInfo.renderArea.extent     = swapchain.extent;
 
@@ -397,6 +405,7 @@ auto main() -> int
 
         vk::imgui::terminate();
 
+        vk::destroy(imgui_fbs);
         vk::destroy(cmd_pool);
         vk::destroy(sync_objects);
         // vk::destroy(imgui_pass);
