@@ -12,6 +12,7 @@
 #include <GLFW/glfw3.h>
 #include <orb/glfw.hpp>
 #include <orb/vk.hpp>
+#include <orb/vk/cmd_pool.hpp>
 #include <orb/vk/imgui.hpp>
 #include <orb/vk/sync_objects.hpp>
 
@@ -253,31 +254,14 @@ auto main() -> int
         std::span render_finished_semaphores = std::span { sync_objects.semaphores }
                                                    .subspan(max_frames_in_flight);
 
-        // Execution
-        VkCommandPool cmd_pool {};
-        auto          cmd_pool_info    = vk::structs::create::cmd_pool();
-        cmd_pool_info.queueFamilyIndex = gpu->queue_families.front().index;
-        cmd_pool_info.flags            = vk::command_pool_create_flags::reset_command_buffer_bit;
-        if (auto res = vkCreateCommandPool(device.handle, &cmd_pool_info, nullptr, &cmd_pool);
-            res != vk::vkres::ok)
-        {
-            println("Could not create command pool: {}", vk::vkres::get_repr(res));
-            return 1;
-        }
+        auto cmd_pool = vk::cmd_pool_builder_t::prepare(&device, gpu->queue_families.front().index)
+                            .unwrap()
+                            .flag(vk::command_pool_create_flags::reset_command_buffer_bit)
+                            .build()
+                            .unwrap();
 
-        std::vector<VkCommandBuffer> cmd_buffers;
-        cmd_buffers.resize(max_frames_in_flight);
-        auto cmd_info               = vk::structs::create::cmd_buffer();
-        cmd_info.commandBufferCount = cmd_buffers.size();
-        cmd_info.commandPool        = cmd_pool;
-        cmd_info.level              = vk::cmd_buffer_levels::primary;
-
-        if (auto res = vkAllocateCommandBuffers(device.handle, &cmd_info, cmd_buffers.data());
-            res != vk::vkres::ok)
-        {
-            println("Could not allocate command buffer: {}", vk::vkres::get_repr(res));
-            return 1;
-        }
+        auto cmd_buffers = vk::alloc_cmds(cmd_pool, max_frames_in_flight, vk::cmd_buffer_levels::primary)
+                               .unwrap();
 
         // Init ImGui
         IMGUI_CHECKVERSION();
@@ -443,6 +427,7 @@ auto main() -> int
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
 
+        vk::destroy(cmd_pool);
         vk::destroy(sync_objects);
         // vk::destroy(imgui_pass);
         vk::destroy(swapchain);

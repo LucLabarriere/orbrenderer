@@ -9,6 +9,7 @@ add_library(orbrenderer           STATIC src/vk/instance.cpp
                                          src/vk/image.cpp
                                          src/vk/imgui.cpp
                                          src/vk/sync_objects.cpp
+                                         src/vk/cmd_pool.cpp
                                          src/glfw/driver.cpp
                                          src/glfw/vk_interoperability.cpp
                                          src/glfw/window.cpp)
