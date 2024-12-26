@@ -264,40 +264,14 @@ auto main() -> int
                                .unwrap();
 
         // Init ImGui
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO();
-        (void)io;
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
-
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-        // ImGui::StyleColorsLight();
-
-        // Setup Platform/Renderer backends
-        ImGui_ImplGlfw_InitForVulkan(window.get_handle<GLFWwindow>(), true);
-        ImGui_ImplVulkan_InitInfo init_info {};
-        init_info.Instance        = instance.handle;
-        init_info.PhysicalDevice  = gpu->handle;
-        init_info.Device          = device.handle;
-        init_info.QueueFamily     = 0;
-        init_info.Queue           = device.queues[0];
-        init_info.PipelineCache   = nullptr;
-        init_info.DescriptorPool  = desc_pool;
-        init_info.RenderPass      = imgui_pass;
-        init_info.Subpass         = 0;
-        init_info.MinImageCount   = swapchain.img_count;
-        init_info.ImageCount      = swapchain.img_count;
-        init_info.MSAASamples     = vk::sample_count_flags::_1;
-        init_info.Allocator       = nullptr;
-        init_info.CheckVkResultFn = nullptr;
-
-        if (!ImGui_ImplVulkan_Init(&init_info))
-        {
-            println("Could not initialize ImGui");
-            return 1;
-        }
+        vk::imgui::initialize({ .window    = &window,
+                                .instance  = &instance,
+                                .gpu       = gpu.getmut(),
+                                .device    = &device,
+                                .swapchain = &swapchain,
+                                .pass      = imgui_pass,
+                                .desc_pool = desc_pool })
+            .throw_if_error();
 
         // While loop
         uint32_t frame = 0;
@@ -307,15 +281,13 @@ auto main() -> int
             glfwPollEvents();
 
             // Start a new ImGui frame
-            ImGui_ImplVulkan_NewFrame();
-            ImGui_ImplGlfw_NewFrame(); // Assuming you're using GLFW for windowing
-            ImGui::NewFrame();
+            vk::imgui::new_frame();
 
             // Render the ImGui demo window
             ImGui::ShowDemoWindow();
 
             // Prepare ImGui for rendering
-            ImGui::Render();
+            vk::imgui::render();
 
             // Wait fences
             const auto fence_res = vkWaitForFences(device.handle, 1, &sync_objects.fences[frame], VK_TRUE, UINT64_MAX);
@@ -369,7 +341,7 @@ auto main() -> int
             vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
             // Render ImGui
-            ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+            vk::imgui::submit_render(cmd);
 
             // End the render pass
             vkCmdEndRenderPass(cmd);
@@ -423,9 +395,7 @@ auto main() -> int
         window.destroy();
         println("- Destroyed window");
 
-        ImGui_ImplVulkan_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
+        vk::imgui::terminate();
 
         vk::destroy(cmd_pool);
         vk::destroy(sync_objects);

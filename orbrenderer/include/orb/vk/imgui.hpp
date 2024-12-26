@@ -2,6 +2,7 @@
 
 #include <orb/box.hpp>
 #include <orb/result.hpp>
+#include <vulkan/vulkan_core.h>
 
 using VkCommandBuffer = struct VkCommandBuffer_T*;
 
@@ -24,12 +25,14 @@ namespace orb
         {
             struct imgui_init_args_t
             {
-                weak<glfw::window_t>    window;
-                weak<vk::instance_t>    instance;
-                weak<vk::gpu_t>         gpu;
-                weak<vk::device_t>      device;
-                weak<vk::swapchain_t>   swapchain;
-                weak<vk::render_pass_t> pass;
+                weak<glfw::window_t>  window;
+                weak<vk::instance_t>  instance;
+                weak<vk::gpu_t>       gpu;
+                weak<vk::device_t>    device;
+                weak<vk::swapchain_t> swapchain;
+
+                VkRenderPass          pass;
+                VkDescriptorPool      desc_pool;
             };
 
             [[nodiscard]] auto initialize(imgui_init_args_t) -> result<void>;

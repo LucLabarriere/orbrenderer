@@ -35,8 +35,8 @@ namespace orb::vk::imgui
         init_info.QueueFamily     = 0;
         init_info.Queue           = args.device->queues[0];
         init_info.PipelineCache   = nullptr;
-        init_info.DescriptorPool  = args.pass->desc_pool;
-        init_info.RenderPass      = args.pass->handle;
+        init_info.DescriptorPool  = args.desc_pool;
+        init_info.RenderPass      = args.pass;
         init_info.Subpass         = 0;
         init_info.MinImageCount   = args.swapchain->info.minImageCount;
         init_info.ImageCount      = args.swapchain->img_count;
