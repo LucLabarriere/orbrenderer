@@ -5,6 +5,14 @@
 
 namespace orb::vk
 {
+    auto cmd_buffers_t::begin_one_time(size_t offset) -> std::tuple<VkCommandBuffer, VkResult>
+    {
+        VkCommandBuffer cmd  = handles[offset];
+        auto            info = structs::cmd_buffer_begin();
+        info.flags           = command_buffer_usage_flags::one_time_submit;
+
+        return { cmd, vkBeginCommandBuffer(cmd, &info) };
+    }
 
     auto cmd_pool_builder_t::prepare(weak<device_t> device, ui32 qf_index) -> result<cmd_pool_builder_t>
     {
@@ -17,12 +25,13 @@ namespace orb::vk
     auto cmd_pool_builder_t::build() -> result<cmd_pool_t>
     {
         cmd_pool_t pool;
-        pool.device = m_device->handle;
+        pool.device   = m_device->handle;
         pool.qf_index = m_qf_index;
 
         auto cmd_pool_info             = structs::create::cmd_pool();
         cmd_pool_info.queueFamilyIndex = m_qf_index;
         cmd_pool_info.flags            = m_flags;
+
         if (auto res = vkCreateCommandPool(m_device->handle, &cmd_pool_info, nullptr, &pool.handle);
             res != vkres::ok)
         {
@@ -37,7 +46,7 @@ namespace orb::vk
         vkDestroyCommandPool(pool.device, pool.handle, nullptr);
     }
 
-    auto alloc_cmds(cmd_pool_t& pool, size_t count, cmd_buffer_levels::enum_t level) -> result<std::vector<VkCommandBuffer>>
+    auto alloc_cmds(cmd_pool_t& pool, size_t count, cmd_buffer_levels::enum_t level) -> result<cmd_buffers_t>
     {
 
         std::vector<VkCommandBuffer> cmds;
@@ -54,7 +63,7 @@ namespace orb::vk
             return error_t { "Could not allocate command buffer: {}", vkres::get_repr(res) };
         }
 
-        return std::move(cmds);
+        return cmd_buffers_t { .handles = std::move(cmds) };
     }
 
 } // namespace orb::vk

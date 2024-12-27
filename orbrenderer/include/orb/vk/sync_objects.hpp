@@ -5,17 +5,33 @@
 #include <orb/box.hpp>
 #include <orb/result.hpp>
 
+#include <span>
 #include <vector>
 
 namespace orb::vk
 {
     struct device_t;
 
+    struct fences_t
+    {
+        std::span<VkFence> handles;
+        VkDevice           device = nullptr;
+    };
+
+    struct semaphores_t
+    {
+        std::span<VkSemaphore> handles;
+        VkDevice               device = nullptr;
+    };
+
     struct sync_objects_t
     {
         VkDevice                 device = nullptr;
         std::vector<VkSemaphore> semaphores;
         std::vector<VkFence>     fences;
+
+        [[nodiscard]] auto subspan_fences(ui32 offset, ui32 count) -> fences_t;
+        [[nodiscard]] auto subspan_semaphores(ui32 offset, ui32 count) -> semaphores_t;
     };
 
     class sync_objects_builder_t
@@ -42,5 +58,6 @@ namespace orb::vk
         ui32           m_fence_count     = 0;
     };
 
-    void destroy(sync_objects_t&);
+    [[nodiscard]] auto wait_and_reset_fences(fences_t&) -> result<void>;
+    void               destroy(sync_objects_t&);
 } // namespace orb::vk

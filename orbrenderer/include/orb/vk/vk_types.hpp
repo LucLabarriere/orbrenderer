@@ -106,7 +106,7 @@ namespace orb::vk
         inline auto destroy_deb_utils(VkInstance instance)
         {
             using destroy_debug_utils = PFN_vkDestroyDebugUtilsMessengerEXT;
-            auto fn                             = (destroy_debug_utils)vkGetInstanceProcAddr( // NOLINT
+            auto fn                   = (destroy_debug_utils)vkGetInstanceProcAddr( // NOLINT
                 instance,
                 "vkDestroyDebugUtilsMessengerEXT");
             orbassert(fn != nullptr, "Coult not retrieve vkDestroyDebugUtilsMessengerEXT function");
@@ -968,21 +968,45 @@ namespace orb::vk
 
     namespace debug_utils_message_severity_flags
     {
-        using enum_t           = VkDebugUtilsMessageSeverityFlagBitsEXT;
-        constexpr auto verbose = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
-        constexpr auto info    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-        constexpr auto warning = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
-        constexpr auto error   = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        using enum_t                  = VkDebugUtilsMessageSeverityFlagBitsEXT;
+        inline constexpr auto verbose = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+        inline constexpr auto info    = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+        inline constexpr auto warning = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+        inline constexpr auto error   = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
     } // namespace debug_utils_message_severity_flags
 
     namespace debug_utils_message_type_flags
     {
-        using enum_t                          = VkDebugUtilsMessageTypeFlagBitsEXT;
-        constexpr auto general                = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
-        constexpr auto validation             = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
-        constexpr auto performance            = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-        constexpr auto device_address_binding = VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT;
+        using enum_t                                 = VkDebugUtilsMessageTypeFlagBitsEXT;
+        inline constexpr auto general                = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
+        inline constexpr auto validation             = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+        inline constexpr auto performance            = VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        inline constexpr auto device_address_binding = VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT;
     } // namespace debug_utils_message_type_flags
+
+    namespace command_buffer_usage_flags
+    {
+        using enum_t                               = VkCommandBufferUsageFlags;
+        inline constexpr auto one_time_submit      = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        inline constexpr auto render_pass_continue = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+        inline constexpr auto simultaneous_use     = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    } // namespace command_buffer_usage_flags
+
+    inline constexpr auto subpass_external = VK_SUBPASS_EXTERNAL;
+
+    namespace subpass_description_flags
+    {
+        using enum_t = VkSubpassDescriptionFlags;
+
+        inline constexpr auto per_view_attributes                           = VK_SUBPASS_DESCRIPTION_PER_VIEW_ATTRIBUTES_BIT_NVX;
+        inline constexpr auto per_view_position_x_only                      = VK_SUBPASS_DESCRIPTION_PER_VIEW_POSITION_X_ONLY_BIT_NVX;
+        inline constexpr auto fragment_region                               = VK_SUBPASS_DESCRIPTION_FRAGMENT_REGION_BIT_QCOM;
+        inline constexpr auto shader_resolve                                = VK_SUBPASS_DESCRIPTION_SHADER_RESOLVE_BIT_QCOM;
+        inline constexpr auto rasterization_order_attachment_color_access   = VK_SUBPASS_DESCRIPTION_RASTERIZATION_ORDER_ATTACHMENT_COLOR_ACCESS_BIT_EXT;
+        inline constexpr auto rasterization_order_attachment_depth_access   = VK_SUBPASS_DESCRIPTION_RASTERIZATION_ORDER_ATTACHMENT_DEPTH_ACCESS_BIT_EXT;
+        inline constexpr auto rasterization_order_attachment_stencil_access = VK_SUBPASS_DESCRIPTION_RASTERIZATION_ORDER_ATTACHMENT_STENCIL_ACCESS_BIT_EXT;
+        inline constexpr auto enable_legacy_dithering                       = VK_SUBPASS_DESCRIPTION_ENABLE_LEGACY_DITHERING_BIT_EXT;
+    } // namespace subpass_description_flags
 
     namespace debug_report_object_type
     {

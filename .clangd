@@ -17,6 +17,7 @@ Diagnostics:
       - cppcoreguidelines-avoid-non-const-global-variables
       - cppcoreguidelines-non-private-member-variables-in-classes
       - cppcoreguidelines-macro-usage
+      - cppcoreguidelines-rvalue-reference-param-not-moved
       - misc-misplaced-const
       - misc-non-private-member-variables-in-classes
       - misc-confusable-identifiers

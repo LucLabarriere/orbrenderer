@@ -4,6 +4,22 @@
 
 namespace orb::vk
 {
+    auto sync_objects_t::subspan_fences(ui32 offset, ui32 count) -> fences_t
+    {
+        return {
+            .handles = std::span { fences }.subspan(offset, count),
+            .device  = device,
+        };
+    }
+
+    auto sync_objects_t::subspan_semaphores(ui32 offset, ui32 count) -> semaphores_t
+    {
+        return {
+            .handles = std::span { semaphores }.subspan(offset, count),
+            .device  = device,
+        };
+    }
+
     auto sync_objects_builder_t::prepare(weak<device_t> device) -> result<sync_objects_builder_t>
     {
         sync_objects_builder_t d;
@@ -39,6 +55,30 @@ namespace orb::vk
         }
 
         return objs;
+    }
+
+    auto wait_and_reset_fences(fences_t& fences) -> result<void>
+    {
+        const auto wait = vkWaitForFences(fences.device,
+                                          fences.handles.size(),
+                                          fences.handles.data(),
+                                          VK_TRUE,
+                                          UINT64_MAX);
+        if (wait != VK_SUCCESS)
+        {
+            return error_t { "failed to wait for fence: {}", vkres::get_repr(wait) };
+        }
+
+        const auto reset = vkResetFences(fences.device,
+                                         fences.handles.size(),
+                                         fences.handles.data());
+
+        if (reset != VK_SUCCESS)
+        {
+            return error_t { "failed to reset fence!" };
+        }
+
+        return {};
     }
 
     void destroy(sync_objects_t& objs)

@@ -12,52 +12,60 @@
 #include <GLFW/glfw3.h>
 #include <orb/glfw.hpp>
 #include <orb/vk.hpp>
+#include <orb/vk/attachments.hpp>
 #include <orb/vk/cmd_pool.hpp>
+#include <orb/vk/desc_pool.hpp>
 #include <orb/vk/framebuffers.hpp>
 #include <orb/vk/imgui.hpp>
 #include <orb/vk/sync_objects.hpp>
+#include <orb/vk/subpasses.hpp>
+
+using namespace orb;
 
 namespace
 {
-    auto create_imgui_pass(VkDevice device,
-                           VkFormat sc_img_format) -> VkRenderPass
+    auto create_imgui_pass(VkDevice device, VkFormat sc_img_format) -> VkRenderPass
     {
-        // Create the render pass
-        VkAttachmentDescription color_attachment = {};
-        color_attachment.format                  = sc_img_format;
-        color_attachment.samples                 = VK_SAMPLE_COUNT_1_BIT;
-        color_attachment.loadOp                  = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        color_attachment.storeOp                 = VK_ATTACHMENT_STORE_OP_STORE;
-        color_attachment.stencilLoadOp           = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        color_attachment.stencilStoreOp          = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        color_attachment.initialLayout           = VK_IMAGE_LAYOUT_UNDEFINED;
-        color_attachment.finalLayout             = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        vk::attachments_t attachments;
 
-        VkAttachmentReference color_attachment_ref = {};
-        color_attachment_ref.attachment            = 0;
-        color_attachment_ref.layout                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        attachments.add({
+            .img_format        = sc_img_format,
+            .samples           = vk::sample_count_flags::_1,
+            .load_ops          = vk::attachment_load_ops::dont_care,
+            .store_ops         = vk::attachment_store_ops::store,
+            .stencil_load_ops  = vk::attachment_load_ops::dont_care,
+            .stencil_store_ops = vk::attachment_store_ops::dont_care,
+            .initial_layout    = vk::image_layouts::undefined,
+            .final_layout      = vk::image_layouts::present_src_khr,
+            .attachment_layout = vk::image_layouts::color_attachment_optimal,
+        });
 
-        VkSubpassDescription subpass = {};
-        subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments    = &color_attachment_ref;
+        auto [color_descs, color_refs] = attachments.spans(0, 1);
 
-        VkSubpassDependency dependency = {};
-        dependency.srcSubpass          = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass          = 0;
-        dependency.srcStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.srcAccessMask       = 0;
-        dependency.dstStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.dstAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        vk::subpasses_t subpasses;
+
+        subpasses.add_subpass({
+            .bind_point = vk::pipeline_bind_points::graphics,
+            .color_refs = color_refs,
+        });
+
+        subpasses.add_dependency({
+            .src        = vk::subpass_external,
+            .dst        = 0,
+            .src_stage  = vk::pipeline_stage_flags::color_attachment_output,
+            .dst_stage  = vk::pipeline_stage_flags::color_attachment_output,
+            .src_access = 0,
+            .dst_access = vk::access_flags::color_attachment_write,
+        });
 
         VkRenderPassCreateInfo render_pass_info = {};
         render_pass_info.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        render_pass_info.attachmentCount        = 1;
-        render_pass_info.pAttachments           = &color_attachment;
-        render_pass_info.subpassCount           = 1;
-        render_pass_info.pSubpasses             = &subpass;
-        render_pass_info.dependencyCount        = 1;
-        render_pass_info.pDependencies          = &dependency;
+        render_pass_info.attachmentCount        = attachments.descriptions.size();
+        render_pass_info.pAttachments           = attachments.descriptions.data();
+        render_pass_info.subpassCount           = subpasses.descriptions.size();
+        render_pass_info.pSubpasses             = subpasses.descriptions.data();
+        render_pass_info.dependencyCount        = subpasses.dependencies.size();
+        render_pass_info.pDependencies          = subpasses.dependencies.data();
 
         VkRenderPass render_pass {};
         if (vkCreateRenderPass(device, &render_pass_info, nullptr, &render_pass) != VK_SUCCESS)
@@ -67,47 +75,10 @@ namespace
 
         return render_pass;
     }
-
-    auto create_imgui_fbs(VkDevice               device,
-                          VkRenderPass           render_pass,
-                          VkExtent2D             sc_extent,
-                          std::span<VkImage>     sc_imgs,
-                          std::span<VkImageView> sc_views) -> std::vector<VkFramebuffer>
-    {
-        std::vector<VkFramebuffer> framebuffers;
-        const size_t               sc_img_count = sc_imgs.size();
-
-        framebuffers.resize(sc_img_count);
-        for (size_t i = 0; i < sc_img_count; ++i)
-        {
-            std::array attachments = {
-                sc_views[i]
-            };
-
-            VkFramebufferCreateInfo framebufferInfo = {};
-            framebufferInfo.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass              = render_pass;
-            framebufferInfo.attachmentCount         = 1;
-            framebufferInfo.pAttachments            = attachments.data();
-            framebufferInfo.width                   = sc_extent.width;
-            framebufferInfo.height                  = sc_extent.height;
-            framebufferInfo.layers                  = 1;
-
-            if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &framebuffers[i]) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to create framebuffer!");
-            }
-        }
-
-        return framebuffers;
-    }
-
 } // namespace
 
 auto main() -> int
 {
-    using namespace orb;
-
     constexpr auto portability = vk::khr_extensions::portability_enumeration;
 
     try
@@ -185,7 +156,7 @@ auto main() -> int
         constexpr ui32 max_frames_in_flight = 2;
 
         // Create swapchain
-        vk::swapchain_t swapchain = //
+        vk::swapchain_t swapchain =
             vk::swapchain_builder_t::prepare(weak { &instance },
                                              gpu.getmut(),
                                              weak { &device },
@@ -228,26 +199,12 @@ auto main() -> int
                              .build()
                              .unwrap();
 
-        // Create ImGui descriptor pool
-        std::array<VkDescriptorPoolSize, 1> pool_sizes {};
-        pool_sizes[0] = {
-            .type            = vk::desc_types::sampler,
-            .descriptorCount = 100,
-        };
-
-        auto pool_info          = vk::structs::create::descriptor_pool();
-        pool_info.flags         = vk::descriptor_pool_create_flags::free_descriptor_set_bit;
-        pool_info.maxSets       = 1;
-        pool_info.poolSizeCount = pool_sizes.size();
-        pool_info.pPoolSizes    = pool_sizes.data();
-        VkDescriptorPool desc_pool {};
-
-        if (auto r = vkCreateDescriptorPool(device.handle, &pool_info, nullptr, &desc_pool);
-            r != vk::vkres::ok)
-        {
-            println("Could not create descriptor pool: {}", vk::vkres::get_repr(r));
-            return 1;
-        }
+        auto desc_pool = vk::desc_pool_builder_t::prepare(&device)
+                             .unwrap()
+                             .pool(vk::desc_types::sampler, 100)
+                             .flag(vk::descriptor_pool_create_flags::free_descriptor_set_bit)
+                             .build()
+                             .unwrap();
 
         // Synchronization
         auto sync_objects = vk::sync_objects_builder_t::prepare(&device)
@@ -256,11 +213,6 @@ auto main() -> int
                                 .fences(max_frames_in_flight)
                                 .build()
                                 .unwrap();
-
-        std::span img_avail_semaphores = std::span { sync_objects.semaphores }
-                                             .subspan(0, max_frames_in_flight);
-        std::span render_finished_semaphores = std::span { sync_objects.semaphores }
-                                                   .subspan(max_frames_in_flight);
 
         auto cmd_pool = vk::cmd_pool_builder_t::prepare(&device, gpu->queue_families.front().index)
                             .unwrap()
@@ -278,15 +230,20 @@ auto main() -> int
                                 .device    = &device,
                                 .swapchain = &swapchain,
                                 .pass      = imgui_pass,
-                                .desc_pool = desc_pool })
+                                .desc_pool = desc_pool.handle })
             .throw_if_error();
 
         // While loop
         uint32_t frame = 0;
+
         while (!window.should_close())
         {
             // Poll events (specific to your windowing library, e.g., GLFW)
             glfwPollEvents();
+
+            auto fence           = sync_objects.subspan_fences(frame, 1);
+            auto img_avail       = sync_objects.subspan_semaphores(frame, 1);
+            auto render_finished = sync_objects.subspan_semaphores(frame + max_frames_in_flight, 1);
 
             // Start a new ImGui frame
             vk::imgui::new_frame();
@@ -297,29 +254,18 @@ auto main() -> int
             // Prepare ImGui for rendering
             vk::imgui::render();
 
-            // Wait fences
-            const auto fence_res = vkWaitForFences(device.handle, 1, &sync_objects.fences[frame], VK_TRUE, UINT64_MAX);
-            if (fence_res != VK_SUCCESS)
-            {
-                println("failed to wait for fence!");
-                return 1;
-            }
-            // Reset the fence
-            const auto reset_fence = vkResetFences(device.handle, 1, &sync_objects.fences[frame]);
-            if (reset_fence != VK_SUCCESS)
-            {
-                println("failed to reset fence!");
-                return 1;
-            }
+            // Wait and reset fences
+            vk::wait_and_reset_fences(fence).throw_if_error();
 
             // Acquire the next swapchain image
             uint32_t img_index {};
             VkResult result = vkAcquireNextImageKHR(device.handle,
                                                     swapchain.handle,
                                                     UINT64_MAX,
-                                                    img_avail_semaphores[frame],
+                                                    img_avail.handles.back(),
                                                     VK_NULL_HANDLE,
                                                     &img_index);
+
             if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
             {
                 println("Requiring sc rebuilt");
@@ -327,12 +273,7 @@ auto main() -> int
             }
 
             // Begin command buffer recording
-            VkCommandBuffer          cmd       = cmd_buffers[frame];
-            VkCommandBufferBeginInfo beginInfo = {};
-            beginInfo.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            beginInfo.flags                    = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-            vkBeginCommandBuffer(cmd, &beginInfo);
+            const auto [cmd, begin_res] = cmd_buffers.begin_one_time(frame);
 
             // Begin the render pass
             VkRenderPassBeginInfo renderPassInfo = {};
@@ -361,18 +302,21 @@ auto main() -> int
             VkSubmitInfo submit_info = {};
             submit_info.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-            std::array<VkPipelineStageFlags, 1> wait_stages = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-            submit_info.waitSemaphoreCount                  = 1;
-            submit_info.pWaitSemaphores                     = &img_avail_semaphores[frame];
-            submit_info.pWaitDstStageMask                   = wait_stages.data();
+            std::array<VkPipelineStageFlags, 1> wait_stages = {
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            };
+
+            submit_info.waitSemaphoreCount = 1;
+            submit_info.pWaitSemaphores    = img_avail.handles.data();
+            submit_info.pWaitDstStageMask  = wait_stages.data();
 
             submit_info.commandBufferCount = 1;
             submit_info.pCommandBuffers    = &cmd;
 
             submit_info.signalSemaphoreCount = 1;
-            submit_info.pSignalSemaphores    = &render_finished_semaphores[frame];
+            submit_info.pSignalSemaphores    = render_finished.handles.data();
 
-            if (vkQueueSubmit(device.queues[0], 1, &submit_info, sync_objects.fences[frame]) != VK_SUCCESS)
+            if (vkQueueSubmit(device.queues[0], 1, &submit_info, fence.handles.back()) != VK_SUCCESS)
             {
                 throw std::runtime_error("failed to submit draw command buffer!");
             }
@@ -382,7 +326,7 @@ auto main() -> int
             present_info.sType            = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
             present_info.waitSemaphoreCount = 1;
-            present_info.pWaitSemaphores    = &render_finished_semaphores[frame];
+            present_info.pWaitSemaphores    = render_finished.handles.data();
 
             present_info.swapchainCount = 1;
             present_info.pSwapchains    = &swapchain.handle;
@@ -405,6 +349,7 @@ auto main() -> int
 
         vk::imgui::terminate();
 
+        vk::destroy(desc_pool);
         vk::destroy(imgui_fbs);
         vk::destroy(cmd_pool);
         vk::destroy(sync_objects);

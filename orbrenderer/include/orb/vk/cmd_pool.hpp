@@ -20,6 +20,13 @@ namespace orb::vk
         ui32          qf_index = 0;
     };
 
+    struct cmd_buffers_t
+    {
+        std::vector<VkCommandBuffer> handles;
+
+        auto begin_one_time(size_t offset) -> std::tuple<VkCommandBuffer, VkResult>;
+    };
+
     class cmd_pool_builder_t
     {
     public:
@@ -39,7 +46,7 @@ namespace orb::vk
         ui32 m_flags {};
     };
 
-    auto alloc_cmds(cmd_pool_t&, size_t, cmd_buffer_levels::enum_t) -> result<std::vector<VkCommandBuffer>>;
+    auto alloc_cmds(cmd_pool_t&, size_t, cmd_buffer_levels::enum_t) -> result<cmd_buffers_t>;
 
     void destroy(cmd_pool_t&);
 
