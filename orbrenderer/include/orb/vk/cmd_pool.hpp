@@ -47,6 +47,7 @@ namespace orb::vk
     };
 
     auto alloc_cmds(cmd_pool_t&, size_t, cmd_buffer_levels::enum_t) -> result<cmd_buffers_t>;
+    auto end(VkCommandBuffer& cmd) -> result<void>;
 
     void destroy(cmd_pool_t&);
 

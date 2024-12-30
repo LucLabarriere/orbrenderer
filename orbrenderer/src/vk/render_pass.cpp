@@ -13,6 +13,7 @@ namespace orb::vk
                                       attachments_t& attachments) -> result<render_pass_t>
     {
         render_pass_t pass;
+
         pass.device = m_device;
 
         VkRenderPassCreateInfo info = structs::create::render_pass();
@@ -28,7 +29,20 @@ namespace orb::vk
             return error_t { "Failed to create render pass: {}", vkres::get_repr(res) };
         }
 
+        pass.begin_info            = structs::render_pass_begin();
+        pass.begin_info.renderPass = pass.handle;
+
         return pass;
+    }
+
+    void begin(render_pass_t& pass, VkCommandBuffer& cmd)
+    {
+        vkCmdBeginRenderPass(cmd, &pass.begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    }
+
+    void end(render_pass_t& /*pass*/, VkCommandBuffer& cmd)
+    {
+        vkCmdEndRenderPass(cmd);
     }
 
     void destroy(render_pass_t& pass)

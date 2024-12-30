@@ -223,6 +223,11 @@ auto main() -> int
                                 .desc_pool = desc_pool.handle })
             .throw_if_error();
 
+        imgui_pass.begin_info.renderArea.offset = { .x = 0, .y = 0 };
+        VkClearValue clear_color                = { 0.0f, 0.0f, 0.0f, 1.0f };
+        imgui_pass.begin_info.clearValueCount   = 1;
+        imgui_pass.begin_info.pClearValues      = &clear_color;
+
         // While loop
         uint32_t frame = 0;
 
@@ -263,30 +268,22 @@ auto main() -> int
             }
 
             // Begin command buffer recording
-            const auto [cmd, begin_res] = cmd_buffers.begin_one_time(frame);
+            auto [cmd, begin_res] = cmd_buffers.begin_one_time(frame);
+
+            imgui_pass.begin_info.framebuffer       = imgui_fbs.handles[img_index];
+            imgui_pass.begin_info.renderArea.extent = swapchain.extent;
 
             // Begin the render pass
-            VkRenderPassBeginInfo renderPassInfo = {};
-            renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass            = imgui_pass.handle;
-            renderPassInfo.framebuffer           = imgui_fbs.handles[img_index];
-            renderPassInfo.renderArea.offset     = { .x = 0, .y = 0 };
-            renderPassInfo.renderArea.extent     = swapchain.extent;
-
-            VkClearValue clearColor        = { 0.0f, 0.0f, 0.0f, 1.0f };
-            renderPassInfo.clearValueCount = 1;
-            renderPassInfo.pClearValues    = &clearColor;
-
-            vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            vk::begin(imgui_pass, cmd);
 
             // Render ImGui
             vk::imgui::submit_render(cmd);
 
             // End the render pass
-            vkCmdEndRenderPass(cmd);
+            vk::end(imgui_pass, cmd);
 
             // End command buffer recording
-            vkEndCommandBuffer(cmd);
+            vk::end(cmd);
 
             // Submit the command buffer
             VkSubmitInfo submit_info = {};

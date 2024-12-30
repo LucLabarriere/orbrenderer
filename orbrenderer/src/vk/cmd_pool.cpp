@@ -66,4 +66,14 @@ namespace orb::vk
         return cmd_buffers_t { .handles = std::move(cmds) };
     }
 
+    auto end(VkCommandBuffer& cmd) -> result<void>
+    {
+        if (auto res = vkEndCommandBuffer(cmd); res != vkres::ok)
+        {
+            return error_t { "Could not end command buffer: {}", vkres::get_repr(res) };
+        }
+
+        return {};
+    }
+
 } // namespace orb::vk

@@ -11,8 +11,9 @@ namespace orb::vk
 {
     struct render_pass_t
     {
-        VkRenderPass handle = nullptr;
-        VkDevice     device = nullptr;
+        VkRenderPass          handle = nullptr;
+        VkDevice              device = nullptr;
+        VkRenderPassBeginInfo begin_info {};
     };
 
     class render_pass_builder_t
@@ -25,5 +26,7 @@ namespace orb::vk
         VkDevice m_device = nullptr;
     };
 
+    void begin(render_pass_t&, VkCommandBuffer&);
+    void end(render_pass_t&, VkCommandBuffer&);
     void destroy(render_pass_t&);
 } // namespace orb::vk
