@@ -286,18 +286,14 @@ auto main() -> int
             vk::end(cmd);
 
             // Submit the command buffer
-            VkSubmitInfo submit_info = {};
-            submit_info.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-            std::array<VkPipelineStageFlags, 1> wait_stages = {
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-            };
+            VkPipelineStageFlags wait_stage =
+                vk::pipeline_stage_flags::color_attachment_output;
 
             vk::submit_helper_t {}
                 .wait_semaphores(img_avail.handles)
                 .signal_semaphores(render_finished.handles)
                 .cmd_buffer(&cmd)
-                .wait_stages(wait_stages)
+                .wait_stage(&wait_stage)
                 .submit(device.queues.front(), fence.handles.back())
                 .throw_if_error();
 

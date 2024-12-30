@@ -78,9 +78,9 @@ namespace orb::vk
             return *this;
         }
 
-        auto wait_stages(std::span<VkPipelineStageFlags> stage) -> submit_helper_t&
+        auto wait_stage(VkPipelineStageFlags* stage) -> submit_helper_t&
         {
-            m_info.pWaitDstStageMask = stage.data();
+            m_info.pWaitDstStageMask = stage;
             return *this;
         }
 
