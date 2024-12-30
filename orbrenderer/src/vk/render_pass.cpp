@@ -13,6 +13,7 @@ namespace orb::vk
                                       attachments_t& attachments) -> result<render_pass_t>
     {
         render_pass_t pass;
+        pass.clear_color = m_color;
 
         pass.device = m_device;
 
@@ -29,8 +30,10 @@ namespace orb::vk
             return error_t { "Failed to create render pass: {}", vkres::get_repr(res) };
         }
 
-        pass.begin_info            = structs::render_pass_begin();
-        pass.begin_info.renderPass = pass.handle;
+        pass.begin_info                   = structs::render_pass_begin();
+        pass.begin_info.renderPass        = pass.handle;
+        pass.begin_info.clearValueCount   = 1;
+        pass.begin_info.renderArea.offset = { .x = 0, .y = 0 };
 
         return pass;
     }

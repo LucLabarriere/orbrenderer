@@ -60,8 +60,10 @@ namespace
 
         vk::render_pass_t imgui_pass = vk::render_pass_builder_t::prepare(device)
                                            .unwrap()
+                                           .clear_color({0.0f, 0.0f, 0.0f, 1.0f})
                                            .build(subpasses, attachments)
                                            .unwrap();
+        imgui_pass.bind_color();
 
         return imgui_pass;
     }
@@ -223,13 +225,8 @@ auto main() -> int
                                 .desc_pool = desc_pool.handle })
             .throw_if_error();
 
-        imgui_pass.begin_info.renderArea.offset = { .x = 0, .y = 0 };
-        VkClearValue clear_color                = { 0.0f, 0.0f, 0.0f, 1.0f };
-        imgui_pass.begin_info.clearValueCount   = 1;
-        imgui_pass.begin_info.pClearValues      = &clear_color;
-
         // While loop
-        uint32_t frame = 0;
+        ui32 frame = 0;
 
         while (!window.should_close())
         {
