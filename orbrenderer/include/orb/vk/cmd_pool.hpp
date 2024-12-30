@@ -50,6 +50,8 @@ namespace orb::vk
     class submit_helper_t
     {
     public:
+        [[nodiscard]] static auto prepare() -> submit_helper_t { return {}; }
+
         auto wait_semaphores(std::span<VkSemaphore> semaphores) -> submit_helper_t&
         {
             m_info.waitSemaphoreCount = semaphores.size();
@@ -78,14 +80,16 @@ namespace orb::vk
             return *this;
         }
 
-        auto wait_stage(VkPipelineStageFlags* stage) -> submit_helper_t&
+        auto wait_stage(vk::pipeline_stage_flags::enum_t stage) -> submit_helper_t&
         {
-            m_info.pWaitDstStageMask = stage;
+            m_wait_stage |= (ui32)stage;
             return *this;
         }
 
         auto submit(VkQueue queue, VkFence fence = nullptr) -> result<void>
         {
+            m_info.pWaitDstStageMask = &m_wait_stage;
+
             if (auto res = vkQueueSubmit(queue, 1, &m_info, fence); res != vkres::ok)
             {
                 return error_t { "Failed to submit command buffer: {}", vkres::get_repr(res) };
@@ -95,7 +99,8 @@ namespace orb::vk
         }
 
     private:
-        VkSubmitInfo m_info = structs::submit();
+        VkSubmitInfo         m_info = structs::submit();
+        VkPipelineStageFlags m_wait_stage {};
     };
 
     auto alloc_cmds(cmd_pool_t&, size_t, cmd_buffer_levels::enum_t) -> result<cmd_buffers_t>;

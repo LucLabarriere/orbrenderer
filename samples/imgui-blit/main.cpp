@@ -114,7 +114,7 @@ auto main() -> int
         };
 
         // Print informations on select gpu
-        describe(*gpu);
+        vk::describe(*gpu);
 
         // Select queue family
         vk::queue_family_t graphics_queue_family = orb::eval | [&]() -> vk::queue_family_t& {
@@ -253,19 +253,20 @@ auto main() -> int
             vk::wait_and_reset_fences(fence).throw_if_error();
 
             // Acquire the next swapchain image
-            uint32_t img_index {};
-            VkResult result = vkAcquireNextImageKHR(device.handle,
-                                                    swapchain.handle,
-                                                    UINT64_MAX,
-                                                    img_avail.handles.back(),
-                                                    VK_NULL_HANDLE,
-                                                    &img_index);
+            auto res = vk::acquire_img(swapchain, img_avail.handles.back(), nullptr);
 
-            if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+            if (res.require_sc_rebuild())
             {
-                println("Requiring sc rebuilt");
+                println("Requiring sc rebuild");
                 return 1;
             }
+            else if (res.is_error())
+            {
+                println("Acquire img error");
+                return 1;
+            }
+
+            uint32_t img_index = res.img_index();
 
             // Begin command buffer recording
             auto [cmd, begin_res] = cmd_buffers.begin_one_time(frame);
@@ -285,33 +286,31 @@ auto main() -> int
             // End command buffer recording
             vk::end(cmd);
 
-            // Submit the command buffer
-            VkPipelineStageFlags wait_stage =
-                vk::pipeline_stage_flags::color_attachment_output;
-
-            vk::submit_helper_t {}
+            vk::submit_helper_t::prepare()
                 .wait_semaphores(img_avail.handles)
                 .signal_semaphores(render_finished.handles)
                 .cmd_buffer(&cmd)
-                .wait_stage(&wait_stage)
+                .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
+
+                // Submit
                 .submit(device.queues.front(), fence.handles.back())
                 .throw_if_error();
 
             // Present the rendered image
-            VkPresentInfoKHR present_info = {};
-            present_info.sType            = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+            auto present_res = vk::present_helper_t::prepare()
+                                   .wait_semaphores(render_finished.handles)
+                                   .swapchain(swapchain)
+                                   .img_index(img_index)
+                                   .present(device.queues.front());
 
-            present_info.waitSemaphoreCount = 1;
-            present_info.pWaitSemaphores    = render_finished.handles.data();
-
-            present_info.swapchainCount = 1;
-            present_info.pSwapchains    = &swapchain.handle;
-            present_info.pImageIndices  = &img_index;
-
-            result = vkQueuePresentKHR(device.queues[0], &present_info);
-            if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+            if (present_res.require_sc_rebuild())
             {
-                println("Requiring sc rebuilt");
+                println("Requiring sc rebuild");
+            }
+            else if (present_res.is_error())
+            {
+                println("Frame present error: {}", vk::vkres::get_repr(present_res.error()));
+                return 1;
             }
 
             frame = (frame + 1) % max_frames_in_flight;

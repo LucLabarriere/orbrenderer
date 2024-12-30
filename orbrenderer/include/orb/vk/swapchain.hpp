@@ -104,6 +104,7 @@ namespace orb::vk
     {
         std::variant<ui32, vkres::enum_t> content {};
 
+        [[nodiscard]] auto img_index() const -> ui32 { return std::get<ui32>(content); };
         [[nodiscard]] auto is_error() const -> bool { return content.index() == 1; };
         [[nodiscard]] auto is_valid() const -> bool { return content.index() == 0; };
         [[nodiscard]] auto error() const -> vkres::enum_t { return std::get<vkres::enum_t>(content); }
@@ -118,11 +119,67 @@ namespace orb::vk
         }
     };
 
-    [[nodiscard]] auto acquire_next_img(swapchain_t&, VkSemaphore, VkFence, ui64 timeout = UINT64_MAX)
-        -> img_res_t;
+    [[nodiscard]] auto acquire_img(swapchain_t&,
+                                   VkSemaphore  = VK_NULL_HANDLE,
+                                   VkFence      = VK_NULL_HANDLE,
+                                   ui64 timeout = UINT64_MAX) -> img_res_t;
 
-    [[nodiscard]] auto present_img(swapchain_t&, VkQueue, std::span<VkSemaphore>, ui32 frame_index)
-        -> img_res_t;
+    [[nodiscard]] auto present_img(swapchain_t&,
+                                   VkQueue,
+                                   std::span<VkSemaphore>,
+                                   ui32 frame_index) -> img_res_t;
+
+    class present_helper_t
+    {
+    public:
+        [[nodiscard]] static auto prepare() -> present_helper_t { return {}; }
+
+        auto swapchain(swapchain_t& swapchain) -> present_helper_t&
+        {
+            m_info.pSwapchains    = &swapchain.handle;
+            m_info.swapchainCount = 1;
+            return *this;
+        }
+
+        auto img_index(ui32& index) -> present_helper_t&
+        {
+            m_info.pImageIndices  = &index;
+            m_info.swapchainCount = 1;
+            return *this;
+        }
+
+        auto wait_semaphores(std::span<VkSemaphore> semaphores) -> present_helper_t&
+        {
+            m_info.pWaitSemaphores    = semaphores.data();
+            m_info.waitSemaphoreCount = semaphores.size();
+            return *this;
+        }
+
+        auto wait_semaphore(VkSemaphore& semaphore) -> present_helper_t&
+        {
+            m_info.pWaitSemaphores    = &semaphore;
+            m_info.waitSemaphoreCount = 1;
+            return *this;
+        }
+
+        auto present(VkQueue queue) -> img_res_t
+        {
+            img_res_t  res;
+            const auto r = vkQueuePresentKHR(queue, &m_info);
+
+            if (r == vkres::ok)
+            {
+                res.content.emplace<0>();
+                return res;
+            }
+
+            res.content.emplace<1>(r);
+            return res;
+        }
+
+    private:
+        VkPresentInfoKHR m_info = vk::structs::present();
+    };
 
     void destroy(swapchain_t& swapchain);
 } // namespace orb::vk

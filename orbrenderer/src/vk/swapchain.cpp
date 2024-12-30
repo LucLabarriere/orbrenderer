@@ -231,7 +231,7 @@ namespace orb::vk
         return sc;
     }
 
-    auto acquire_next_img(swapchain_t& sc, VkSemaphore sem, VkFence fence, ui64 timeout) -> img_res_t
+    auto acquire_img(swapchain_t& sc, VkSemaphore sem, VkFence fence, ui64 timeout) -> img_res_t
     {
         ui32      frame {};
         img_res_t res;
