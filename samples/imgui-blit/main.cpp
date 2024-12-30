@@ -293,20 +293,13 @@ auto main() -> int
                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
             };
 
-            submit_info.waitSemaphoreCount = 1;
-            submit_info.pWaitSemaphores    = img_avail.handles.data();
-            submit_info.pWaitDstStageMask  = wait_stages.data();
-
-            submit_info.commandBufferCount = 1;
-            submit_info.pCommandBuffers    = &cmd;
-
-            submit_info.signalSemaphoreCount = 1;
-            submit_info.pSignalSemaphores    = render_finished.handles.data();
-
-            if (vkQueueSubmit(device.queues[0], 1, &submit_info, fence.handles.back()) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to submit draw command buffer!");
-            }
+            vk::submit_helper_t {}
+                .wait_semaphores(img_avail.handles)
+                .signal_semaphores(render_finished.handles)
+                .cmd_buffer(&cmd)
+                .wait_stages(wait_stages)
+                .submit(device.queues.front(), fence.handles.back())
+                .throw_if_error();
 
             // Present the rendered image
             VkPresentInfoKHR present_info = {};

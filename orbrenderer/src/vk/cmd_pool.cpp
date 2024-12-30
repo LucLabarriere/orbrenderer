@@ -41,11 +41,6 @@ namespace orb::vk
         return pool;
     }
 
-    void destroy(cmd_pool_t& pool)
-    {
-        vkDestroyCommandPool(pool.device, pool.handle, nullptr);
-    }
-
     auto alloc_cmds(cmd_pool_t& pool, size_t count, cmd_buffer_levels::enum_t level) -> result<cmd_buffers_t>
     {
 
@@ -76,4 +71,8 @@ namespace orb::vk
         return {};
     }
 
+    void destroy(cmd_pool_t& pool)
+    {
+        vkDestroyCommandPool(pool.device, pool.handle, nullptr);
+    }
 } // namespace orb::vk
