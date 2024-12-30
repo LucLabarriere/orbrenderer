@@ -60,7 +60,7 @@ namespace
 
         vk::render_pass_t imgui_pass = vk::render_pass_builder_t::prepare(device)
                                            .unwrap()
-                                           .clear_color({0.0f, 0.0f, 0.0f, 1.0f})
+                                           .clear_color({ 0.0f, 0.0f, 0.0f, 1.0f })
                                            .build(subpasses, attachments)
                                            .unwrap();
         imgui_pass.bind_color();
@@ -265,11 +265,11 @@ auto main() -> int
 
             uint32_t img_index = res.img_index();
 
-            // Begin command buffer recording
-            auto [cmd, begin_res] = cmd_buffers.begin_one_time(frame);
-
             imgui_pass.begin_info.framebuffer       = imgui_fbs.handles[img_index];
             imgui_pass.begin_info.renderArea.extent = swapchain.extent;
+
+            // Begin command buffer recording
+            auto [cmd, begin_res] = cmd_buffers.begin_one_time(frame);
 
             // Begin the render pass
             vk::begin(imgui_pass, cmd);
@@ -283,13 +283,12 @@ auto main() -> int
             // End command buffer recording
             vk::end(cmd);
 
+            // Submit
             vk::submit_helper_t::prepare()
                 .wait_semaphores(img_avail.handles)
                 .signal_semaphores(render_finished.handles)
                 .cmd_buffer(&cmd)
                 .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
-
-                // Submit
                 .submit(device.queues.front(), fence.handles.back())
                 .throw_if_error();
 

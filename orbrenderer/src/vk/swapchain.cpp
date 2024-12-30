@@ -53,7 +53,7 @@ namespace orb::vk
         if (!surface_res) return surface_res.error();
         auto surface = surface_res.value();
 
-        sc.device   = device->handle;
+        sc.device   = device;
         sc.instance = instance->handle;
 
         // Check for WSI support
@@ -167,68 +167,71 @@ namespace orb::vk
         sc.info.presentMode      = sc.present_mode;
         sc.info.clipped          = VK_TRUE;
 
-        auto new_swapchain = [this](swapchain_t& sc) -> result<void> {
-            sc.info.oldSwapchain = sc.handle;
-
-            if (sc.cap.currentExtent.width == 0xffffffff)
-            {
-                sc.info.imageExtent.width  = sc.width;
-                sc.info.imageExtent.height = sc.height;
-            }
-            else
-            {
-                sc.width                   = sc.cap.currentExtent.width;
-                sc.height                  = sc.cap.currentExtent.height;
-                sc.info.imageExtent.width  = sc.cap.currentExtent.width;
-                sc.info.imageExtent.height = sc.cap.currentExtent.height;
-            }
-            sc.extent.width = sc.width;
-            sc.extent.height = sc.height;
-
-            if (auto r = vkCreateSwapchainKHR(sc.device, &sc.info, nullptr, &sc.handle); r != vkres::ok)
-            {
-                return error_t { "Could not create the swapchain: {}", vkres::get_repr(r) };
-            }
-
-            if (auto r = vkGetSwapchainImagesKHR(sc.device, sc.handle, &sc.img_count, nullptr);
-                r != vkres::ok)
-            {
-                return error_t { "Could not retrieve swapchain image count: {}", vkres::get_repr(r) };
-            }
-
-            sc.images.resize(sc.img_count);
-
-            if (auto r = vkGetSwapchainImagesKHR(sc.device, sc.handle, &sc.img_count, sc.images.data());
-                r != vkres::ok)
-            {
-                return error_t { "Could not retrieve swapchain images: {}", vkres::get_repr(r) };
-            }
-
-            sc.views.resize(sc.img_count);
-
-            auto view_info   = structs::create::image_view();
-            view_info.format = sc.format.format;
-
-            VkImageSubresourceRange image_range = { image_aspect_flags::color, 0, 1, 0, 1 };
-            view_info.subresourceRange          = image_range;
-
-            for (auto [img, view] : flux::zip_all_mut(sc.images, sc.views))
-            {
-                view_info.image = img;
-                if (auto r = vkCreateImageView(sc.device, &view_info, nullptr, &view); r != vkres::ok)
-                {
-                    return error_t { "Could not create swapchain image view: {}", vkres::get_repr(r) };
-                }
-                device->set_name(img, "Swapchain image");
-                device->set_name(view, "Swapchain image view");
-            }
-
-            return {};
-        };
-
-        if (auto r = new_swapchain(sc); !r) { return r.error(); };
+        if (auto r = sc.rebuild(); !r) { return r.error(); };
 
         return sc;
+    }
+
+    auto swapchain_t::rebuild() -> result<void>
+    {
+        info.oldSwapchain = handle;
+
+        if (cap.currentExtent.width == 0xffffffff)
+        {
+            info.imageExtent.width  = width;
+            info.imageExtent.height = height;
+        }
+        else
+        {
+            width                   = cap.currentExtent.width;
+            height                  = cap.currentExtent.height;
+            info.imageExtent.width  = cap.currentExtent.width;
+            info.imageExtent.height = cap.currentExtent.height;
+        }
+
+        extent.width  = width;
+        extent.height = height;
+
+        if (auto r = vkCreateSwapchainKHR(device->handle, &info, nullptr, &handle); r != vkres::ok)
+        {
+            return error_t { "Could not create the swapchain: {}", vkres::get_repr(r) };
+        }
+
+        if (auto r = vkGetSwapchainImagesKHR(device->handle, handle, &img_count, nullptr);
+            r != vkres::ok)
+        {
+            return error_t { "Could not retrieve swapchain image count: {}", vkres::get_repr(r) };
+        }
+
+        images.resize(img_count);
+
+        if (auto r = vkGetSwapchainImagesKHR(device->handle, handle, &img_count, images.data());
+            r != vkres::ok)
+        {
+            return error_t { "Could not retrieve swapchain images: {}", vkres::get_repr(r) };
+        }
+
+        views.resize(img_count);
+
+        auto view_info   = structs::create::image_view();
+        view_info.format = format.format;
+
+        VkImageSubresourceRange image_range = { image_aspect_flags::color, 0, 1, 0, 1 };
+        view_info.subresourceRange          = image_range;
+
+        for (auto [img, view] : flux::zip_all_mut(images, views))
+        {
+            view_info.image = img;
+            if (auto r = vkCreateImageView(device->handle, &view_info, nullptr, &view); r != vkres::ok)
+            {
+                return error_t { "Could not create swapchain image view: {}", vkres::get_repr(r) };
+            }
+
+            device->set_name(img, "Swapchain image");
+            device->set_name(view, "Swapchain image view");
+        }
+
+        return {};
     }
 
     auto acquire_img(swapchain_t& sc, VkSemaphore sem, VkFence fence, ui64 timeout) -> img_res_t
@@ -236,7 +239,7 @@ namespace orb::vk
         ui32      frame {};
         img_res_t res;
 
-        const auto r = vkAcquireNextImageKHR(sc.device, sc.handle, timeout, sem, fence, &frame);
+        const auto r = vkAcquireNextImageKHR(sc.device->handle, sc.handle, timeout, sem, fence, &frame);
 
         if (r == vkres::ok)
         {
@@ -275,15 +278,15 @@ namespace orb::vk
     {
         for (auto& view : swapchain.views)
         {
-            vkDestroyImageView(swapchain.device, view, nullptr);
+            vkDestroyImageView(swapchain.device->handle, view, nullptr);
         }
 
         for (auto& sem : swapchain.semaphores)
         {
-            vkDestroySemaphore(swapchain.device, sem, nullptr);
+            vkDestroySemaphore(swapchain.device->handle, sem, nullptr);
         }
 
-        vkDestroySwapchainKHR(swapchain.device, swapchain.handle, nullptr);
+        vkDestroySwapchainKHR(swapchain.device->handle, swapchain.handle, nullptr);
         vkDestroySurfaceKHR(swapchain.instance, swapchain.info.surface, nullptr);
     }
 

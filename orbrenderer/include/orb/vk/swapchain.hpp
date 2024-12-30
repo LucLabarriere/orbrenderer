@@ -25,8 +25,8 @@ namespace orb::vk
     {
         VkSwapchainCreateInfoKHR info = structs::create::swapchain();
         VkSurfaceCapabilitiesKHR cap {};
+        weak<device_t>           device {};
         VkSwapchainKHR           handle {};
-        VkDevice                 device {};
         VkInstance               instance {};
         VkSurfaceFormatKHR       format {
                   .colorSpace = color_spaces::srgb_nonlinear_khr,
@@ -41,6 +41,8 @@ namespace orb::vk
         ui32 width {};
         ui32 height {};
         ui32 img_count {};
+
+        auto rebuild() -> result<void>;
     };
 
     class swapchain_builder_t
