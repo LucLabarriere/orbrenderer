@@ -1,5 +1,8 @@
 #pragma once
 
+#include "orb/vk/vk_structs.hpp"
+
+#include <span>
 #include <vector>
 
 namespace orb::vk

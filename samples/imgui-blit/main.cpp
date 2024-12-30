@@ -17,21 +17,23 @@
 #include <orb/vk/desc_pool.hpp>
 #include <orb/vk/framebuffers.hpp>
 #include <orb/vk/imgui.hpp>
-#include <orb/vk/sync_objects.hpp>
+#include <orb/vk/render_pass.hpp>
 #include <orb/vk/subpasses.hpp>
+#include <orb/vk/sync_objects.hpp>
 
 using namespace orb;
 
 namespace
 {
-    auto create_imgui_pass(VkDevice device, VkFormat sc_img_format) -> VkRenderPass
+    auto create_imgui_pass(VkDevice device, VkFormat sc_img_format) -> vk::render_pass_t
     {
         vk::attachments_t attachments;
+        vk::subpasses_t   subpasses;
 
         attachments.add({
             .img_format        = sc_img_format,
             .samples           = vk::sample_count_flags::_1,
-            .load_ops          = vk::attachment_load_ops::dont_care,
+            .load_ops          = vk::attachment_load_ops::clear,
             .store_ops         = vk::attachment_store_ops::store,
             .stencil_load_ops  = vk::attachment_load_ops::dont_care,
             .stencil_store_ops = vk::attachment_store_ops::dont_care,
@@ -40,9 +42,7 @@ namespace
             .attachment_layout = vk::image_layouts::color_attachment_optimal,
         });
 
-        auto [color_descs, color_refs] = attachments.spans(0, 1);
-
-        vk::subpasses_t subpasses;
+        const auto [color_descs, color_refs] = attachments.spans(0, 1);
 
         subpasses.add_subpass({
             .bind_point = vk::pipeline_bind_points::graphics,
@@ -58,22 +58,12 @@ namespace
             .dst_access = vk::access_flags::color_attachment_write,
         });
 
-        VkRenderPassCreateInfo render_pass_info = {};
-        render_pass_info.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        render_pass_info.attachmentCount        = attachments.descriptions.size();
-        render_pass_info.pAttachments           = attachments.descriptions.data();
-        render_pass_info.subpassCount           = subpasses.descriptions.size();
-        render_pass_info.pSubpasses             = subpasses.descriptions.data();
-        render_pass_info.dependencyCount        = subpasses.dependencies.size();
-        render_pass_info.pDependencies          = subpasses.dependencies.data();
+        vk::render_pass_t imgui_pass = vk::render_pass_builder_t::prepare(device)
+                                           .unwrap()
+                                           .build(subpasses, attachments)
+                                           .unwrap();
 
-        VkRenderPass render_pass {};
-        if (vkCreateRenderPass(device, &render_pass_info, nullptr, &render_pass) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create render pass!");
-        }
-
-        return render_pass;
+        return imgui_pass;
     }
 } // namespace
 
@@ -186,7 +176,7 @@ auto main() -> int
         auto imgui_pass = create_imgui_pass(device.handle,
                                             swapchain.format.format);
 
-        auto imgui_fbs_builder = vk::framebuffers_builder_t::prepare(&device, imgui_pass)
+        auto imgui_fbs_builder = vk::framebuffers_builder_t::prepare(&device, imgui_pass.handle)
                                      .unwrap()
                                      .size(swapchain.width, swapchain.height);
 
@@ -229,7 +219,7 @@ auto main() -> int
                                 .gpu       = gpu.getmut(),
                                 .device    = &device,
                                 .swapchain = &swapchain,
-                                .pass      = imgui_pass,
+                                .pass      = imgui_pass.handle,
                                 .desc_pool = desc_pool.handle })
             .throw_if_error();
 
@@ -278,7 +268,7 @@ auto main() -> int
             // Begin the render pass
             VkRenderPassBeginInfo renderPassInfo = {};
             renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass            = imgui_pass;
+            renderPassInfo.renderPass            = imgui_pass.handle;
             renderPassInfo.framebuffer           = imgui_fbs.handles[img_index];
             renderPassInfo.renderArea.offset     = { .x = 0, .y = 0 };
             renderPassInfo.renderArea.extent     = swapchain.extent;
@@ -353,7 +343,7 @@ auto main() -> int
         vk::destroy(imgui_fbs);
         vk::destroy(cmd_pool);
         vk::destroy(sync_objects);
-        // vk::destroy(imgui_pass);
+        vk::destroy(imgui_pass);
         vk::destroy(swapchain);
         vk::destroy(device);
         vk::destroy(instance);
