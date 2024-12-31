@@ -13,6 +13,8 @@ namespace orb::glfw
             int h = 0;
         };
 
+        void destroy();
+
         [[nodiscard]] auto get_handle() const -> const void* { return m_handle; }
         [[nodiscard]] auto get_handle() -> void* { return m_handle; }
 
@@ -29,9 +31,8 @@ namespace orb::glfw
         }
 
         [[nodiscard]] auto get_fb_dimensions() const -> fb_dimensions_t;
-
-        void destroy();
         [[nodiscard]] auto should_close() const -> bool;
+        [[nodiscard]] auto minimized() const -> bool;
 
     private:
         friend glfw::driver_t;

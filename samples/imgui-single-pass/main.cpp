@@ -231,6 +231,10 @@ auto main() -> int
             // Poll events (specific to your windowing library, e.g., GLFW)
             glfwPollEvents();
 
+            if (window.minimized()) {
+                continue;
+            }
+
             auto fence           = sync_objects.subspan_fences(frame, 1);
             auto img_avail       = sync_objects.subspan_semaphores(frame, 1);
             auto render_finished = sync_objects.subspan_semaphores(frame + max_frames_in_flight, 1);

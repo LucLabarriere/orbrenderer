@@ -210,7 +210,9 @@ auto main() -> int
                             .build()
                             .unwrap();
 
-        auto cmd_buffers = vk::alloc_cmds(cmd_pool, max_frames_in_flight, vk::cmd_buffer_levels::primary)
+        auto cmd_buffers = vk::alloc_cmds(cmd_pool,
+                                          max_frames_in_flight,
+                                          vk::cmd_buffer_levels::primary)
                                .unwrap();
 
         // Init ImGui
@@ -223,13 +225,17 @@ auto main() -> int
                                 .desc_pool = desc_pool.handle })
             .throw_if_error();
 
-        // While loop
         ui32 frame = 0;
 
         while (!window.should_close())
         {
             // Poll events (specific to your windowing library, e.g., GLFW)
             glfwPollEvents();
+
+            if (window.minimized())
+            {
+                continue;
+            }
 
             auto fence           = sync_objects.subspan_fences(frame, 1);
             auto img_avail       = sync_objects.subspan_semaphores(frame, 1);

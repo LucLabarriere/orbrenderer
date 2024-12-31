@@ -20,4 +20,10 @@ namespace orb::glfw
     {
         return glfwWindowShouldClose(static_cast<GLFWwindow*>(m_handle));
     }
+
+    auto window_t::minimized() const -> bool
+    {
+        const auto dims = get_fb_dimensions();
+        return dims.w == 0 || dims.h == 0;
+    }
 } // namespace orb::glfw
