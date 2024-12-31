@@ -26,17 +26,17 @@ namespace orb::vk
         VkSwapchainCreateInfoKHR info = structs::create::swapchain();
         VkSurfaceCapabilitiesKHR cap {};
         weak<device_t>           device {};
+        weak<gpu_t>              gpu {};
+        weak<glfw::window_t>     window {};
         VkSwapchainKHR           handle {};
+        VkSurfaceKHR             surface {};
         VkInstance               instance {};
-        VkSurfaceFormatKHR       format {
-                  .colorSpace = color_spaces::srgb_nonlinear_khr,
-        };
+        VkSurfaceFormatKHR       format { .colorSpace = color_spaces::srgb_nonlinear_khr };
         VkCommandBuffer          cmd {};
         VkPresentModeKHR         present_mode {};
         VkExtent2D               extent {};
         std::vector<VkImage>     images;
         std::vector<VkImageView> views;
-        std::vector<VkSemaphore> semaphores;
 
         ui32 width {};
         ui32 height {};
@@ -90,17 +90,14 @@ namespace orb::vk
             return *this;
         }
 
-        auto semaphores(ui32 count) -> swapchain_builder_t&
-        {
-            semaphore_count = count;
-            return *this;
-        }
-
         [[nodiscard]] auto build() -> result<swapchain_t>;
     };
 
-    void copy_to_swapchain(
-        swapchain_t& sc, VkCommandBuffer cmd, VkImage src, VkExtent2D src_size, ui32 frame_index);
+    void copy_to_swapchain(swapchain_t&    sc,
+                           VkCommandBuffer cmd,
+                           VkImage         src,
+                           VkExtent2D      src_size,
+                           ui32            frame_index);
 
     struct img_res_t
     {

@@ -58,6 +58,7 @@ namespace orb::vk
         ui32           m_fence_count     = 0;
     };
 
-    [[nodiscard]] auto wait_and_reset_fences(fences_t&) -> result<void>;
+    [[nodiscard]] auto wait_fences(fences_t&) -> result<void>;
+    [[nodiscard]] auto reset_fences(fences_t&) -> result<void>;
     void               destroy(sync_objects_t&);
 } // namespace orb::vk

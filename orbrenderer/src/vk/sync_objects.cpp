@@ -57,25 +57,30 @@ namespace orb::vk
         return objs;
     }
 
-    auto wait_and_reset_fences(fences_t& fences) -> result<void>
+    auto wait_fences(fences_t& fences) -> result<void>
     {
-        const auto wait = vkWaitForFences(fences.device,
+        const auto res = vkWaitForFences(fences.device,
                                           fences.handles.size(),
                                           fences.handles.data(),
                                           VK_TRUE,
                                           UINT64_MAX);
-        if (wait != VK_SUCCESS)
+        if (res != vkres::ok)
         {
-            return error_t { "failed to wait for fence: {}", vkres::get_repr(wait) };
+            return error_t { "Failed to wait for fence: {}", vkres::get_repr(res) };
         }
 
-        const auto reset = vkResetFences(fences.device,
-                                         fences.handles.size(),
-                                         fences.handles.data());
+        return {};
+    }
 
-        if (reset != VK_SUCCESS)
+    auto reset_fences(fences_t& fences) -> result<void>
+    {
+        const auto res = vkResetFences(fences.device,
+                                       fences.handles.size(),
+                                       fences.handles.data());
+
+        if (res != vkres::ok)
         {
-            return error_t { "failed to reset fence!" };
+            return error_t { "Failed to reset fence: {}", vkres::get_repr(res) };
         }
 
         return {};

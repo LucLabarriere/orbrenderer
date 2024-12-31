@@ -14,9 +14,10 @@
 
 namespace orb::vk
 {
-    auto swapchain_builder_t::prepare(
-        weak<instance_t> instance, weak<gpu_t> gpu, weak<device_t> device, weak<glfw::window_t> window)
-        -> result<swapchain_builder_t>
+    auto swapchain_builder_t::prepare(weak<instance_t>     instance,
+                                      weak<gpu_t>          gpu,
+                                      weak<device_t>       device,
+                                      weak<glfw::window_t> window) -> result<swapchain_builder_t>
     {
         return swapchain_builder_t {
             .window   = window,
@@ -53,8 +54,11 @@ namespace orb::vk
         if (!surface_res) return surface_res.error();
         auto surface = surface_res.value();
 
+        sc.window   = window;
         sc.device   = device;
+        sc.gpu      = gpu;
         sc.instance = instance->handle;
+        sc.surface  = surface;
 
         // Check for WSI support
         VkBool32 res {};
@@ -133,29 +137,6 @@ namespace orb::vk
             };
         }
 
-        if (auto res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu->handle, surface, &sc.cap);
-            res != vkres::ok)
-        {
-            return error_t { "Could not retrieve surface capabilities: {}", vkres::get_repr(res) };
-        }
-
-        sc.info.minImageCount = std::max(sc.info.minImageCount, sc.cap.minImageCount);
-
-        if (sc.cap.maxImageCount != 0)
-        {
-            sc.info.minImageCount = std::min(sc.info.minImageCount, sc.cap.maxImageCount);
-        }
-
-        auto sem_info = structs::create::semaphore();
-        sc.semaphores.resize(semaphore_count);
-        for (auto& sem : sc.semaphores)
-        {
-            if (auto res = vkCreateSemaphore(device->handle, &sem_info, nullptr, &sem); res != vkres::ok)
-            {
-                return error_t { "Could not create Swapchain semaphore: {}", vkres::get_repr(res) };
-            }
-        }
-
         sc.info.surface          = surface;
         sc.info.imageFormat      = sc.format.format;
         sc.info.imageColorSpace  = sc.format.colorSpace;
@@ -175,6 +156,22 @@ namespace orb::vk
     auto swapchain_t::rebuild() -> result<void>
     {
         info.oldSwapchain = handle;
+        auto dims         = window->get_fb_dimensions();
+        width             = (ui32)dims.w;
+        height            = (ui32)dims.h;
+
+        if (auto res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu->handle, surface, &cap);
+            res != vkres::ok)
+        {
+            return error_t { "Could not retrieve surface capabilities: {}", vkres::get_repr(res) };
+        }
+
+        info.minImageCount = std::max(info.minImageCount, cap.minImageCount);
+
+        if (cap.maxImageCount != 0)
+        {
+            info.minImageCount = std::min(info.minImageCount, cap.maxImageCount);
+        }
 
         if (cap.currentExtent.width == 0xffffffff)
         {
@@ -192,10 +189,24 @@ namespace orb::vk
         extent.width  = width;
         extent.height = height;
 
-        if (auto r = vkCreateSwapchainKHR(device->handle, &info, nullptr, &handle); r != vkres::ok)
+        VkSwapchainKHR new_handle = nullptr;
+
+        if (auto r = vkCreateSwapchainKHR(device->handle, &info, nullptr, &new_handle); r != vkres::ok)
         {
             return error_t { "Could not create the swapchain: {}", vkres::get_repr(r) };
         }
+
+        if (handle)
+        {
+            for (auto& view : views)
+            {
+                vkDestroyImageView(device->handle, view, nullptr);
+            }
+
+            vkDestroySwapchainKHR(device->handle, handle, nullptr);
+        }
+
+        handle = new_handle;
 
         if (auto r = vkGetSwapchainImagesKHR(device->handle, handle, &img_count, nullptr);
             r != vkres::ok)
@@ -279,11 +290,6 @@ namespace orb::vk
         for (auto& view : swapchain.views)
         {
             vkDestroyImageView(swapchain.device->handle, view, nullptr);
-        }
-
-        for (auto& sem : swapchain.semaphores)
-        {
-            vkDestroySemaphore(swapchain.device->handle, sem, nullptr);
         }
 
         vkDestroySwapchainKHR(swapchain.device->handle, swapchain.handle, nullptr);
