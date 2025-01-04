@@ -167,8 +167,6 @@ namespace orb::vk::details
                                          &debug_report_ci,
                                          handles.allocator,
                                          &handles.deb_report));
-
-            print_chrono("- Create debug report callback: {}");
         }
 
         // Select Physical Device (GPU)

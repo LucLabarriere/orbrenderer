@@ -1,6 +1,7 @@
 #pragma once
 
 #include <orb/result.hpp>
+#include <orb/box.hpp>
 
 #include "orb/vk/vk_structs.hpp"
 
@@ -41,7 +42,7 @@ namespace orb::vk
             return *this;
         }
 
-        [[nodiscard]] auto build() -> result<instance_t>;
+        [[nodiscard]] auto build() -> result<box<instance_t>>;
 
     private:
         instance_builder_t() = default;

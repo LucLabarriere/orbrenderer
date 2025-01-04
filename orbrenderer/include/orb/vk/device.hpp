@@ -41,7 +41,7 @@ namespace orb::vk
     {
     public:
         [[nodiscard]] static auto prepare(VkInstance instance) -> result<device_builder_t>;
-        [[nodiscard]] auto        build(weak<gpu_t>) -> result<device_t>;
+        [[nodiscard]] auto        build(gpu_t&) -> result<box<device_t>>;
 
         auto add_extension(const char* ext) -> device_builder_t&
         {

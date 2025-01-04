@@ -10,12 +10,12 @@ namespace orb::vk
     }
 
     auto render_pass_builder_t::build(subpasses_t&   subpasses,
-                                      attachments_t& attachments) -> result<render_pass_t>
+                                      attachments_t& attachments) -> result<box<render_pass_t>>
     {
-        render_pass_t pass;
-        pass.clear_color = m_color;
+        auto pass         = make_box<render_pass_t>();
+        pass->clear_color = m_color;
 
-        pass.device = m_device;
+        pass->device = m_device;
 
         VkRenderPassCreateInfo info = structs::create::render_pass();
         info.attachmentCount        = attachments.descriptions.size();
@@ -25,15 +25,15 @@ namespace orb::vk
         info.dependencyCount        = subpasses.dependencies.size();
         info.pDependencies          = subpasses.dependencies.data();
 
-        if (auto res = vkCreateRenderPass(m_device, &info, nullptr, &pass.handle); res != vkres::ok)
+        if (auto res = vkCreateRenderPass(m_device, &info, nullptr, &pass->handle); res != vkres::ok)
         {
             return error_t { "Failed to create render pass: {}", vkres::get_repr(res) };
         }
 
-        pass.begin_info                   = structs::render_pass_begin();
-        pass.begin_info.renderPass        = pass.handle;
-        pass.begin_info.clearValueCount   = 1;
-        pass.begin_info.renderArea.offset = { .x = 0, .y = 0 };
+        pass->begin_info                   = structs::render_pass_begin();
+        pass->begin_info.renderPass        = pass->handle;
+        pass->begin_info.clearValueCount   = 1;
+        pass->begin_info.renderArea.offset = { .x = 0, .y = 0 };
 
         return pass;
     }

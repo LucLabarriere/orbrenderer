@@ -24,21 +24,22 @@ namespace orb::vk
             .instance = instance,
             .gpu      = gpu,
             .device   = device,
+            .sc       = make_box<swapchain_t>(),
         };
     }
 
     auto swapchain_builder_t::fb_dimensions(i32 w, i32 h) -> swapchain_builder_t&
     {
-        sc.width  = (ui32)w;
-        sc.height = (ui32)h;
+        sc->width  = (ui32)w;
+        sc->height = (ui32)h;
         return *this;
     }
 
     auto swapchain_builder_t::fb_dimensions_from_window() -> swapchain_builder_t&
     {
-        auto dims = window->get_fb_dimensions();
-        sc.width  = (ui32)dims.w;
-        sc.height = (ui32)dims.h;
+        auto dims  = window->get_fb_dimensions();
+        sc->width  = (ui32)dims.w;
+        sc->height = (ui32)dims.h;
         return *this;
     }
 
@@ -48,24 +49,24 @@ namespace orb::vk
         return *this;
     }
 
-    auto swapchain_builder_t::build() -> result<swapchain_t>
+    auto swapchain_builder_t::build() -> result<box<swapchain_t>>
     {
         auto surface_res = glfw::driver_t::create_vk_surface(instance->handle, *window);
         if (!surface_res) return surface_res.error();
         auto surface = surface_res.value();
 
-        sc.window   = window;
-        sc.device   = device;
-        sc.gpu      = gpu;
-        sc.instance = instance->handle;
-        sc.surface  = surface;
+        sc->window   = window;
+        sc->device   = device;
+        sc->gpu      = gpu;
+        sc->instance = instance->handle;
+        sc->surface  = surface;
 
         // Check for WSI support
         VkBool32 res {};
         vkGetPhysicalDeviceSurfaceSupportKHR(gpu->handle, present_qf_index, surface, &res);
         if (res != VK_TRUE) { return error_t { "Error no WSI support on GPU." }; }
 
-        sc.format.format = orb::eval | [&] {
+        sc->format.format = orb::eval | [&] {
             ui32                            count {};
             std::vector<VkSurfaceFormatKHR> avail_formats;
             vkGetPhysicalDeviceSurfaceFormatsKHR(gpu->handle, surface, &count, nullptr);
@@ -77,8 +78,8 @@ namespace orb::vk
                 if (avail_formats.back().format == formats::undefined) { return formats.front(); }
                 else
                 {
-                    const auto& ret      = avail_formats.back();
-                    sc.format.colorSpace = ret.colorSpace;
+                    const auto& ret       = avail_formats.back();
+                    sc->format.colorSpace = ret.colorSpace;
                     return ret.format;
                 }
             }
@@ -88,20 +89,20 @@ namespace orb::vk
                 {
                     for (const auto avail : avail_formats)
                     {
-                        if (request == avail.format && sc.format.colorSpace == avail.colorSpace)
+                        if (request == avail.format && sc->format.colorSpace == avail.colorSpace)
                         {
                             return avail.format;
                         }
                     }
                 }
 
-                const auto& ret      = avail_formats.front();
-                sc.format.colorSpace = ret.colorSpace;
+                const auto& ret       = avail_formats.front();
+                sc->format.colorSpace = ret.colorSpace;
                 return ret.format;
             }
         };
 
-        sc.present_mode = orb::eval | [&] {
+        sc->present_mode = orb::eval | [&] {
             // Request a certain mode and confirm that it is available. If not use VK_PRESENT_MODE_FIFO_KHR
             // which is mandatory
             ui32                          count {};
@@ -120,10 +121,10 @@ namespace orb::vk
             return present_modes::fifo_khr; // Always available
         };
 
-        if (sc.info.minImageCount == 0)
+        if (sc->info.minImageCount == 0)
         {
-            sc.info.minImageCount = orb::eval | [&] {
-                switch (sc.present_mode)
+            sc->info.minImageCount = orb::eval | [&] {
+                switch (sc->present_mode)
                 {
                 case vk::present_modes::mailbox_khr: return 3;
                 case vk::present_modes::fifo_khr:
@@ -132,25 +133,25 @@ namespace orb::vk
 
                 default:
                     panic("Unknown present mode: {}. Something went wrong during the vulkan setup",
-                          (ui32)sc.present_mode);
+                          (ui32)sc->present_mode);
                 }
             };
         }
 
-        sc.info.surface          = surface;
-        sc.info.imageFormat      = sc.format.format;
-        sc.info.imageColorSpace  = sc.format.colorSpace;
-        sc.info.imageArrayLayers = 1;
-        sc.info.imageUsage       = image_usage_flags::color_attachment;
-        sc.info.imageSharingMode = sharing_modes::exclusive; // Assume that graphics family == present family
-        sc.info.preTransform     = surface_transform_flag::identity_khr;
-        sc.info.compositeAlpha   = composite_alpha_flag::opaque_khr;
-        sc.info.presentMode      = sc.present_mode;
-        sc.info.clipped          = VK_TRUE;
+        sc->info.surface          = surface;
+        sc->info.imageFormat      = sc->format.format;
+        sc->info.imageColorSpace  = sc->format.colorSpace;
+        sc->info.imageArrayLayers = 1;
+        sc->info.imageUsage       = image_usage_flags::color_attachment;
+        sc->info.imageSharingMode = sharing_modes::exclusive; // Assume that graphics family == present family
+        sc->info.preTransform     = surface_transform_flag::identity_khr;
+        sc->info.compositeAlpha   = composite_alpha_flag::opaque_khr;
+        sc->info.presentMode      = sc->present_mode;
+        sc->info.clipped          = VK_TRUE;
 
-        if (auto r = sc.rebuild(); !r) { return r.error(); };
+        if (auto r = sc->rebuild(); !r) { return r.error(); };
 
-        return sc;
+        return std::move(sc);
     }
 
     auto swapchain_t::rebuild() -> result<void>

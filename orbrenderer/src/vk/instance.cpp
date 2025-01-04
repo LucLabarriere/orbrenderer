@@ -29,9 +29,6 @@ namespace
         switch (severity)
         {
         case orb::vk::debug_utils_message_severity_flags::verbose:
-        {
-            break;
-        }
         case orb::vk::debug_utils_message_severity_flags::info:
         {
             break;
@@ -120,14 +117,17 @@ namespace orb::vk
         return b;
     }
 
-    auto vk::instance_builder_t::build() -> result<instance_t>
+    auto vk::instance_builder_t::build() -> result<box<instance_t>>
     {
-        instance_t data;
+        auto instance = make_box<instance_t>();
+
         create_info.enabledExtensionCount   = (ui32)extensions.size();
         create_info.ppEnabledExtensionNames = extensions.data();
+
+        println("- Vulkan instance extensions:");
         for (const char* ext : extensions)
         {
-            orb::println("Adding extension: {}", ext);
+            orb::println("  * {}", ext);
         }
 
         ui32 layer_count {};
@@ -157,30 +157,18 @@ namespace orb::vk
         create_deb_info.pfnUserCallback = debug_report;
         create_info.pNext               = &create_deb_info;
 
-        auto res = vkCreateInstance(&create_info, nullptr, &data.handle);
+        auto res = vkCreateInstance(&create_info, nullptr, &instance->handle);
         if (res != VK_SUCCESS) { return error_t { "Could not create Vulkan instance: {}", vkres::get_repr(res) }; }
 
         // begin_chrono();
 
-        auto create_deb_utils_fn = proc_addresses::create_deb_utils(data.handle);
-        if (auto r = create_deb_utils_fn(data.handle, &create_deb_info, nullptr, &data.debug_utils); r != vkres::ok)
+        auto create_deb_utils_fn = proc_addresses::create_deb_utils(instance->handle);
+        if (auto r = create_deb_utils_fn(instance->handle, &create_deb_info, nullptr, &instance->debug_utils); r != vkres::ok)
         {
             return error_t { "Could not create debug utils messenger: {}", vkres::get_repr(res) };
         }
 
-        // auto create_deb_callback_fn = proc_addresses::create_deb_report_callback(data.handle);
-        // auto debug_report_ci        = structs::create::debug_report_callback();
-        // debug_report_ci.pfnCallback = debug_report;
-
-        // auto create_debug_res = create_deb_callback_fn(data.handle, &debug_report_ci, nullptr, &data.debug_report);
-        // if (create_debug_res != VK_SUCCESS)
-        //{
-        //     return error_t { "Could not create debug report callback: {}", (i64)create_debug_res };
-        // }
-
-        // print_chrono("- Create debug function: {}");
-
-        return data;
+        return instance;
     }
 
     void destroy(instance_t& instance)

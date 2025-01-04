@@ -9,10 +9,9 @@
 
 namespace orb::glfw
 {
-    auto driver_t::create_window_for_vk() -> result<window_t>
+    auto driver_t::create_window_for_vk() -> result<box<window_t>>
     {
-        begin_chrono();
-        window_t win;
+        auto win = make_box<window_t>();
 
         if (!glfwVulkanSupported()) { return error_t { "Vulkan not supported!" }; }
 
@@ -21,9 +20,7 @@ namespace orb::glfw
 
         if (!w) { return error_t { "Could not create window" }; }
 
-        print_chrono("- Window create time {}");
-
-        win.m_handle = w;
+        win->m_handle = w;
         return win;
     }
 

@@ -25,7 +25,7 @@ namespace orb::vk
         return *this;
     }
 
-    auto device_builder_t::build(weak<gpu_t> gpu) -> result<device_t>
+    auto device_builder_t::build(gpu_t& gpu) -> result<box<device_t>>
     {
         auto set_debug_name_fn = proc_addresses::set_debug_name(m_instance);
 
@@ -35,8 +35,8 @@ namespace orb::vk
         create_info.enabledExtensionCount   = m_extensions.size();
         create_info.ppEnabledExtensionNames = m_extensions.data();
 
-        device_t device;
-        auto     res = vkCreateDevice(gpu->handle, &create_info, nullptr, &device.handle);
+        auto device = make_box<device_t>();
+        auto res    = vkCreateDevice(gpu.handle, &create_info, nullptr, &device->handle);
 
         if (res != VK_SUCCESS) { return error_t { "Could not create vulkan device: {}", (ui32)res }; }
 
@@ -44,20 +44,20 @@ namespace orb::vk
         {
             for (size_t i : flux::range(queue_info.queueCount))
             {
-                auto& queue = device.queues.emplace_back();
-                vkGetDeviceQueue(device.handle, queue_info.queueFamilyIndex, (ui32)i, &queue);
+                auto& queue = device->queues.emplace_back();
+                vkGetDeviceQueue(device->handle, queue_info.queueFamilyIndex, (ui32)i, &queue);
             }
         }
 
         auto allocator_info             = structs::create::allocator();
-        allocator_info.physicalDevice   = gpu->handle;
-        allocator_info.device           = device.handle;
+        allocator_info.physicalDevice   = gpu.handle;
+        allocator_info.device           = device->handle;
         allocator_info.instance         = m_instance;
         allocator_info.pVulkanFunctions = nullptr;
 
-        vmaCreateAllocator(&allocator_info, &device.allocator);
+        vmaCreateAllocator(&allocator_info, &device->allocator);
 
-        device.set_debug_name_fb = set_debug_name_fn;
+        device->set_debug_name_fb = set_debug_name_fn;
         return device;
     }
 

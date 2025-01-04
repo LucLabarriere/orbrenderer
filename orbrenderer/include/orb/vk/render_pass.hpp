@@ -16,7 +16,8 @@ namespace orb::vk
         VkRenderPassBeginInfo begin_info {};
         VkClearValue          clear_color { 0.0f, 0.0f, 0.0f, 1.0f };
 
-        void bind_color() {
+        void bind_color()
+        {
             begin_info.pClearValues = &clear_color;
         }
     };
@@ -25,7 +26,7 @@ namespace orb::vk
     {
     public:
         [[nodiscard]] static auto prepare(VkDevice) -> result<render_pass_builder_t>;
-        [[nodiscard]] auto        build(subpasses_t&, attachments_t&) -> result<render_pass_t>;
+        [[nodiscard]] auto        build(subpasses_t&, attachments_t&) -> result<box<render_pass_t>>;
 
         auto clear_color(VkClearValue&& color) -> render_pass_builder_t&
         {

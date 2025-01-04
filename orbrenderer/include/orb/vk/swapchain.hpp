@@ -53,7 +53,7 @@ namespace orb::vk
         weak<gpu_t>          gpu;
         weak<device_t>       device;
 
-        swapchain_t sc {};
+        box<swapchain_t> sc {};
 
         ui32 present_qf_index {};
         ui32 semaphore_count {};
@@ -76,7 +76,7 @@ namespace orb::vk
         }
         auto color_space(color_spaces::enum_t v) -> swapchain_builder_t&
         {
-            sc.format.colorSpace = v;
+            sc->format.colorSpace = v;
             return *this;
         }
         auto present_mode(present_modes::enum_t v) -> swapchain_builder_t&
@@ -86,11 +86,11 @@ namespace orb::vk
         }
         auto min_img_count(ui32 count) -> swapchain_builder_t&
         {
-            sc.info.minImageCount = count;
+            sc->info.minImageCount = count;
             return *this;
         }
 
-        [[nodiscard]] auto build() -> result<swapchain_t>;
+        [[nodiscard]] auto build() -> result<box<swapchain_t>>;
     };
 
     void copy_to_swapchain(swapchain_t&    sc,
