@@ -89,6 +89,11 @@ namespace orb::vk
             sc->info.minImageCount = count;
             return *this;
         }
+        auto usage(vk::image_usage_flags::enum_t flag) -> swapchain_builder_t&
+        {
+            sc->info.imageUsage |= flag;
+            return *this;
+        }
 
         [[nodiscard]] auto build() -> result<box<swapchain_t>>;
     };

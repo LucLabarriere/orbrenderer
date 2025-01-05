@@ -1,8 +1,13 @@
 #pragma once
 
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
+
+#include <vulkan/vulkan_core.h>
+
 #include <orb/box.hpp>
 #include <orb/result.hpp>
-#include <vulkan/vulkan_core.h>
 
 using VkCommandBuffer = struct VkCommandBuffer_T*;
 
@@ -31,8 +36,8 @@ namespace orb
                 weak<vk::device_t>    device;
                 weak<vk::swapchain_t> swapchain;
 
-                VkRenderPass          pass;
-                VkDescriptorPool      desc_pool;
+                VkRenderPass     pass;
+                VkDescriptorPool desc_pool;
             };
 
             [[nodiscard]] auto initialize(imgui_init_args_t) -> result<void>;

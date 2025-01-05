@@ -19,13 +19,16 @@ namespace orb::vk
                                       weak<device_t>       device,
                                       weak<glfw::window_t> window) -> result<swapchain_builder_t>
     {
-        return swapchain_builder_t {
+        auto builder = swapchain_builder_t {
             .window   = window,
             .instance = instance,
             .gpu      = gpu,
             .device   = device,
             .sc       = make_box<swapchain_t>(),
         };
+
+        builder.sc->info.imageUsage = 0;
+        return builder;
     }
 
     auto swapchain_builder_t::fb_dimensions(i32 w, i32 h) -> swapchain_builder_t&
@@ -142,7 +145,6 @@ namespace orb::vk
         sc->info.imageFormat      = sc->format.format;
         sc->info.imageColorSpace  = sc->format.colorSpace;
         sc->info.imageArrayLayers = 1;
-        sc->info.imageUsage       = image_usage_flags::color_attachment;
         sc->info.imageSharingMode = sharing_modes::exclusive; // Assume that graphics family == present family
         sc->info.preTransform     = surface_transform_flag::identity_khr;
         sc->info.compositeAlpha   = composite_alpha_flag::opaque_khr;

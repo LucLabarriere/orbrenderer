@@ -25,6 +25,11 @@ namespace orb::glfw
         return {};
     }
 
+    void driver_t::poll_events()
+    {
+        glfwPollEvents();
+    }
+
     void driver_t::terminate()
     {
         glfwTerminate();

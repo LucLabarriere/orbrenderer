@@ -1,27 +1,15 @@
 #include <array>
 #include <functional>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
 #include <iostream>
 #include <thread>
 #include <vector>
 
 #include <orb/eval.hpp>
 #include <orb/flux.hpp>
-#include <orb/print_time.hpp>
-
-#include <GLFW/glfw3.h>
 #include <orb/glfw.hpp>
+#include <orb/print_time.hpp>
+#include <orb/renderer.hpp>
 #include <orb/vk.hpp>
-#include <orb/vk/attachments.hpp>
-#include <orb/vk/cmd_pool.hpp>
-#include <orb/vk/desc_pool.hpp>
-#include <orb/vk/framebuffers.hpp>
-#include <orb/vk/imgui.hpp>
-#include <orb/vk/render_pass.hpp>
-#include <orb/vk/subpasses.hpp>
-#include <orb/vk/sync_objects.hpp>
 
 using namespace orb;
 
@@ -165,6 +153,7 @@ namespace
                              .fb_dimensions_from_window()
                              .present_queue_family_index(0)
 
+                             .usage(vk::image_usage_flags::color_attachment)
                              .color_space(vk::color_spaces::srgb_nonlinear_khr)
                              .format(vk::formats::b8g8r8a8_unorm)
                              .format(vk::formats::r8g8b8a8_unorm)
@@ -311,7 +300,7 @@ auto main() -> int
 
         while (!window->should_close())
         {
-            glfwPollEvents();
+            glfw::driver_t::poll_events();
 
             if (window->minimized())
             {

@@ -1,8 +1,5 @@
 #include <array>
 #include <functional>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -10,20 +7,11 @@
 #include <orb/eval.hpp>
 #include <orb/flux.hpp>
 #include <orb/print_time.hpp>
-
-#include <GLFW/glfw3.h>
-#include <orb/glfw.hpp>
-#include <orb/vk.hpp>
-#include <orb/vk/attachments.hpp>
-#include <orb/vk/cmd_pool.hpp>
-#include <orb/vk/desc_pool.hpp>
-#include <orb/vk/framebuffers.hpp>
-#include <orb/vk/imgui.hpp>
-#include <orb/vk/render_pass.hpp>
-#include <orb/vk/subpasses.hpp>
-#include <orb/vk/sync_objects.hpp>
+#include <orb/renderer.hpp>
 
 using namespace orb;
+
+static constexpr ui32 max_frames_in_flight = 2;
 
 namespace
 {
@@ -165,6 +153,8 @@ namespace
                              .fb_dimensions_from_window()
                              .present_queue_family_index(0)
 
+                             .usage(vk::image_usage_flags::transfer_dst)
+                             .usage(vk::image_usage_flags::color_attachment)
                              .color_space(vk::color_spaces::srgb_nonlinear_khr)
                              .format(vk::formats::b8g8r8a8_unorm)
                              .format(vk::formats::r8g8b8a8_unorm)
@@ -232,17 +222,57 @@ namespace
         return imgui_pass;
     }
 
-    [[nodiscard]] auto create_imgui_framebuffers(vk::device_t&    device,
-                                                 VkRenderPass     pass,
-                                                 vk::swapchain_t& swapchain) -> vk::framebuffers_t
+    [[nodiscard]] auto create_imgui_images(vk::device_t& device, ui32 w, ui32 h) -> vk::images_t
+    {
+        begin_chrono();
+        auto images = vk::images_builder_t::prepare(device.allocator)
+                          .unwrap()
+                          .count(max_frames_in_flight)
+                          .usage(vk::image_usage_flags::color_attachment)
+                          .usage(vk::image_usage_flags::transfer_src)
+                          .size(w, h)
+                          .format(vk::formats::b8g8r8a8_unorm)
+                          .mem_usage(vk::memory_usages::automatic)
+                          .mem_flags(vk::memory_flags::dedicated_memory)
+                          .build()
+                          .unwrap();
+        print_chrono("- ImGui images create time: {}");
+        return images;
+    }
+
+    [[nodiscard]] auto create_imgui_views(vk::device_t& device, vk::images_t& images) -> vk::views_t
+    {
+        begin_chrono();
+        auto builder = vk::views_builder_t::prepare(device.handle)
+                           .unwrap();
+
+        for (const auto& img : images.handles)
+        {
+            builder.image(img);
+        }
+
+        auto views = builder
+                         .aspect_mask(vk::image_aspect_flags::color)
+                         .format(vk::formats::b8g8r8a8_unorm)
+                         .build()
+                         .unwrap();
+        print_chrono("- ImGui views create time: {}");
+        return views;
+    }
+
+    [[nodiscard]] auto create_imgui_framebuffers(vk::device_t& device,
+                                                 VkRenderPass  pass,
+                                                 vk::views_t&  views,
+                                                 ui32          w,
+                                                 ui32          h) -> vk::framebuffers_t
     {
         begin_chrono();
 
         auto imgui_fbs_builder = vk::framebuffers_builder_t::prepare(&device, pass)
                                      .unwrap()
-                                     .size(swapchain.width, swapchain.height);
+                                     .size(w, h);
 
-        for (auto& view : swapchain.views)
+        for (const auto& [img, view] : views.handles)
         {
             imgui_fbs_builder.attachment(view);
         }
@@ -254,22 +284,25 @@ namespace
         print_chrono("- ImGui framebuffers create time: {}");
         return imgui_fbs;
     }
-
 } // namespace
 
 auto main() -> int
 {
-    static constexpr ui32 max_frames_in_flight = 2;
-
     try
     {
-        box<glfw::window_t>    window     = create_glfw_window();
-        box<vk::instance_t>    instance   = create_vk_instance();
-        box<vk::gpu_t>         gpu        = create_vk_gpu(*instance);
-        box<vk::device_t>      device     = create_vk_device(*instance, *gpu);
-        box<vk::swapchain_t>   swapchain  = create_vk_swapchain(*instance, *device, *gpu, *window);
-        box<vk::render_pass_t> imgui_pass = create_imgui_pass(device->handle, swapchain->format.format);
-        vk::framebuffers_t     imgui_fbs  = create_imgui_framebuffers(*device, imgui_pass->handle, *swapchain);
+        box<glfw::window_t>    window       = create_glfw_window();
+        box<vk::instance_t>    instance     = create_vk_instance();
+        box<vk::gpu_t>         gpu          = create_vk_gpu(*instance);
+        box<vk::device_t>      device       = create_vk_device(*instance, *gpu);
+        box<vk::swapchain_t>   swapchain    = create_vk_swapchain(*instance, *device, *gpu, *window);
+        box<vk::render_pass_t> imgui_pass   = create_imgui_pass(device->handle, swapchain->format.format);
+        vk::images_t           imgui_images = create_imgui_images(*device, swapchain->width, swapchain->height);
+        vk::views_t            imgui_views  = create_imgui_views(*device, imgui_images);
+        vk::framebuffers_t     imgui_fbs    = create_imgui_framebuffers(*device,
+                                                                 imgui_pass->handle,
+                                                                 imgui_views,
+                                                                 swapchain->width,
+                                                                 swapchain->height);
 
         auto desc_pool = vk::desc_pool_builder_t::prepare(device.getmut())
                              .unwrap()
@@ -281,7 +314,7 @@ auto main() -> int
         // Synchronization
         auto sync_objects = vk::sync_objects_builder_t::prepare(device.getmut())
                                 .unwrap()
-                                .semaphores(max_frames_in_flight * 2)
+                                .semaphores(max_frames_in_flight * 3)
                                 .fences(max_frames_in_flight)
                                 .build()
                                 .unwrap();
@@ -297,6 +330,11 @@ auto main() -> int
                                           vk::cmd_buffer_levels::primary)
                                .unwrap();
 
+        auto copy_cmd_buffers = vk::alloc_cmds(cmd_pool,
+                                               max_frames_in_flight,
+                                               vk::cmd_buffer_levels::primary)
+                                    .unwrap();
+
         // Init ImGui
         vk::imgui::initialize({ .window    = window.getmut(),
                                 .instance  = instance.getmut(),
@@ -311,7 +349,7 @@ auto main() -> int
 
         while (!window->should_close())
         {
-            glfwPollEvents();
+            glfw::driver_t::poll_events();
 
             if (window->minimized())
             {
@@ -323,6 +361,8 @@ auto main() -> int
             auto fence           = sync_objects.subspan_fences(frame, 1);
             auto img_avail       = sync_objects.subspan_semaphores(frame, 1);
             auto render_finished = sync_objects.subspan_semaphores(frame + max_frames_in_flight, 1);
+
+            auto copy_finished = sync_objects.subspan_semaphores(frame + max_frames_in_flight * 2, 1);
 
             // Start a new ImGui frame
             vk::imgui::new_frame();
@@ -343,8 +383,17 @@ auto main() -> int
             {
                 vk::device_idle(*device);
                 vk::destroy(imgui_fbs);
+                vk::destroy(imgui_images);
+                vk::destroy(imgui_views);
                 swapchain->rebuild().throw_if_error();
-                imgui_fbs = create_imgui_framebuffers(*device, imgui_pass->handle, *swapchain);
+
+                imgui_images = create_imgui_images(*device, swapchain->width, swapchain->height);
+                imgui_views  = create_imgui_views(*device, imgui_images);
+                imgui_fbs    = create_imgui_framebuffers(*device,
+                                                      imgui_pass->handle,
+                                                      imgui_views,
+                                                      swapchain->width,
+                                                      swapchain->height);
                 continue;
             }
             else if (res.is_error())
@@ -359,7 +408,7 @@ auto main() -> int
             uint32_t img_index = res.img_index();
 
             // Render to the imgui pass framebuffer
-            imgui_pass->begin_info.framebuffer       = imgui_fbs.handles[img_index];
+            imgui_pass->begin_info.framebuffer       = imgui_fbs.handles[frame];
             imgui_pass->begin_info.renderArea.extent = swapchain->extent;
 
             // Begin command buffer recording
@@ -377,11 +426,42 @@ auto main() -> int
             // End command buffer recording
             vk::end(cmd);
 
-            // Submit
+            // Submit render
             vk::submit_helper_t::prepare()
                 .wait_semaphores(img_avail.handles)
                 .signal_semaphores(render_finished.handles)
                 .cmd_buffer(&cmd)
+                .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
+                .submit(device->queues.front(), nullptr)
+                .throw_if_error();
+
+            // Copying rendered image to swapchain
+            auto rendered_img               = imgui_images.handles.at(frame);
+            auto swapchain_img              = swapchain->images.at(img_index);
+            auto [copy_cmd, copy_begin_res] = copy_cmd_buffers.begin_one_time(frame);
+
+            vk::transition_layout(copy_cmd,
+                                  rendered_img,
+                                  vk::image_layouts::undefined,
+                                  vk::image_layouts::transfer_src_optimal);
+            vk::transition_layout(copy_cmd,
+                                  swapchain_img,
+                                  vk::image_layouts::undefined,
+                                  vk::image_layouts::transfer_dst_optimal);
+
+            vk::copy_img(copy_cmd, rendered_img, swapchain_img, swapchain->extent);
+
+            vk::transition_layout(copy_cmd,
+                                  swapchain_img,
+                                  vk::image_layouts::transfer_dst_optimal,
+                                  vk::image_layouts::present_src_khr);
+            vk::end(copy_cmd);
+
+            // Submit copy
+            vk::submit_helper_t::prepare()
+                .wait_semaphores(render_finished.handles)
+                .signal_semaphores(copy_finished.handles)
+                .cmd_buffer(&copy_cmd)
                 .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
                 .submit(device->queues.front(), fence.handles.back())
                 .throw_if_error();
@@ -389,7 +469,7 @@ auto main() -> int
             // Present the rendered image
             auto present_res = vk::present_helper_t::prepare()
                                    .swapchain(*swapchain)
-                                   .wait_semaphores(render_finished.handles)
+                                   .wait_semaphores(copy_finished.handles)
                                    .img_index(img_index)
                                    .present(device->queues.front());
 
@@ -414,6 +494,8 @@ auto main() -> int
 
         vk::imgui::terminate();
 
+        vk::destroy(imgui_views);
+        vk::destroy(imgui_images);
         vk::destroy(desc_pool);
         vk::destroy(imgui_fbs);
         vk::destroy(cmd_pool);
