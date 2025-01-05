@@ -201,11 +201,6 @@ namespace orb::vk
 
         if (handle)
         {
-            for (auto& view : views)
-            {
-                vkDestroyImageView(device->handle, view, nullptr);
-            }
-
             vkDestroySwapchainKHR(device->handle, handle, nullptr);
         }
 
@@ -225,24 +220,9 @@ namespace orb::vk
             return error_t { "Could not retrieve swapchain images: {}", vkres::get_repr(r) };
         }
 
-        views.resize(img_count);
-
-        auto view_info   = structs::create::image_view();
-        view_info.format = format.format;
-
-        VkImageSubresourceRange image_range = { image_aspect_flags::color, 0, 1, 0, 1 };
-        view_info.subresourceRange          = image_range;
-
-        for (auto [img, view] : flux::zip_all_mut(images, views))
+        for (auto img : images)
         {
-            view_info.image = img;
-            if (auto r = vkCreateImageView(device->handle, &view_info, nullptr, &view); r != vkres::ok)
-            {
-                return error_t { "Could not create swapchain image view: {}", vkres::get_repr(r) };
-            }
-
             device->set_name(img, "Swapchain image");
-            device->set_name(view, "Swapchain image view");
         }
 
         return {};
@@ -290,11 +270,6 @@ namespace orb::vk
 
     void destroy(swapchain_t& swapchain)
     {
-        for (auto& view : swapchain.views)
-        {
-            vkDestroyImageView(swapchain.device->handle, view, nullptr);
-        }
-
         vkDestroySwapchainKHR(swapchain.device->handle, swapchain.handle, nullptr);
         vkDestroySurfaceKHR(swapchain.instance, swapchain.info.surface, nullptr);
     }

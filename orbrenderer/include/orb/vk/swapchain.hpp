@@ -36,7 +36,6 @@ namespace orb::vk
         VkPresentModeKHR         present_mode {};
         VkExtent2D               extent {};
         std::vector<VkImage>     images;
-        std::vector<VkImageView> views;
 
         ui32 width {};
         ui32 height {};

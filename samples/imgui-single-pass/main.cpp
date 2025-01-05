@@ -221,17 +221,39 @@ namespace
         return imgui_pass;
     }
 
-    [[nodiscard]] auto create_imgui_framebuffers(vk::device_t&    device,
-                                                 VkRenderPass     pass,
-                                                 vk::swapchain_t& swapchain) -> vk::framebuffers_t
+    [[nodiscard]] auto create_swapchain_views(vk::device_t& device, std::span<VkImage> images) -> vk::views_t
+    {
+        begin_chrono();
+        auto builder = vk::views_builder_t::prepare(device.handle)
+                           .unwrap();
+
+        for (const auto& img : images)
+        {
+            builder.image(img);
+        }
+
+        auto views = builder
+                         .aspect_mask(vk::image_aspect_flags::color)
+                         .format(vk::formats::b8g8r8a8_unorm)
+                         .build()
+                         .unwrap();
+        print_chrono("- Image views create time: {}");
+        return views;
+    }
+
+    [[nodiscard]] auto create_imgui_framebuffers(vk::device_t& device,
+                                                 VkRenderPass  pass,
+                                                 vk::views_t&  views,
+                                                 ui32          w,
+                                                 ui32          h) -> vk::framebuffers_t
     {
         begin_chrono();
 
         auto imgui_fbs_builder = vk::framebuffers_builder_t::prepare(&device, pass)
                                      .unwrap()
-                                     .size(swapchain.width, swapchain.height);
+                                     .size(w, h);
 
-        for (auto& view : swapchain.views)
+        for (const auto& [img, view] : views.handles)
         {
             imgui_fbs_builder.attachment(view);
         }
@@ -258,7 +280,12 @@ auto main() -> int
         box<vk::device_t>      device     = create_vk_device(*instance, *gpu);
         box<vk::swapchain_t>   swapchain  = create_vk_swapchain(*instance, *device, *gpu, *window);
         box<vk::render_pass_t> imgui_pass = create_imgui_pass(device->handle, swapchain->format.format);
-        vk::framebuffers_t     imgui_fbs  = create_imgui_framebuffers(*device, imgui_pass->handle, *swapchain);
+        vk::views_t            views      = create_swapchain_views(*device, swapchain->images);
+        vk::framebuffers_t     imgui_fbs  = create_imgui_framebuffers(*device,
+                                                                 imgui_pass->handle,
+                                                                 views,
+                                                                 swapchain->width,
+                                                                 swapchain->height);
 
         auto desc_pool = vk::desc_pool_builder_t::prepare(device.getmut())
                              .unwrap()
@@ -331,9 +358,15 @@ auto main() -> int
             if (res.require_sc_rebuild())
             {
                 vk::device_idle(*device);
+                vk::destroy(views);
                 vk::destroy(imgui_fbs);
                 swapchain->rebuild().throw_if_error();
-                imgui_fbs = create_imgui_framebuffers(*device, imgui_pass->handle, *swapchain);
+                views     = create_swapchain_views(*device, swapchain->images);
+                imgui_fbs = create_imgui_framebuffers(*device,
+                                                      imgui_pass->handle,
+                                                      views,
+                                                      swapchain->width,
+                                                      swapchain->height);
                 continue;
             }
             else if (res.is_error())
@@ -404,6 +437,7 @@ auto main() -> int
         vk::imgui::terminate();
 
         vk::destroy(desc_pool);
+        vk::destroy(views);
         vk::destroy(imgui_fbs);
         vk::destroy(cmd_pool);
         vk::destroy(sync_objects);
