@@ -4,7 +4,7 @@ project(orbrenderer
   LANGUAGES CXX
   VERSION 0.1)
 
-find_package(Vulkan REQUIRED)
+find_package(Vulkan REQUIRED COMPONENTS shaderc_combined)
 
 add_subdirectory(orbrenderer)
 add_subdirectory(vendor)
