@@ -25,6 +25,7 @@ namespace orb::vk
     {
         std::vector<VkCommandBuffer> handles;
 
+        auto reset(size_t offset) -> VkResult;
         auto begin_one_time(size_t offset) -> std::tuple<VkCommandBuffer, VkResult>;
     };
 

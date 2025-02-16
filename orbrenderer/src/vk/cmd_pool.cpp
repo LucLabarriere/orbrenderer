@@ -5,11 +5,22 @@
 
 namespace orb::vk
 {
+    auto cmd_buffers_t::reset(size_t offset) -> VkResult
+    {
+        VkCommandBuffer cmd = handles[offset];
+        return vkResetCommandBuffer(cmd, 0);
+    }
+
     auto cmd_buffers_t::begin_one_time(size_t offset) -> std::tuple<VkCommandBuffer, VkResult>
     {
         VkCommandBuffer cmd  = handles[offset];
         auto            info = structs::cmd_buffer_begin();
         info.flags           = command_buffer_usage_flags::one_time_submit;
+
+        if (auto res = vkResetCommandBuffer(cmd, 0); res != vkres::ok)
+        {
+            return { cmd, res };
+        }
 
         return { cmd, vkBeginCommandBuffer(cmd, &info) };
     }

@@ -30,9 +30,9 @@ namespace
         return w;
     }
 
-    /* @brief Creates the vulkan instance
+    /** @brief Creates the vulkan instance.
      *
-     * @return The vulkan instance
+     * @return The vulkan instance.
      */
     [[nodiscard]] auto create_vk_instance() -> box<vk::instance_t>
     {
@@ -59,10 +59,10 @@ namespace
         return instance;
     }
 
-    /* @brief Selects the GPU
+    /** @brief Selects the GPU.
      *
-     * @param instance The vulkan instance
-     * @return The selected GPU
+     * @param instance The vulkan instance.
+     * @return The selected GPU.
      */
     [[nodiscard]] auto create_vk_gpu(vk::instance_t& instance) -> box<vk::gpu_t>
     {
@@ -249,21 +249,21 @@ namespace
     {
         begin_chrono();
 
-        auto imgui_fbs_builder = vk::framebuffers_builder_t::prepare(&device, pass)
-                                     .unwrap()
-                                     .size(w, h);
+        auto fbs_builder = vk::framebuffers_builder_t::prepare(&device, pass)
+                               .unwrap()
+                               .size(w, h);
 
         for (const auto& [img, view] : views.handles)
         {
-            imgui_fbs_builder.attachment(view);
+            fbs_builder.attachment(view);
         }
 
-        auto imgui_fbs = imgui_fbs_builder
-                             .build()
-                             .unwrap();
+        auto fbs = fbs_builder
+                       .build()
+                       .unwrap();
 
-        print_chrono("- ImGui framebuffers create time: {}");
-        return imgui_fbs;
+        print_chrono("- Framebuffers create time: {}");
+        return fbs;
     }
 
 } // namespace
@@ -278,39 +278,299 @@ auto main() -> int
         box<vk::device_t>    device    = create_vk_device(*instance, *gpu);
         box<vk::swapchain_t> swapchain = create_vk_swapchain(*instance, *device, *gpu, *window);
 
-        const path vs_path { SAMPLE_DIR "main.vs.glsl" };
-        const path fs_path { SAMPLE_DIR "main.fs.glsl" };
-
-        auto                    vs_content = vs_path.read_file().unwrap();
-        auto                    fs_content = fs_path.read_file().unwrap();
-        println("vs_content: {}", vs_content);
-        println("fs_content: {}", fs_content);
-        shaderc::Compiler       compiler;
-        shaderc::CompileOptions options;
-
-        auto vs_compile_res = compiler.PreprocessGlsl(vs_content, shaderc_shader_kind::shaderc_glsl_vertex_shader, "main", options);
-        auto fs_compile_res = compiler.PreprocessGlsl(fs_content, shaderc_shader_kind::shaderc_glsl_fragment_shader, "main", options);
-
-        if (vs_compile_res.GetCompilationStatus() != shaderc_compilation_status_success)
-        {
-            println("Error: could not compile vertex shader: {}", vs_compile_res.GetErrorMessage());
-            return 1;
-        }
-
-        if (vs_compile_res.GetCompilationStatus() != shaderc_compilation_status_success)
-        {
-            println("Error: could not compile fragment shader: {}", fs_compile_res.GetErrorMessage());
-            return 1;
-        }
-
-        box<vk::render_pass_t> render_pass = create_render_pass(device->handle, swapchain->format.format);
         vk::views_t            views       = create_image_views(*device, swapchain->images);
+        box<vk::render_pass_t> render_pass = create_render_pass(device->handle, swapchain->format.format);
         vk::framebuffers_t     fbs         = create_framebuffers(*device,
                                                      render_pass->handle,
                                                      views,
                                                      swapchain->width,
                                                      swapchain->height);
 
+        const path vs_path { SAMPLE_DIR "main.vs.glsl" };
+        const path fs_path { SAMPLE_DIR "main.fs.glsl" };
+
+        auto vs_content = vs_path.read_file().unwrap();
+        auto fs_content = fs_path.read_file().unwrap();
+        println("vs_content: {}", vs_content);
+        println("fs_content: {}", fs_content);
+        shaderc::Compiler       compiler;
+        shaderc::CompileOptions options;
+        options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
+        options.SetGenerateDebugInfo();
+        options.SetTargetSpirv(shaderc_spirv_version_1_3);
+        options.SetSourceLanguage(shaderc_source_language_glsl);
+        options.SetOptimizationLevel(shaderc_optimization_level_zero);
+        options.SetWarningsAsErrors();
+
+        println("Preprocessing shaders");
+        auto vs_preprocess_res = compiler.PreprocessGlsl(vs_content, shaderc_shader_kind::shaderc_glsl_vertex_shader, "main", options);
+        auto fs_preprocess_res = compiler.PreprocessGlsl(fs_content, shaderc_shader_kind::shaderc_glsl_fragment_shader, "main", options);
+
+        if (vs_preprocess_res.GetCompilationStatus() != shaderc_compilation_status_success)
+        {
+            println("Error: could not compile vertex shader: {}", vs_preprocess_res.GetErrorMessage());
+            return 1;
+        }
+
+        if (vs_preprocess_res.GetCompilationStatus() != shaderc_compilation_status_success)
+        {
+            println("Error: could not compile fragment shader: {}", fs_preprocess_res.GetErrorMessage());
+            return 1;
+        }
+
+        println("Compiling shaders");
+        auto vs_compile_res = compiler.CompileGlslToSpv(vs_preprocess_res.cbegin(),
+                                                        shaderc_shader_kind::shaderc_glsl_vertex_shader,
+                                                        "main",
+                                                        options);
+
+        auto fs_compile_res = compiler.CompileGlslToSpv(fs_preprocess_res.cbegin(),
+                                                        shaderc_shader_kind::shaderc_glsl_fragment_shader,
+                                                        "main",
+                                                        options);
+
+        constexpr auto create_shader_module = [](VkDevice device, const auto& source) -> VkShaderModule {
+            VkShaderModuleCreateInfo create_info {};
+            create_info.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+            create_info.codeSize = (source.cend() - source.cbegin()) * sizeof(unsigned int);
+            create_info.pCode    = reinterpret_cast<const uint32_t*>(source.cbegin());
+
+            VkShaderModule shader_module {};
+            vkCreateShaderModule(device, &create_info, nullptr, &shader_module);
+            return shader_module;
+        };
+
+        println("Creating shader modules");
+        auto vs_shader_module = create_shader_module(device->handle, vs_compile_res);
+        auto fs_shader_moduel = create_shader_module(device->handle, fs_compile_res);
+
+        constexpr auto create_shader_stage = [](VkShaderModule module, VkShaderStageFlagBits stage) -> VkPipelineShaderStageCreateInfo {
+            VkPipelineShaderStageCreateInfo create_info {};
+            create_info.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            create_info.stage  = stage;
+            create_info.module = module;
+            create_info.pName  = "main";
+            return create_info;
+        };
+
+        println("Creating shader stages");
+        auto vs_shader_stage = create_shader_stage(vs_shader_module, VK_SHADER_STAGE_VERTEX_BIT);
+        auto fs_shader_stage = create_shader_stage(fs_shader_moduel, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        constexpr auto create_dynamic_state = []() -> VkPipelineDynamicStateCreateInfo {
+            static std::array<VkDynamicState, 2> dynamic_states { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+            VkPipelineDynamicStateCreateInfo     create_info {};
+            create_info.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+            create_info.dynamicStateCount = dynamic_states.size();
+            create_info.pDynamicStates    = dynamic_states.data();
+            return create_info;
+        };
+
+        println("Creating dynamic state");
+        auto dynamic_state = create_dynamic_state();
+
+        // Vertex input, for now we don't have any vertex data
+        constexpr auto create_vertex_input = []() -> VkPipelineVertexInputStateCreateInfo {
+            VkPipelineVertexInputStateCreateInfo create_info {};
+            create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+            create_info.vertexBindingDescriptionCount   = 0;
+            create_info.vertexAttributeDescriptionCount = 0;
+            return create_info;
+        };
+
+        println("Creating vertex input");
+        auto vertex_input = create_vertex_input();
+
+        // Input assembly
+        constexpr auto create_input_assembly = []() -> VkPipelineInputAssemblyStateCreateInfo {
+            VkPipelineInputAssemblyStateCreateInfo create_info {};
+            create_info.sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+            create_info.topology               = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            create_info.primitiveRestartEnable = VK_FALSE;
+            return create_info;
+        };
+
+        println("Creating input assembly");
+        auto input_assembly = create_input_assembly();
+
+        // Viewport and scissor
+        constexpr auto create_viewport = [](ui32 w, ui32 h) -> VkViewport {
+            VkViewport viewport {};
+            viewport.x        = 0.0f;
+            viewport.y        = 0.0f;
+            viewport.width    = static_cast<float>(w);
+            viewport.height   = static_cast<float>(h);
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            return viewport;
+        };
+
+        constexpr auto create_scissor = [](ui32 w, ui32 h) -> VkRect2D {
+            VkRect2D scissor {};
+            scissor.offset = { .x = 0, .y = 0 };
+            scissor.extent = { .width = w, .height = h };
+            return scissor;
+        };
+
+        println("Creating viewport and scissor");
+        auto viewport = create_viewport(swapchain->width, swapchain->height);
+        auto scissor  = create_scissor(swapchain->width, swapchain->height);
+
+        constexpr auto create_viewport_state = [](const VkViewport& viewport, const VkRect2D& scissor)
+            -> VkPipelineViewportStateCreateInfo {
+            VkPipelineViewportStateCreateInfo create_info {};
+            create_info.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+            create_info.viewportCount = 1;
+            create_info.pViewports    = &viewport;
+            create_info.scissorCount  = 1;
+            create_info.pScissors     = &scissor;
+            return create_info;
+        };
+
+        println("Creating viewport state");
+        auto viewport_state = create_viewport_state(viewport, scissor);
+
+        constexpr auto create_rasterizer = []() -> VkPipelineRasterizationStateCreateInfo {
+            VkPipelineRasterizationStateCreateInfo create_info {};
+            create_info.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+            create_info.depthClampEnable        = VK_FALSE;
+            create_info.rasterizerDiscardEnable = VK_FALSE;
+            create_info.polygonMode             = VK_POLYGON_MODE_FILL;
+            create_info.lineWidth               = 1.0f;
+            create_info.cullMode                = VK_CULL_MODE_FRONT_BIT;
+            create_info.frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+            create_info.depthBiasEnable         = VK_FALSE;
+            return create_info;
+        };
+
+        println("Creating rasterizer");
+        auto rasterizer = create_rasterizer();
+
+        constexpr auto create_multisampling = []() -> VkPipelineMultisampleStateCreateInfo {
+            VkPipelineMultisampleStateCreateInfo create_info {};
+            create_info.sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+            create_info.sampleShadingEnable   = VK_FALSE;
+            create_info.rasterizationSamples  = VK_SAMPLE_COUNT_1_BIT;
+            create_info.minSampleShading      = 1.0f;
+            create_info.pSampleMask           = nullptr;
+            create_info.alphaToCoverageEnable = VK_FALSE;
+            create_info.alphaToOneEnable      = VK_FALSE;
+            return create_info;
+        };
+
+        println("Creating multisampling");
+        auto multisampling = create_multisampling();
+
+        // Color blending
+        constexpr auto create_color_blend_attachment = []() -> VkPipelineColorBlendAttachmentState {
+            VkPipelineColorBlendAttachmentState create_info {};
+
+            create_info.colorWriteMask = VK_COLOR_COMPONENT_R_BIT
+                                       | VK_COLOR_COMPONENT_G_BIT
+                                       | VK_COLOR_COMPONENT_B_BIT
+                                       | VK_COLOR_COMPONENT_A_BIT;
+
+            create_info.blendEnable         = VK_FALSE;
+            create_info.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+            create_info.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+            create_info.colorBlendOp        = VK_BLEND_OP_ADD;
+            create_info.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            create_info.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            create_info.alphaBlendOp        = VK_BLEND_OP_ADD;
+
+            return create_info;
+        };
+
+        println("Creating color blend attachment");
+        auto color_blend_attachment = create_color_blend_attachment();
+
+        // Color blending
+        constexpr auto create_color_blending = [](const VkPipelineColorBlendAttachmentState& attachment)
+            -> VkPipelineColorBlendStateCreateInfo {
+            VkPipelineColorBlendStateCreateInfo create_info {};
+            create_info.sType             = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+            create_info.logicOpEnable     = VK_FALSE;
+            create_info.logicOp           = VK_LOGIC_OP_COPY;
+            create_info.attachmentCount   = 1;
+            create_info.pAttachments      = &attachment;
+            create_info.blendConstants[0] = 0.0f;
+            create_info.blendConstants[1] = 0.0f;
+            create_info.blendConstants[2] = 0.0f;
+            create_info.blendConstants[3] = 0.0f;
+            return create_info;
+        };
+
+        println("Creating color blending");
+        auto color_blending = create_color_blending(color_blend_attachment);
+
+        // Pipeline layout
+        constexpr auto create_pipeline_layout = [](VkDevice device) -> VkPipelineLayout {
+            VkPipelineLayoutCreateInfo create_info {};
+            create_info.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+            create_info.setLayoutCount         = 0;
+            create_info.pSetLayouts            = nullptr;
+            create_info.pushConstantRangeCount = 0;
+            create_info.pPushConstantRanges    = nullptr;
+
+            VkPipelineLayout pipeline_layout {};
+            vkCreatePipelineLayout(device, &create_info, nullptr, &pipeline_layout);
+            return pipeline_layout;
+        };
+
+        println("Creating pipeline layout");
+        auto pipeline_layout = create_pipeline_layout(device->handle);
+
+        // Create the graphics pipeline
+        constexpr auto create_graphics_pipeline = [](VkDevice                                      device,
+                                                     const VkPipelineShaderStageCreateInfo&        vs,
+                                                     const VkPipelineShaderStageCreateInfo&        fs,
+                                                     const VkPipelineVertexInputStateCreateInfo&   vertex_input,
+                                                     const VkPipelineInputAssemblyStateCreateInfo& input_assembly,
+                                                     const VkPipelineViewportStateCreateInfo&      viewport_state,
+                                                     const VkPipelineRasterizationStateCreateInfo& rasterizer,
+                                                     const VkPipelineMultisampleStateCreateInfo&   multisampling,
+                                                     const VkPipelineColorBlendStateCreateInfo&    color_blending,
+                                                     const VkPipelineDynamicStateCreateInfo&       dynamic_state,
+                                                     VkPipelineLayout                              layout,
+                                                     VkRenderPass                                  render_pass) -> VkPipeline {
+            std::array<VkPipelineShaderStageCreateInfo, 2> stages { vs, fs };
+            VkGraphicsPipelineCreateInfo                   create_info {};
+            create_info.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+            create_info.stageCount          = stages.size();
+            create_info.pStages             = stages.data();
+            create_info.pVertexInputState   = &vertex_input;
+            create_info.pInputAssemblyState = &input_assembly;
+            create_info.pViewportState      = &viewport_state;
+            create_info.pRasterizationState = &rasterizer;
+            create_info.pMultisampleState   = &multisampling;
+            create_info.pColorBlendState    = &color_blending;
+            create_info.pDynamicState       = &dynamic_state;
+            create_info.layout              = layout;
+            create_info.renderPass          = render_pass;
+            create_info.subpass             = 0;
+            create_info.basePipelineHandle  = VK_NULL_HANDLE;
+            create_info.basePipelineIndex   = -1;
+
+            VkPipeline pipeline {};
+            vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &create_info, nullptr, &pipeline);
+            return pipeline;
+        };
+
+        println("Creating graphics pipeline");
+        auto pipeline = create_graphics_pipeline(device->handle,
+                                                 vs_shader_stage,
+                                                 fs_shader_stage,
+                                                 vertex_input,
+                                                 input_assembly,
+                                                 viewport_state,
+                                                 rasterizer,
+                                                 multisampling,
+                                                 color_blending,
+                                                 dynamic_state,
+                                                 pipeline_layout,
+                                                 render_pass->handle);
+
+        println("Creating descriptor pool");
         auto desc_pool = vk::desc_pool_builder_t::prepare(device.getmut())
                              .unwrap()
                              .pool(vk::desc_types::sampler, 100)
@@ -318,6 +578,7 @@ auto main() -> int
                              .build()
                              .unwrap();
 
+        println("Creating synchronization objects");
         // Synchronization
         auto sync_objects = vk::sync_objects_builder_t::prepare(device.getmut())
                                 .unwrap()
@@ -326,12 +587,14 @@ auto main() -> int
                                 .build()
                                 .unwrap();
 
+        println("Creating command pool and command buffers");
         auto cmd_pool = vk::cmd_pool_builder_t::prepare(device.getmut(), gpu->queue_families.front().index)
                             .unwrap()
                             .flag(vk::command_pool_create_flags::reset_command_buffer_bit)
                             .build()
                             .unwrap();
 
+        println("Creating command buffers");
         auto cmd_buffers = vk::alloc_cmds(cmd_pool,
                                           max_frames_in_flight,
                                           vk::cmd_buffer_levels::primary)
@@ -386,7 +649,7 @@ auto main() -> int
 
             uint32_t img_index = res.img_index();
 
-            // Render to the imgui pass framebuffer
+            // Render to the framebuffer
             render_pass->begin_info.framebuffer       = fbs.handles[frame];
             render_pass->begin_info.renderArea.extent = swapchain->extent;
 
@@ -396,8 +659,17 @@ auto main() -> int
             // Begin the render pass
             vk::begin(*render_pass, cmd);
 
-            // Render ImGui
-            vk::imgui::submit_render(cmd);
+            // Bind the graphics pipeline
+            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+            // Set viewport and scissor
+            viewport.width  = static_cast<float>(swapchain->width);
+            viewport.height = static_cast<float>(swapchain->height);
+            vkCmdSetViewport(cmd, 0, 1, &viewport);
+            vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+            // Draw triangle
+            vkCmdDraw(cmd, 3, 1, 0, 0);
 
             // End the render pass
             vk::end(*render_pass, cmd);
@@ -411,7 +683,7 @@ auto main() -> int
                 .signal_semaphores(render_finished.handles)
                 .cmd_buffer(&cmd)
                 .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
-                .submit(device->queues.front(), nullptr)
+                .submit(device->queues.front(), fence.handles.back())
                 .throw_if_error();
 
             // Present the rendered image
@@ -432,6 +704,7 @@ auto main() -> int
             }
 
             frame = (frame + 1) % max_frames_in_flight;
+            vk::device_idle(*device);
         }
 
         vk::device_idle(*device);
@@ -439,8 +712,6 @@ auto main() -> int
         // Terminate glfw
         window->destroy();
         println("- Destroyed window");
-
-        vk::imgui::terminate();
 
         vk::destroy(views);
         vk::destroy(desc_pool);

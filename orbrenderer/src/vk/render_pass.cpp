@@ -14,8 +14,7 @@ namespace orb::vk
     {
         auto pass         = make_box<render_pass_t>();
         pass->clear_color = m_color;
-
-        pass->device = m_device;
+        pass->device      = m_device;
 
         VkRenderPassCreateInfo info = structs::create::render_pass();
         info.attachmentCount        = attachments.descriptions.size();
