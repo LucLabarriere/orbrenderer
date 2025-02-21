@@ -358,10 +358,10 @@ auto main() -> int
                 continue;
             }
 
-            auto fence           = sync_objects.subspan_fences(frame, 1);
-            auto img_avail       = sync_objects.subspan_semaphores(frame, 1);
-            auto render_finished = sync_objects.subspan_semaphores(frame + max_frames_in_flight, 1);
-            auto copy_finished = sync_objects.subspan_semaphores(frame + max_frames_in_flight * 2, 1);
+            auto fence           = sync_objects.fences(frame, 1);
+            auto img_avail       = sync_objects.semaphores(frame, 1);
+            auto render_finished = sync_objects.semaphores(frame + max_frames_in_flight, 1);
+            auto copy_finished   = sync_objects.semaphores(frame + max_frames_in_flight * 2, 1);
 
             // Start a new ImGui frame
             vk::imgui::new_frame();

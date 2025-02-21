@@ -21,12 +21,9 @@ namespace
      */
     [[nodiscard]] auto create_glfw_window() -> box<glfw::window_t>
     {
-        begin_chrono();
-
         glfw::driver_t::initialize().throw_if_error();
         auto w = glfw::driver_t::create_window_for_vk().unwrap();
 
-        print_chrono("- GLFW window create time: {}");
         return w;
     }
 
@@ -37,7 +34,6 @@ namespace
     [[nodiscard]] auto create_vk_instance() -> box<vk::instance_t>
     {
         constexpr auto portability = vk::khr_extensions::portability_enumeration;
-        begin_chrono();
 
         // Initialize the vulkan instance
         auto instance_builder = vk::instance_builder_t::prepare().unwrap();
@@ -55,7 +51,6 @@ namespace
                             .build()
                             .unwrap();
 
-        print_chrono("- Vulkan instance create time: {}");
         return instance;
     }
 
@@ -66,8 +61,6 @@ namespace
      */
     [[nodiscard]] auto create_vk_gpu(vk::instance_t& instance) -> box<vk::gpu_t>
     {
-        begin_chrono();
-
         auto gpu = orb::eval | [&] {
             auto gpus = vk::available_gpus_t::create(instance.handle).unwrap();
 
@@ -87,8 +80,6 @@ namespace
             return gpus.select(0);
         };
 
-        print_chrono("- GPU selection time: {}");
-
         // Print informations on select gpu
         vk::describe(*gpu);
         return gpu;
@@ -102,8 +93,6 @@ namespace
      */
     [[nodiscard]] auto create_vk_device(vk::instance_t& instance, vk::gpu_t& gpu) -> box<vk::device_t>
     {
-        begin_chrono();
-
         vk::queue_family_t graphics_queue_family = orb::eval | [&]() -> vk::queue_family_t& {
             for (auto& qf : gpu.queue_families)
             {
@@ -126,7 +115,6 @@ namespace
                           .add_queues(graphics_queue_family, queue_priorities)
                           .build(gpu)
                           .unwrap();
-        print_chrono("- Vulkan device create time: {}");
         return device;
     }
 
@@ -143,8 +131,6 @@ namespace
                                            vk::gpu_t&      gpu,
                                            glfw::window_t& window) -> box<vk::swapchain_t>
     {
-        begin_chrono();
-
         auto swapchain = vk::swapchain_builder_t::prepare(&instance,
                                                           &gpu,
                                                           &device,
@@ -166,7 +152,7 @@ namespace
 
                              .build()
                              .unwrap();
-        print_chrono("- Vulkan swapchain create time: {}");
+
         return swapchain;
     }
 
@@ -178,7 +164,6 @@ namespace
      */
     [[nodiscard]] auto create_render_pass(VkDevice device, VkFormat sc_img_format) -> box<vk::render_pass_t>
     {
-        begin_chrono();
         vk::attachments_t attachments;
         vk::subpasses_t   subpasses;
 
@@ -217,13 +202,11 @@ namespace
                                .unwrap();
         render_pass->bind_color();
 
-        print_chrono("- Render pass create time: {}");
         return render_pass;
     }
 
     [[nodiscard]] auto create_image_views(vk::device_t& device, std::span<VkImage> images) -> vk::views_t
     {
-        begin_chrono();
         auto builder = vk::views_builder_t::prepare(device.handle)
                            .unwrap();
 
@@ -237,7 +220,6 @@ namespace
                          .format(vk::formats::b8g8r8a8_srgb)
                          .build()
                          .unwrap();
-        print_chrono("- Image views create time: {}");
         return views;
     }
 
@@ -247,8 +229,6 @@ namespace
                                            ui32          w,
                                            ui32          h) -> vk::framebuffers_t
     {
-        begin_chrono();
-
         auto fbs_builder = vk::framebuffers_builder_t::prepare(&device, pass)
                                .unwrap()
                                .size(w, h);
@@ -262,7 +242,6 @@ namespace
                        .build()
                        .unwrap();
 
-        print_chrono("- Framebuffers create time: {}");
         return fbs;
     }
 
@@ -289,10 +268,8 @@ auto main() -> int
         const path vs_path { SAMPLE_DIR "main.vs.glsl" };
         const path fs_path { SAMPLE_DIR "main.fs.glsl" };
 
-        auto vs_content = vs_path.read_file().unwrap();
-        auto fs_content = fs_path.read_file().unwrap();
-        println("vs_content: {}", vs_content);
-        println("fs_content: {}", fs_content);
+        auto                    vs_content = vs_path.read_file().unwrap();
+        auto                    fs_content = fs_path.read_file().unwrap();
         shaderc::Compiler       compiler;
         shaderc::CompileOptions options;
         options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
@@ -302,7 +279,7 @@ auto main() -> int
         options.SetOptimizationLevel(shaderc_optimization_level_zero);
         options.SetWarningsAsErrors();
 
-        println("Preprocessing shaders");
+        println("- Preprocessing shaders");
         auto vs_preprocess_res = compiler.PreprocessGlsl(vs_content, shaderc_shader_kind::shaderc_glsl_vertex_shader, "main", options);
         auto fs_preprocess_res = compiler.PreprocessGlsl(fs_content, shaderc_shader_kind::shaderc_glsl_fragment_shader, "main", options);
 
@@ -318,7 +295,7 @@ auto main() -> int
             return 1;
         }
 
-        println("Compiling shaders");
+        println("- Compiling shaders");
         auto vs_compile_res = compiler.CompileGlslToSpv(vs_preprocess_res.cbegin(),
                                                         shaderc_shader_kind::shaderc_glsl_vertex_shader,
                                                         "main",
@@ -340,7 +317,7 @@ auto main() -> int
             return shader_module;
         };
 
-        println("Creating shader modules");
+        println("- Creating shader modules");
         auto vs_shader_module = create_shader_module(device->handle, vs_compile_res);
         auto fs_shader_moduel = create_shader_module(device->handle, fs_compile_res);
 
@@ -353,7 +330,7 @@ auto main() -> int
             return create_info;
         };
 
-        println("Creating shader stages");
+        println("- Creating shader stages");
         auto vs_shader_stage = create_shader_stage(vs_shader_module, VK_SHADER_STAGE_VERTEX_BIT);
         auto fs_shader_stage = create_shader_stage(fs_shader_moduel, VK_SHADER_STAGE_FRAGMENT_BIT);
 
@@ -366,7 +343,7 @@ auto main() -> int
             return create_info;
         };
 
-        println("Creating dynamic state");
+        println("- Creating dynamic state");
         auto dynamic_state = create_dynamic_state();
 
         // Vertex input, for now we don't have any vertex data
@@ -378,7 +355,7 @@ auto main() -> int
             return create_info;
         };
 
-        println("Creating vertex input");
+        println("- Creating vertex input");
         auto vertex_input = create_vertex_input();
 
         // Input assembly
@@ -390,7 +367,7 @@ auto main() -> int
             return create_info;
         };
 
-        println("Creating input assembly");
+        println("- Creating input assembly");
         auto input_assembly = create_input_assembly();
 
         // Viewport and scissor
@@ -412,7 +389,7 @@ auto main() -> int
             return scissor;
         };
 
-        println("Creating viewport and scissor");
+        println("- Creating viewport and scissor");
         auto viewport = create_viewport(swapchain->width, swapchain->height);
         auto scissor  = create_scissor(swapchain->width, swapchain->height);
 
@@ -427,7 +404,7 @@ auto main() -> int
             return create_info;
         };
 
-        println("Creating viewport state");
+        println("- Creating viewport state");
         auto viewport_state = create_viewport_state(viewport, scissor);
 
         constexpr auto create_rasterizer = []() -> VkPipelineRasterizationStateCreateInfo {
@@ -443,7 +420,7 @@ auto main() -> int
             return create_info;
         };
 
-        println("Creating rasterizer");
+        println("- Creating rasterizer");
         auto rasterizer = create_rasterizer();
 
         constexpr auto create_multisampling = []() -> VkPipelineMultisampleStateCreateInfo {
@@ -458,7 +435,7 @@ auto main() -> int
             return create_info;
         };
 
-        println("Creating multisampling");
+        println("- Creating multisampling");
         auto multisampling = create_multisampling();
 
         // Color blending
@@ -481,7 +458,7 @@ auto main() -> int
             return create_info;
         };
 
-        println("Creating color blend attachment");
+        println("- Creating color blend attachment");
         auto color_blend_attachment = create_color_blend_attachment();
 
         // Color blending
@@ -500,7 +477,7 @@ auto main() -> int
             return create_info;
         };
 
-        println("Creating color blending");
+        println("- Creating color blending");
         auto color_blending = create_color_blending(color_blend_attachment);
 
         // Pipeline layout
@@ -517,7 +494,7 @@ auto main() -> int
             return pipeline_layout;
         };
 
-        println("Creating pipeline layout");
+        println("- Creating pipeline layout");
         auto pipeline_layout = create_pipeline_layout(device->handle);
 
         // Create the graphics pipeline
@@ -556,7 +533,7 @@ auto main() -> int
             return pipeline;
         };
 
-        println("Creating graphics pipeline");
+        println("- Creating graphics pipeline");
         auto pipeline = create_graphics_pipeline(device->handle,
                                                  vs_shader_stage,
                                                  fs_shader_stage,
@@ -570,7 +547,7 @@ auto main() -> int
                                                  pipeline_layout,
                                                  render_pass->handle);
 
-        println("Creating descriptor pool");
+        println("- Creating descriptor pool");
         auto desc_pool = vk::desc_pool_builder_t::prepare(device.getmut())
                              .unwrap()
                              .pool(vk::desc_types::sampler, 100)
@@ -578,7 +555,7 @@ auto main() -> int
                              .build()
                              .unwrap();
 
-        println("Creating synchronization objects");
+        println("- Creating synchronization objects");
         // Synchronization
         auto sync_objects = vk::sync_objects_builder_t::prepare(device.getmut())
                                 .unwrap()
@@ -587,14 +564,14 @@ auto main() -> int
                                 .build()
                                 .unwrap();
 
-        println("Creating command pool and command buffers");
+        println("- Creating command pool and command buffers");
         auto cmd_pool = vk::cmd_pool_builder_t::prepare(device.getmut(), gpu->queue_families.front().index)
                             .unwrap()
                             .flag(vk::command_pool_create_flags::reset_command_buffer_bit)
                             .build()
                             .unwrap();
 
-        println("Creating command buffers");
+        println("- Creating command buffers");
         auto cmd_buffers = vk::alloc_cmds(cmd_pool,
                                           max_frames_in_flight,
                                           vk::cmd_buffer_levels::primary)
@@ -613,15 +590,19 @@ auto main() -> int
                 continue;
             }
 
-            auto fence           = sync_objects.subspan_fences(frame, 1);
-            auto img_avail       = sync_objects.subspan_semaphores(frame, 1);
-            auto render_finished = sync_objects.subspan_semaphores(frame + max_frames_in_flight, 1);
+            auto fences               = sync_objects.fences(frame, 1);
+            auto img_avail_sems       = sync_objects.semaphores(frame, 1);
+            auto render_finished_sems = sync_objects.semaphores(frame + max_frames_in_flight, 1);
 
             // Wait fences
-            vk::wait_fences(fence).throw_if_error();
+            vk::wait_fences(fences).throw_if_error();
+            vk::wait_and_reset_fences(fences).throw_if_error();
+
+            // Reset fences
+            vk::reset_fences(fences).throw_if_error();
 
             // Acquire the next swapchain image
-            auto res = vk::acquire_img(*swapchain, img_avail.handles.back(), nullptr);
+            auto res = vk::acquire_img(*swapchain, img_avail_sems.handles.back(), nullptr);
 
             if (res.require_sc_rebuild())
             {
@@ -644,13 +625,10 @@ auto main() -> int
                 return 1;
             }
 
-            // Reset fences
-            vk::reset_fences(fence).throw_if_error();
-
             uint32_t img_index = res.img_index();
 
             // Render to the framebuffer
-            render_pass->begin_info.framebuffer       = fbs.handles[frame];
+            render_pass->begin_info.framebuffer       = fbs.handles[img_index];
             render_pass->begin_info.renderArea.extent = swapchain->extent;
 
             // Begin command buffer recording
@@ -679,17 +657,17 @@ auto main() -> int
 
             // Submit render
             vk::submit_helper_t::prepare()
-                .wait_semaphores(img_avail.handles)
-                .signal_semaphores(render_finished.handles)
+                .wait_semaphores(img_avail_sems.handles)
+                .signal_semaphores(render_finished_sems.handles)
                 .cmd_buffer(&cmd)
                 .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
-                .submit(device->queues.front(), fence.handles.back())
+                .submit(device->queues.front(), fences.handles.back())
                 .throw_if_error();
 
             // Present the rendered image
             auto present_res = vk::present_helper_t::prepare()
                                    .swapchain(*swapchain)
-                                   .wait_semaphores(render_finished.handles)
+                                   .wait_semaphores(render_finished_sems.handles)
                                    .img_index(img_index)
                                    .present(device->queues.front());
 

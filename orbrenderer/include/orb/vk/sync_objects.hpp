@@ -27,11 +27,11 @@ namespace orb::vk
     struct sync_objects_t
     {
         VkDevice                 device = nullptr;
-        std::vector<VkSemaphore> semaphores;
-        std::vector<VkFence>     fences;
+        std::vector<VkSemaphore> semaphore_handles;
+        std::vector<VkFence>     fence_handles;
 
-        [[nodiscard]] auto subspan_fences(ui32 offset, ui32 count) -> fences_t;
-        [[nodiscard]] auto subspan_semaphores(ui32 offset, ui32 count) -> semaphores_t;
+        [[nodiscard]] auto fences(ui32 offset, ui32 count) -> fences_t;
+        [[nodiscard]] auto semaphores(ui32 offset, ui32 count) -> semaphores_t;
     };
 
     class sync_objects_builder_t
@@ -60,5 +60,6 @@ namespace orb::vk
 
     [[nodiscard]] auto wait_fences(fences_t&) -> result<void>;
     [[nodiscard]] auto reset_fences(fences_t&) -> result<void>;
+    [[nodiscard]] auto wait_and_reset_fences(fences_t&) -> result<void>;
     void               destroy(sync_objects_t&);
 } // namespace orb::vk
