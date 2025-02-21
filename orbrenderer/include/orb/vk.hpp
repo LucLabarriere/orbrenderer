@@ -12,6 +12,7 @@
 #include <orb/vk/images.hpp>
 #include <orb/vk/imgui.hpp>
 #include <orb/vk/render_pass.hpp>
+#include <orb/vk/shaders.hpp>
 #include <orb/vk/subpasses.hpp>
 #include <orb/vk/sync_objects.hpp>
 #include <orb/vk/views.hpp>

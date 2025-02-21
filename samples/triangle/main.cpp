@@ -1,8 +1,6 @@
 #include <span>
 #include <thread>
 
-#include <shaderc/shaderc.hpp>
-
 #include <orb/eval.hpp>
 #include <orb/files.hpp>
 #include <orb/flux.hpp>
@@ -268,20 +266,19 @@ auto main() -> int
         const path vs_path { SAMPLE_DIR "main.vs.glsl" };
         const path fs_path { SAMPLE_DIR "main.fs.glsl" };
 
-        auto                    vs_content = vs_path.read_file().unwrap();
-        auto                    fs_content = fs_path.read_file().unwrap();
-        shaderc::Compiler       compiler;
-        shaderc::CompileOptions options;
-        options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
-        options.SetGenerateDebugInfo();
-        options.SetTargetSpirv(shaderc_spirv_version_1_3);
-        options.SetSourceLanguage(shaderc_source_language_glsl);
-        options.SetOptimizationLevel(shaderc_optimization_level_zero);
-        options.SetWarningsAsErrors();
+        auto vs_content = vs_path.read_file().unwrap();
+        auto fs_content = fs_path.read_file().unwrap();
 
-        println("- Preprocessing shaders");
-        auto vs_preprocess_res = compiler.PreprocessGlsl(vs_content, shaderc_shader_kind::shaderc_glsl_vertex_shader, "main", options);
-        auto fs_preprocess_res = compiler.PreprocessGlsl(fs_content, shaderc_shader_kind::shaderc_glsl_fragment_shader, "main", options);
+        vk::shaders::spirv_compiler_t compiler;
+        compiler.option_target_env(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2)
+            .option_generate_debug_info()
+            .option_target_spirv(shaderc_spirv_version_1_3)
+            .option_source_language(shaderc_source_language_glsl)
+            .option_optimization_level(shaderc_optimization_level_zero)
+            .option_warnings_as_errors();
+
+        auto vs_preprocess_res = compiler.preprocess_glsl(vs_content, shaderc_shader_kind::shaderc_glsl_vertex_shader, "main");
+        auto fs_preprocess_res = compiler.preprocess_glsl(fs_content, shaderc_shader_kind::shaderc_glsl_fragment_shader, "main");
 
         if (vs_preprocess_res.GetCompilationStatus() != shaderc_compilation_status_success)
         {
@@ -296,15 +293,13 @@ auto main() -> int
         }
 
         println("- Compiling shaders");
-        auto vs_compile_res = compiler.CompileGlslToSpv(vs_preprocess_res.cbegin(),
-                                                        shaderc_shader_kind::shaderc_glsl_vertex_shader,
-                                                        "main",
-                                                        options);
+        auto vs_compile_res = compiler.compile(vs_preprocess_res,
+                                               shaderc_shader_kind::shaderc_glsl_vertex_shader,
+                                               "main");
 
-        auto fs_compile_res = compiler.CompileGlslToSpv(fs_preprocess_res.cbegin(),
-                                                        shaderc_shader_kind::shaderc_glsl_fragment_shader,
-                                                        "main",
-                                                        options);
+        auto fs_compile_res = compiler.compile(fs_preprocess_res,
+                                               shaderc_shader_kind::shaderc_glsl_fragment_shader,
+                                               "main");
 
         constexpr auto create_shader_module = [](VkDevice device, const auto& source) -> VkShaderModule {
             VkShaderModuleCreateInfo create_info {};
