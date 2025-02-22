@@ -266,9 +266,6 @@ auto main() -> int
         const path vs_path { SAMPLE_DIR "main.vs.glsl" };
         const path fs_path { SAMPLE_DIR "main.fs.glsl" };
 
-        auto vs_content = vs_path.read_file().unwrap();
-        auto fs_content = fs_path.read_file().unwrap();
-
         vk::shaders::spirv_compiler_t compiler;
         compiler.option_target_env(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2)
             .option_generate_debug_info()
@@ -277,44 +274,24 @@ auto main() -> int
             .option_optimization_level(shaderc_optimization_level_zero)
             .option_warnings_as_errors();
 
-        auto vs_preprocess_res = compiler.preprocess_glsl(vs_content, shaderc_shader_kind::shaderc_glsl_vertex_shader, "main");
-        auto fs_preprocess_res = compiler.preprocess_glsl(fs_content, shaderc_shader_kind::shaderc_glsl_fragment_shader, "main");
+        auto vs_content = vs_path.read_file().unwrap();
+        auto fs_content = fs_path.read_file().unwrap();
 
-        if (vs_preprocess_res.GetCompilationStatus() != shaderc_compilation_status_success)
-        {
-            println("Error: could not compile vertex shader: {}", vs_preprocess_res.GetErrorMessage());
-            return 1;
-        }
+        auto vs_shader_module = vk::shaders::module_builder_t::prepare(device.getmut(), &compiler)
+            .unwrap()
+            .kind(vk::shaders::kinds::glsl_vertex)
+            .entry_point("main")
+            .content(std::move(vs_content))
+            .build()
+            .unwrap();
 
-        if (vs_preprocess_res.GetCompilationStatus() != shaderc_compilation_status_success)
-        {
-            println("Error: could not compile fragment shader: {}", fs_preprocess_res.GetErrorMessage());
-            return 1;
-        }
-
-        println("- Compiling shaders");
-        auto vs_compile_res = compiler.compile(vs_preprocess_res,
-                                               shaderc_shader_kind::shaderc_glsl_vertex_shader,
-                                               "main");
-
-        auto fs_compile_res = compiler.compile(fs_preprocess_res,
-                                               shaderc_shader_kind::shaderc_glsl_fragment_shader,
-                                               "main");
-
-        constexpr auto create_shader_module = [](VkDevice device, const auto& source) -> VkShaderModule {
-            VkShaderModuleCreateInfo create_info {};
-            create_info.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-            create_info.codeSize = (source.cend() - source.cbegin()) * sizeof(unsigned int);
-            create_info.pCode    = reinterpret_cast<const uint32_t*>(source.cbegin());
-
-            VkShaderModule shader_module {};
-            vkCreateShaderModule(device, &create_info, nullptr, &shader_module);
-            return shader_module;
-        };
-
-        println("- Creating shader modules");
-        auto vs_shader_module = create_shader_module(device->handle, vs_compile_res);
-        auto fs_shader_moduel = create_shader_module(device->handle, fs_compile_res);
+        auto fs_shader_module = vk::shaders::module_builder_t::prepare(device.getmut(), &compiler)
+            .unwrap()
+            .kind(vk::shaders::kinds::glsl_fragment)
+            .entry_point("main")
+            .content(std::move(fs_content))
+            .build()
+            .unwrap();
 
         constexpr auto create_shader_stage = [](VkShaderModule module, VkShaderStageFlagBits stage) -> VkPipelineShaderStageCreateInfo {
             VkPipelineShaderStageCreateInfo create_info {};
@@ -326,8 +303,8 @@ auto main() -> int
         };
 
         println("- Creating shader stages");
-        auto vs_shader_stage = create_shader_stage(vs_shader_module, VK_SHADER_STAGE_VERTEX_BIT);
-        auto fs_shader_stage = create_shader_stage(fs_shader_moduel, VK_SHADER_STAGE_FRAGMENT_BIT);
+        auto vs_shader_stage = create_shader_stage(vs_shader_module.handle, VK_SHADER_STAGE_VERTEX_BIT);
+        auto fs_shader_stage = create_shader_stage(fs_shader_module.handle, VK_SHADER_STAGE_FRAGMENT_BIT);
 
         constexpr auto create_dynamic_state = []() -> VkPipelineDynamicStateCreateInfo {
             static std::array<VkDynamicState, 2> dynamic_states { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };

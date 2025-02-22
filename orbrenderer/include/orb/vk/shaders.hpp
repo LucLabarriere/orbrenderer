@@ -1,6 +1,9 @@
 #pragma once
 
 #include "orb/box.hpp"
+#include "orb/files.hpp"
+#include "orb/result.hpp"
+#include "orb/vk/device.hpp"
 #include "orb/vk/vk_structs.hpp"
 
 #include <shaderc/shaderc.hpp>
@@ -10,6 +13,8 @@ namespace orb::vk::shaders
 {
     namespace kinds
     {
+        using enum_t = shaderc_shader_kind;
+
         inline constexpr auto vertex          = shaderc_shader_kind::shaderc_vertex_shader;
         inline constexpr auto fragment        = shaderc_shader_kind::shaderc_fragment_shader;
         inline constexpr auto compute         = shaderc_shader_kind::shaderc_compute_shader;
@@ -39,6 +44,7 @@ namespace orb::vk::shaders
         inline constexpr auto glsl_callable        = shaderc_shader_kind::shaderc_glsl_callable_shader;
         inline constexpr auto glsl_task            = shaderc_shader_kind::shaderc_glsl_task_shader;
         inline constexpr auto glsl_mesh            = shaderc_shader_kind::shaderc_glsl_mesh_shader;
+        inline constexpr auto glsl_infer           = shaderc_shader_kind::shaderc_glsl_infer_from_source;
     } // namespace kinds
 
     class spirv_compiler_t
@@ -175,5 +181,82 @@ namespace orb::vk::shaders
     private:
         shaderc::Compiler       m_compiler;
         shaderc::CompileOptions m_options;
+    };
+
+    struct module_t
+    {
+        VkShaderModule handle = nullptr;
+        VkDevice       device = nullptr;
+    };
+
+    class module_builder_t
+    {
+    public:
+        static auto prepare(weak<device_t>         device,
+                            weak<spirv_compiler_t> compiler) -> result<module_builder_t>
+        {
+            module_builder_t builder {};
+            builder.m_device   = device;
+            builder.m_compiler = compiler;
+            return builder;
+        }
+
+        auto kind(kinds::enum_t kind) -> module_builder_t&
+        {
+            m_kind = kind;
+            return *this;
+        }
+
+        auto entry_point(const char* entry_point) -> module_builder_t&
+        {
+            m_entry_point = entry_point;
+            return *this;
+        }
+
+        auto content(std::string content) -> module_builder_t&
+        {
+            m_content = std::move(content);
+            return *this;
+        }
+
+        auto build() -> result<module_t>
+        {
+            auto preprocess_res = m_compiler->preprocess_glsl(m_content,
+                                                              m_kind,
+                                                              m_entry_point);
+
+            if (preprocess_res.GetCompilationStatus() != shaderc_compilation_status_success)
+            {
+                return error_t { "Could not preprocess shader: {}", preprocess_res.GetErrorMessage() };
+            }
+
+            auto compile_res = m_compiler->compile(preprocess_res,
+                                                   m_kind,
+                                                   m_entry_point);
+
+            if (compile_res.GetCompilationStatus() != shaderc_compilation_status_success)
+            {
+                return error_t { "Could not compile shader: {}", compile_res.GetErrorMessage() };
+            }
+
+            module_t module;
+            module.device = m_device->handle;
+
+            auto create_info     = structs::create::shader_module();
+            create_info.codeSize = (compile_res.cend() - compile_res.cbegin()) * sizeof(unsigned int);
+            create_info.pCode    = reinterpret_cast<const uint32_t*>(compile_res.cbegin());
+
+            vkCreateShaderModule(module.device, &create_info, nullptr, &module.handle);
+
+            return module;
+        }
+
+    private:
+        weak<device_t>         m_device   = nullptr;
+        weak<spirv_compiler_t> m_compiler = nullptr;
+
+        kinds::enum_t m_kind { kinds::glsl_infer };
+        std::string   m_content;
+        const char*   m_entry_point = "main";
     };
 } // namespace orb::vk::shaders

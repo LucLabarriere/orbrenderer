@@ -158,6 +158,13 @@ namespace orb::vk::structs
         {
             return {};
         }
+
+        [[nodiscard]] inline auto shader_module() -> VkShaderModuleCreateInfo
+        {
+            return {
+                .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            };
+        }
     } // namespace create
 
     [[nodiscard]] inline auto cmd_buffer_begin() -> VkCommandBufferBeginInfo
@@ -195,5 +202,4 @@ namespace orb::vk::structs
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         };
     }
-
 } // namespace orb::vk::structs
