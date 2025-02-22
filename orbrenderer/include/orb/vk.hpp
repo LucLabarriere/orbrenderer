@@ -9,6 +9,7 @@
 #include <orb/vk/cmd_pool.hpp>
 #include <orb/vk/desc_pool.hpp>
 #include <orb/vk/framebuffers.hpp>
+#include <orb/vk/graphics_pipeline.hpp>
 #include <orb/vk/images.hpp>
 #include <orb/vk/imgui.hpp>
 #include <orb/vk/render_pass.hpp>

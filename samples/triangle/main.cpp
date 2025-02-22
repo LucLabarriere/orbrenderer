@@ -278,246 +278,85 @@ auto main() -> int
         auto fs_content = fs_path.read_file().unwrap();
 
         auto vs_shader_module = vk::shaders::module_builder_t::prepare(device.getmut(), &compiler)
-            .unwrap()
-            .kind(vk::shaders::kinds::glsl_vertex)
-            .entry_point("main")
-            .content(std::move(vs_content))
-            .build()
-            .unwrap();
+                                    .unwrap()
+                                    .kind(vk::shaders::kinds::glsl_vertex)
+                                    .entry_point("main")
+                                    .content(std::move(vs_content))
+                                    .build()
+                                    .unwrap();
 
         auto fs_shader_module = vk::shaders::module_builder_t::prepare(device.getmut(), &compiler)
-            .unwrap()
-            .kind(vk::shaders::kinds::glsl_fragment)
-            .entry_point("main")
-            .content(std::move(fs_content))
-            .build()
-            .unwrap();
+                                    .unwrap()
+                                    .kind(vk::shaders::kinds::glsl_fragment)
+                                    .entry_point("main")
+                                    .content(std::move(fs_content))
+                                    .build()
+                                    .unwrap();
 
-        constexpr auto create_shader_stage = [](VkShaderModule module, VkShaderStageFlagBits stage) -> VkPipelineShaderStageCreateInfo {
-            VkPipelineShaderStageCreateInfo create_info {};
-            create_info.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-            create_info.stage  = stage;
-            create_info.module = module;
-            create_info.pName  = "main";
-            return create_info;
-        };
+        auto pipeline = vk::pipeline_builder_t::prepare(device.getmut())
+                            .unwrap()
+                            ->shader_stages()
+                            .stage(vs_shader_module, vk::shader_stage_flags::vertex, "main")
+                            .stage(fs_shader_module, vk::shader_stage_flags::fragment, "main")
 
-        println("- Creating shader stages");
-        auto vs_shader_stage = create_shader_stage(vs_shader_module.handle, VK_SHADER_STAGE_VERTEX_BIT);
-        auto fs_shader_stage = create_shader_stage(fs_shader_module.handle, VK_SHADER_STAGE_FRAGMENT_BIT);
+                            .dynamic_states()
+                            .dynamic_state(vk::dynamic_states::viewport)
+                            .dynamic_state(vk::dynamic_states::scissor)
 
-        constexpr auto create_dynamic_state = []() -> VkPipelineDynamicStateCreateInfo {
-            static std::array<VkDynamicState, 2> dynamic_states { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-            VkPipelineDynamicStateCreateInfo     create_info {};
-            create_info.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-            create_info.dynamicStateCount = dynamic_states.size();
-            create_info.pDynamicStates    = dynamic_states.data();
-            return create_info;
-        };
+                            .vertex_input()
 
-        println("- Creating dynamic state");
-        auto dynamic_state = create_dynamic_state();
+                            .input_assembly()
+                            .primitive_restart(false)
+                            .topology(vk::primitive_topologies::triangle_list)
 
-        // Vertex input, for now we don't have any vertex data
-        constexpr auto create_vertex_input = []() -> VkPipelineVertexInputStateCreateInfo {
-            VkPipelineVertexInputStateCreateInfo create_info {};
-            create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-            create_info.vertexBindingDescriptionCount   = 0;
-            create_info.vertexAttributeDescriptionCount = 0;
-            return create_info;
-        };
+                            .viewport_states()
+                            .viewport(0.0f, 0.0f, (f32)swapchain->width, (f32)swapchain->height, 0.0f, 1.0f)
+                            .scissor(0.0f, 0.0f, swapchain->width, swapchain->height)
 
-        println("- Creating vertex input");
-        auto vertex_input = create_vertex_input();
+                            .rasterizer()
+                            .depth_clamp(false)
+                            .rasterizer_discard(false)
+                            .polygon_mode(vk::polygon_modes::fill)
+                            .line_width(1.0f)
+                            .cull_mode(vk::cull_modes::none)
+                            .front_face(vk::front_faces::counter_clockwise)
+                            .depth_bias(false)
+                            .depth_bias_constant_factor(0.0f)
+                            .depth_bias_clamp(0.0f)
+                            .depth_bias_slope_factor(0.0f)
 
-        // Input assembly
-        constexpr auto create_input_assembly = []() -> VkPipelineInputAssemblyStateCreateInfo {
-            VkPipelineInputAssemblyStateCreateInfo create_info {};
-            create_info.sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-            create_info.topology               = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            create_info.primitiveRestartEnable = VK_FALSE;
-            return create_info;
-        };
+                            .multisample()
+                            .sample_shading(false)
+                            .rasterization_samples(vk::sample_count_flags::_1)
+                            .min_sample_shading(1.0f)
+                            .sample_mask(nullptr)
+                            .alpha_to_coverage(false)
+                            .alpha_to_one(false)
 
-        println("- Creating input assembly");
-        auto input_assembly = create_input_assembly();
+                            .color_blending()
+                            .new_color_blend_attachment()
+                            .color_write_mask(vk::color_components::r)
+                            .color_write_mask(vk::color_components::g)
+                            .color_write_mask(vk::color_components::b)
+                            .color_write_mask(vk::color_components::a)
+                            .blend_enable(false)
+                            .src_color_blend_factor(vk::blend_factors::one)
+                            .dst_color_blend_factor(vk::blend_factors::zero)
+                            .color_blend_op(vk::blend_ops::add)
+                            .src_alpha_blend_factor(vk::blend_factors::one)
+                            .dst_alpha_blend_factor(vk::blend_factors::zero)
+                            .alpha_blend_op(vk::blend_ops::add)
+                            .end_attachment()
 
-        // Viewport and scissor
-        constexpr auto create_viewport = [](ui32 w, ui32 h) -> VkViewport {
-            VkViewport viewport {};
-            viewport.x        = 0.0f;
-            viewport.y        = 0.0f;
-            viewport.width    = static_cast<float>(w);
-            viewport.height   = static_cast<float>(h);
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-            return viewport;
-        };
+                            .layout()
 
-        constexpr auto create_scissor = [](ui32 w, ui32 h) -> VkRect2D {
-            VkRect2D scissor {};
-            scissor.offset = { .x = 0, .y = 0 };
-            scissor.extent = { .width = w, .height = h };
-            return scissor;
-        };
-
-        println("- Creating viewport and scissor");
-        auto viewport = create_viewport(swapchain->width, swapchain->height);
-        auto scissor  = create_scissor(swapchain->width, swapchain->height);
-
-        constexpr auto create_viewport_state = [](const VkViewport& viewport, const VkRect2D& scissor)
-            -> VkPipelineViewportStateCreateInfo {
-            VkPipelineViewportStateCreateInfo create_info {};
-            create_info.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-            create_info.viewportCount = 1;
-            create_info.pViewports    = &viewport;
-            create_info.scissorCount  = 1;
-            create_info.pScissors     = &scissor;
-            return create_info;
-        };
-
-        println("- Creating viewport state");
-        auto viewport_state = create_viewport_state(viewport, scissor);
-
-        constexpr auto create_rasterizer = []() -> VkPipelineRasterizationStateCreateInfo {
-            VkPipelineRasterizationStateCreateInfo create_info {};
-            create_info.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-            create_info.depthClampEnable        = VK_FALSE;
-            create_info.rasterizerDiscardEnable = VK_FALSE;
-            create_info.polygonMode             = VK_POLYGON_MODE_FILL;
-            create_info.lineWidth               = 1.0f;
-            create_info.cullMode                = VK_CULL_MODE_FRONT_BIT;
-            create_info.frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-            create_info.depthBiasEnable         = VK_FALSE;
-            return create_info;
-        };
-
-        println("- Creating rasterizer");
-        auto rasterizer = create_rasterizer();
-
-        constexpr auto create_multisampling = []() -> VkPipelineMultisampleStateCreateInfo {
-            VkPipelineMultisampleStateCreateInfo create_info {};
-            create_info.sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-            create_info.sampleShadingEnable   = VK_FALSE;
-            create_info.rasterizationSamples  = VK_SAMPLE_COUNT_1_BIT;
-            create_info.minSampleShading      = 1.0f;
-            create_info.pSampleMask           = nullptr;
-            create_info.alphaToCoverageEnable = VK_FALSE;
-            create_info.alphaToOneEnable      = VK_FALSE;
-            return create_info;
-        };
-
-        println("- Creating multisampling");
-        auto multisampling = create_multisampling();
-
-        // Color blending
-        constexpr auto create_color_blend_attachment = []() -> VkPipelineColorBlendAttachmentState {
-            VkPipelineColorBlendAttachmentState create_info {};
-
-            create_info.colorWriteMask = VK_COLOR_COMPONENT_R_BIT
-                                       | VK_COLOR_COMPONENT_G_BIT
-                                       | VK_COLOR_COMPONENT_B_BIT
-                                       | VK_COLOR_COMPONENT_A_BIT;
-
-            create_info.blendEnable         = VK_FALSE;
-            create_info.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-            create_info.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-            create_info.colorBlendOp        = VK_BLEND_OP_ADD;
-            create_info.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-            create_info.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-            create_info.alphaBlendOp        = VK_BLEND_OP_ADD;
-
-            return create_info;
-        };
-
-        println("- Creating color blend attachment");
-        auto color_blend_attachment = create_color_blend_attachment();
-
-        // Color blending
-        constexpr auto create_color_blending = [](const VkPipelineColorBlendAttachmentState& attachment)
-            -> VkPipelineColorBlendStateCreateInfo {
-            VkPipelineColorBlendStateCreateInfo create_info {};
-            create_info.sType             = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-            create_info.logicOpEnable     = VK_FALSE;
-            create_info.logicOp           = VK_LOGIC_OP_COPY;
-            create_info.attachmentCount   = 1;
-            create_info.pAttachments      = &attachment;
-            create_info.blendConstants[0] = 0.0f;
-            create_info.blendConstants[1] = 0.0f;
-            create_info.blendConstants[2] = 0.0f;
-            create_info.blendConstants[3] = 0.0f;
-            return create_info;
-        };
-
-        println("- Creating color blending");
-        auto color_blending = create_color_blending(color_blend_attachment);
-
-        // Pipeline layout
-        constexpr auto create_pipeline_layout = [](VkDevice device) -> VkPipelineLayout {
-            VkPipelineLayoutCreateInfo create_info {};
-            create_info.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-            create_info.setLayoutCount         = 0;
-            create_info.pSetLayouts            = nullptr;
-            create_info.pushConstantRangeCount = 0;
-            create_info.pPushConstantRanges    = nullptr;
-
-            VkPipelineLayout pipeline_layout {};
-            vkCreatePipelineLayout(device, &create_info, nullptr, &pipeline_layout);
-            return pipeline_layout;
-        };
-
-        println("- Creating pipeline layout");
-        auto pipeline_layout = create_pipeline_layout(device->handle);
-
-        // Create the graphics pipeline
-        constexpr auto create_graphics_pipeline = [](VkDevice                                      device,
-                                                     const VkPipelineShaderStageCreateInfo&        vs,
-                                                     const VkPipelineShaderStageCreateInfo&        fs,
-                                                     const VkPipelineVertexInputStateCreateInfo&   vertex_input,
-                                                     const VkPipelineInputAssemblyStateCreateInfo& input_assembly,
-                                                     const VkPipelineViewportStateCreateInfo&      viewport_state,
-                                                     const VkPipelineRasterizationStateCreateInfo& rasterizer,
-                                                     const VkPipelineMultisampleStateCreateInfo&   multisampling,
-                                                     const VkPipelineColorBlendStateCreateInfo&    color_blending,
-                                                     const VkPipelineDynamicStateCreateInfo&       dynamic_state,
-                                                     VkPipelineLayout                              layout,
-                                                     VkRenderPass                                  render_pass) -> VkPipeline {
-            std::array<VkPipelineShaderStageCreateInfo, 2> stages { vs, fs };
-            VkGraphicsPipelineCreateInfo                   create_info {};
-            create_info.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-            create_info.stageCount          = stages.size();
-            create_info.pStages             = stages.data();
-            create_info.pVertexInputState   = &vertex_input;
-            create_info.pInputAssemblyState = &input_assembly;
-            create_info.pViewportState      = &viewport_state;
-            create_info.pRasterizationState = &rasterizer;
-            create_info.pMultisampleState   = &multisampling;
-            create_info.pColorBlendState    = &color_blending;
-            create_info.pDynamicState       = &dynamic_state;
-            create_info.layout              = layout;
-            create_info.renderPass          = render_pass;
-            create_info.subpass             = 0;
-            create_info.basePipelineHandle  = VK_NULL_HANDLE;
-            create_info.basePipelineIndex   = -1;
-
-            VkPipeline pipeline {};
-            vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &create_info, nullptr, &pipeline);
-            return pipeline;
-        };
-
-        println("- Creating graphics pipeline");
-        auto pipeline = create_graphics_pipeline(device->handle,
-                                                 vs_shader_stage,
-                                                 fs_shader_stage,
-                                                 vertex_input,
-                                                 input_assembly,
-                                                 viewport_state,
-                                                 rasterizer,
-                                                 multisampling,
-                                                 color_blending,
-                                                 dynamic_state,
-                                                 pipeline_layout,
-                                                 render_pass->handle);
+                            .prepare_pipeline()
+                            .render_pass(render_pass.getmut())
+                            .subpass(0)
+                            .base_pipeline(nullptr)
+                            .base_pipeline_index(-1)
+                            .build()
+                            .unwrap();
 
         println("- Creating descriptor pool");
         auto desc_pool = vk::desc_pool_builder_t::prepare(device.getmut())
@@ -610,9 +449,11 @@ auto main() -> int
             vk::begin(*render_pass, cmd);
 
             // Bind the graphics pipeline
-            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
 
             // Set viewport and scissor
+            auto& viewport  = pipeline->viewports.back();
+            auto& scissor   = pipeline->scissors.back();
             viewport.width  = static_cast<float>(swapchain->width);
             viewport.height = static_cast<float>(swapchain->height);
             vkCmdSetViewport(cmd, 0, 1, &viewport);

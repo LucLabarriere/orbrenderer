@@ -1327,4 +1327,261 @@ namespace orb::vk
     template <typename T>
     concept vk_type = obj_types::vk_type<T>;
 
+    namespace shader_stage_flags
+    {
+        using enum_t = VkShaderStageFlagBits;
+
+        inline constexpr auto vertex                 = VK_SHADER_STAGE_VERTEX_BIT;
+        inline constexpr auto tesselation_control    = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+        inline constexpr auto tesselation_evaluation = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+        inline constexpr auto geometry               = VK_SHADER_STAGE_GEOMETRY_BIT;
+        inline constexpr auto fragment               = VK_SHADER_STAGE_FRAGMENT_BIT;
+        inline constexpr auto compute                = VK_SHADER_STAGE_COMPUTE_BIT;
+        inline constexpr auto all_graphics           = VK_SHADER_STAGE_ALL_GRAPHICS;
+        inline constexpr auto all                    = VK_SHADER_STAGE_ALL;
+        inline constexpr auto raygen                 = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+        inline constexpr auto any_hit                = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+        inline constexpr auto closest_hit            = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+        inline constexpr auto miss                   = VK_SHADER_STAGE_MISS_BIT_KHR;
+        inline constexpr auto intersection           = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+        inline constexpr auto callable               = VK_SHADER_STAGE_CALLABLE_BIT_KHR;
+        inline constexpr auto task                   = VK_SHADER_STAGE_TASK_BIT_EXT;
+        inline constexpr auto mesh                   = VK_SHADER_STAGE_MESH_BIT_EXT;
+        inline constexpr auto subpass_shading_huawei = VK_SHADER_STAGE_SUBPASS_SHADING_BIT_HUAWEI;
+        inline constexpr auto cluster_culling_huawei = VK_SHADER_STAGE_CLUSTER_CULLING_BIT_HUAWEI;
+        inline constexpr auto raygen_nv              = VK_SHADER_STAGE_RAYGEN_BIT_NV;
+        inline constexpr auto any_hit_nv             = VK_SHADER_STAGE_ANY_HIT_BIT_NV;
+        inline constexpr auto closest_hit_nv         = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
+        inline constexpr auto miss_nv                = VK_SHADER_STAGE_MISS_BIT_NV;
+        inline constexpr auto intersection_nv        = VK_SHADER_STAGE_INTERSECTION_BIT_NV;
+        inline constexpr auto callable_nv            = VK_SHADER_STAGE_CALLABLE_BIT_NV;
+        inline constexpr auto task_nv                = VK_SHADER_STAGE_TASK_BIT_NV;
+        inline constexpr auto mesh_nv                = VK_SHADER_STAGE_MESH_BIT_NV;
+    } // namespace shader_stage_flags
+
+    namespace dynamic_states
+    {
+        using enum_t = VkDynamicState;
+
+        inline constexpr auto viewport                                = VK_DYNAMIC_STATE_VIEWPORT;
+        inline constexpr auto scissor                                 = VK_DYNAMIC_STATE_SCISSOR;
+        inline constexpr auto line_width                              = VK_DYNAMIC_STATE_LINE_WIDTH;
+        inline constexpr auto depth_bias                              = VK_DYNAMIC_STATE_DEPTH_BIAS;
+        inline constexpr auto blend_constants                         = VK_DYNAMIC_STATE_BLEND_CONSTANTS;
+        inline constexpr auto depth_bounds                            = VK_DYNAMIC_STATE_DEPTH_BOUNDS;
+        inline constexpr auto stencil_compare_mask                    = VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK;
+        inline constexpr auto stencil_write_mask                      = VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
+        inline constexpr auto stencil_reference                       = VK_DYNAMIC_STATE_STENCIL_REFERENCE;
+        inline constexpr auto cull_mode                               = VK_DYNAMIC_STATE_CULL_MODE;
+        inline constexpr auto front_face                              = VK_DYNAMIC_STATE_FRONT_FACE;
+        inline constexpr auto primitive_topology                      = VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY;
+        inline constexpr auto viewport_with_count                     = VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT;
+        inline constexpr auto scissor_with_count                      = VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT;
+        inline constexpr auto vertex_input_binding_stride             = VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE;
+        inline constexpr auto depth_test_enable                       = VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE;
+        inline constexpr auto depth_write_enable                      = VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE;
+        inline constexpr auto depth_compare_op                        = VK_DYNAMIC_STATE_DEPTH_COMPARE_OP;
+        inline constexpr auto depth_bounds_test_enable                = VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE;
+        inline constexpr auto stencil_test_enable                     = VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE;
+        inline constexpr auto stencil_op                              = VK_DYNAMIC_STATE_STENCIL_OP;
+        inline constexpr auto rasterizer_discard_enable               = VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE;
+        inline constexpr auto depth_bias_enable                       = VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE;
+        inline constexpr auto primitive_restart_enable                = VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE;
+        inline constexpr auto viewport_w_scaling_nv                   = VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_NV;
+        inline constexpr auto discard_rectangle_ext                   = VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT;
+        inline constexpr auto sample_locations_ext                    = VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT;
+        inline constexpr auto ray_tracing_pipeline_stack_size_khr     = VK_DYNAMIC_STATE_RAY_TRACING_PIPELINE_STACK_SIZE_KHR;
+        inline constexpr auto viewport_shading_rate_palette_nv        = VK_DYNAMIC_STATE_VIEWPORT_SHADING_RATE_PALETTE_NV;
+        inline constexpr auto viewport_coarse_sample_order_nv         = VK_DYNAMIC_STATE_VIEWPORT_COARSE_SAMPLE_ORDER_NV;
+        inline constexpr auto exclusive_scissor_nv                    = VK_DYNAMIC_STATE_EXCLUSIVE_SCISSOR_NV;
+        inline constexpr auto fragment_shading_rate_khr               = VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR;
+        inline constexpr auto line_stipple_ext                        = VK_DYNAMIC_STATE_LINE_STIPPLE_EXT;
+        inline constexpr auto vertex_input_ext                        = VK_DYNAMIC_STATE_VERTEX_INPUT_EXT;
+        inline constexpr auto patch_control_points_ext                = VK_DYNAMIC_STATE_PATCH_CONTROL_POINTS_EXT;
+        inline constexpr auto logic_op_ext                            = VK_DYNAMIC_STATE_LOGIC_OP_EXT;
+        inline constexpr auto color_write_enable_ext                  = VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT;
+        inline constexpr auto tessellation_domain_origin_ext          = VK_DYNAMIC_STATE_TESSELLATION_DOMAIN_ORIGIN_EXT;
+        inline constexpr auto depth_clamp_enable_ext                  = VK_DYNAMIC_STATE_DEPTH_CLAMP_ENABLE_EXT;
+        inline constexpr auto polygon_mode_ext                        = VK_DYNAMIC_STATE_POLYGON_MODE_EXT;
+        inline constexpr auto rasterization_samples_ext               = VK_DYNAMIC_STATE_RASTERIZATION_SAMPLES_EXT;
+        inline constexpr auto sample_mask_ext                         = VK_DYNAMIC_STATE_SAMPLE_MASK_EXT;
+        inline constexpr auto alpha_to_coverage_enable_ext            = VK_DYNAMIC_STATE_ALPHA_TO_COVERAGE_ENABLE_EXT;
+        inline constexpr auto alpha_to_one_enable_ext                 = VK_DYNAMIC_STATE_ALPHA_TO_ONE_ENABLE_EXT;
+        inline constexpr auto logic_op_enable_ext                     = VK_DYNAMIC_STATE_LOGIC_OP_ENABLE_EXT;
+        inline constexpr auto color_blend_enable_ext                  = VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT;
+        inline constexpr auto color_blend_equation_ext                = VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT;
+        inline constexpr auto color_write_mask_ext                    = VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT;
+        inline constexpr auto rasterization_stream_ext                = VK_DYNAMIC_STATE_RASTERIZATION_STREAM_EXT;
+        inline constexpr auto conservative_rasterization_mode_ext     = VK_DYNAMIC_STATE_CONSERVATIVE_RASTERIZATION_MODE_EXT;
+        inline constexpr auto extra_primitive_overestimation_size_ext = VK_DYNAMIC_STATE_EXTRA_PRIMITIVE_OVERESTIMATION_SIZE_EXT;
+        inline constexpr auto depth_clip_enable_ext                   = VK_DYNAMIC_STATE_DEPTH_CLIP_ENABLE_EXT;
+        inline constexpr auto sample_locations_enable_ext             = VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_ENABLE_EXT;
+        inline constexpr auto color_blend_advanced_ext                = VK_DYNAMIC_STATE_COLOR_BLEND_ADVANCED_EXT;
+        inline constexpr auto provoking_vertex_mode_ext               = VK_DYNAMIC_STATE_PROVOKING_VERTEX_MODE_EXT;
+        inline constexpr auto line_rasterization_mode_ext             = VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT;
+        inline constexpr auto line_stipple_enable_ext                 = VK_DYNAMIC_STATE_LINE_STIPPLE_ENABLE_EXT;
+        inline constexpr auto depth_clip_negative_one_to_one_ext      = VK_DYNAMIC_STATE_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE_EXT;
+        inline constexpr auto viewport_w_scaling_enable_nv            = VK_DYNAMIC_STATE_VIEWPORT_W_SCALING_ENABLE_NV;
+        inline constexpr auto viewport_swizzle_nv                     = VK_DYNAMIC_STATE_VIEWPORT_SWIZZLE_NV;
+        inline constexpr auto coverage_to_color_enable_nv             = VK_DYNAMIC_STATE_COVERAGE_TO_COLOR_ENABLE_NV;
+        inline constexpr auto coverage_to_color_location_nv           = VK_DYNAMIC_STATE_COVERAGE_TO_COLOR_LOCATION_NV;
+        inline constexpr auto coverage_modulation_mode_nv             = VK_DYNAMIC_STATE_COVERAGE_MODULATION_MODE_NV;
+        inline constexpr auto coverage_modulation_table_enable_nv     = VK_DYNAMIC_STATE_COVERAGE_MODULATION_TABLE_ENABLE_NV;
+        inline constexpr auto coverage_modulation_table_nv            = VK_DYNAMIC_STATE_COVERAGE_MODULATION_TABLE_NV;
+        inline constexpr auto shading_rate_image_enable_nv            = VK_DYNAMIC_STATE_SHADING_RATE_IMAGE_ENABLE_NV;
+        inline constexpr auto representative_fragment_test_enable_nv  = VK_DYNAMIC_STATE_REPRESENTATIVE_FRAGMENT_TEST_ENABLE_NV;
+        inline constexpr auto coverage_reduction_mode_nv              = VK_DYNAMIC_STATE_COVERAGE_REDUCTION_MODE_NV;
+        inline constexpr auto cull_mode_ext                           = VK_DYNAMIC_STATE_CULL_MODE_EXT;
+        inline constexpr auto front_face_ext                          = VK_DYNAMIC_STATE_FRONT_FACE_EXT;
+        inline constexpr auto primitive_topology_ext                  = VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY_EXT;
+        inline constexpr auto viewport_with_count_ext                 = VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT_EXT;
+        inline constexpr auto scissor_with_count_ext                  = VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT_EXT;
+        inline constexpr auto vertex_input_binding_stride_ext         = VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE_EXT;
+        inline constexpr auto depth_test_enable_ext                   = VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE_EXT;
+        inline constexpr auto depth_write_enable_ext                  = VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE_EXT;
+        inline constexpr auto depth_compare_op_ext                    = VK_DYNAMIC_STATE_DEPTH_COMPARE_OP_EXT;
+        inline constexpr auto depth_bounds_test_enable_ext            = VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE_EXT;
+        inline constexpr auto stencil_test_enable_ext                 = VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE_EXT;
+        inline constexpr auto stencil_op_ext                          = VK_DYNAMIC_STATE_STENCIL_OP_EXT;
+        inline constexpr auto rasterizer_discard_enable_ext           = VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE_EXT;
+        inline constexpr auto depth_bias_enable_ext                   = VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE_EXT;
+        inline constexpr auto primitive_restart_enable_ext            = VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE_EXT;
+    } // namespace dynamic_states
+
+    namespace primitive_topologies
+    {
+        using enum_t = VkPrimitiveTopology;
+
+        inline constexpr auto point_list                    = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+        inline constexpr auto line_list                     = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        inline constexpr auto line_strip                    = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+        inline constexpr auto triangle_list                 = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        inline constexpr auto triangle_strip                = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        inline constexpr auto triangle_fan                  = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+        inline constexpr auto line_list_with_adjacency      = VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
+        inline constexpr auto line_strip_with_adjacency     = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
+        inline constexpr auto triangle_list_with_adjacency  = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
+        inline constexpr auto triangle_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY;
+        inline constexpr auto patch_list                    = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+    } // namespace primitive_topologies
+
+    namespace polygon_modes
+    {
+        using enum_t = VkPolygonMode;
+
+        inline constexpr auto fill              = VK_POLYGON_MODE_FILL;
+        inline constexpr auto line              = VK_POLYGON_MODE_LINE;
+        inline constexpr auto point             = VK_POLYGON_MODE_POINT;
+        inline constexpr auto fill_rectangle_nv = VK_POLYGON_MODE_FILL_RECTANGLE_NV;
+    } // namespace polygon_modes
+
+    namespace cull_modes
+    {
+        using enum_t = VkCullModeFlagBits;
+
+        inline constexpr auto none           = VK_CULL_MODE_NONE;
+        inline constexpr auto front          = VK_CULL_MODE_FRONT_BIT;
+        inline constexpr auto back           = VK_CULL_MODE_BACK_BIT;
+        inline constexpr auto front_and_back = VK_CULL_MODE_FRONT_AND_BACK;
+    } // namespace cull_modes
+
+    namespace front_faces
+    {
+        using enum_t = VkFrontFace;
+
+        inline constexpr auto counter_clockwise = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        inline constexpr auto clockwise         = VK_FRONT_FACE_CLOCKWISE;
+    } // namespace front_faces
+
+    namespace color_components
+    {
+        using enum_t = VkColorComponentFlagBits;
+
+        inline constexpr auto r = VK_COLOR_COMPONENT_R_BIT;
+        inline constexpr auto g = VK_COLOR_COMPONENT_G_BIT;
+        inline constexpr auto b = VK_COLOR_COMPONENT_B_BIT;
+        inline constexpr auto a = VK_COLOR_COMPONENT_A_BIT;
+    } // namespace color_components
+
+    namespace blend_factors
+    {
+        using enum_t = VkBlendFactor;
+
+        inline constexpr auto zero                     = VK_BLEND_FACTOR_ZERO;
+        inline constexpr auto one                      = VK_BLEND_FACTOR_ONE;
+        inline constexpr auto src_color                = VK_BLEND_FACTOR_SRC_COLOR;
+        inline constexpr auto one_minus_src_color      = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+        inline constexpr auto dst_color                = VK_BLEND_FACTOR_DST_COLOR;
+        inline constexpr auto one_minus_dst_color      = VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+        inline constexpr auto src_alpha                = VK_BLEND_FACTOR_SRC_ALPHA;
+        inline constexpr auto one_minus_src_alpha      = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        inline constexpr auto dst_alpha                = VK_BLEND_FACTOR_DST_ALPHA;
+        inline constexpr auto one_minus_dst_alpha      = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+        inline constexpr auto constant_color           = VK_BLEND_FACTOR_CONSTANT_COLOR;
+        inline constexpr auto one_minus_constant_color = VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
+        inline constexpr auto constant_alpha           = VK_BLEND_FACTOR_CONSTANT_ALPHA;
+        inline constexpr auto one_minus_constant_alpha = VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA;
+        inline constexpr auto src_alpha_saturate       = VK_BLEND_FACTOR_SRC_ALPHA_SATURATE;
+        inline constexpr auto src1_color               = VK_BLEND_FACTOR_SRC1_COLOR;
+        inline constexpr auto one_minus_src1_color     = VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR;
+        inline constexpr auto src1_alpha               = VK_BLEND_FACTOR_SRC1_ALPHA;
+        inline constexpr auto one_minus_src1_alpha     = VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA;
+    } // namespace blend_factors
+
+    namespace blend_ops
+    {
+        using enum_t = VkBlendOp;
+
+        inline constexpr auto add                    = VK_BLEND_OP_ADD;
+        inline constexpr auto subtract               = VK_BLEND_OP_SUBTRACT;
+        inline constexpr auto reverse_subtract       = VK_BLEND_OP_REVERSE_SUBTRACT;
+        inline constexpr auto min                    = VK_BLEND_OP_MIN;
+        inline constexpr auto max                    = VK_BLEND_OP_MAX;
+        inline constexpr auto zero_ext               = VK_BLEND_OP_ZERO_EXT;
+        inline constexpr auto src_ext                = VK_BLEND_OP_SRC_EXT;
+        inline constexpr auto dst_ext                = VK_BLEND_OP_DST_EXT;
+        inline constexpr auto src_over_ext           = VK_BLEND_OP_SRC_OVER_EXT;
+        inline constexpr auto dst_over_ext           = VK_BLEND_OP_DST_OVER_EXT;
+        inline constexpr auto src_in_ext             = VK_BLEND_OP_SRC_IN_EXT;
+        inline constexpr auto dst_in_ext             = VK_BLEND_OP_DST_IN_EXT;
+        inline constexpr auto src_out_ext            = VK_BLEND_OP_SRC_OUT_EXT;
+        inline constexpr auto dst_out_ext            = VK_BLEND_OP_DST_OUT_EXT;
+        inline constexpr auto src_atop_ext           = VK_BLEND_OP_SRC_ATOP_EXT;
+        inline constexpr auto dst_atop_ext           = VK_BLEND_OP_DST_ATOP_EXT;
+        inline constexpr auto xor_ext                = VK_BLEND_OP_XOR_EXT;
+        inline constexpr auto multiply_ext           = VK_BLEND_OP_MULTIPLY_EXT;
+        inline constexpr auto screen_ext             = VK_BLEND_OP_SCREEN_EXT;
+        inline constexpr auto overlay_ext            = VK_BLEND_OP_OVERLAY_EXT;
+        inline constexpr auto darken_ext             = VK_BLEND_OP_DARKEN_EXT;
+        inline constexpr auto lighten_ext            = VK_BLEND_OP_LIGHTEN_EXT;
+        inline constexpr auto colordodge_ext         = VK_BLEND_OP_COLORDODGE_EXT;
+        inline constexpr auto colorburn_ext          = VK_BLEND_OP_COLORBURN_EXT;
+        inline constexpr auto hardlight_ext          = VK_BLEND_OP_HARDLIGHT_EXT;
+        inline constexpr auto softlight_ext          = VK_BLEND_OP_SOFTLIGHT_EXT;
+        inline constexpr auto difference_ext         = VK_BLEND_OP_DIFFERENCE_EXT;
+        inline constexpr auto exclusion_ext          = VK_BLEND_OP_EXCLUSION_EXT;
+        inline constexpr auto invert_ext             = VK_BLEND_OP_INVERT_EXT;
+        inline constexpr auto invert_rgb_ext         = VK_BLEND_OP_INVERT_RGB_EXT;
+        inline constexpr auto lineardodge_ext        = VK_BLEND_OP_LINEARDODGE_EXT;
+        inline constexpr auto linearburn_ext         = VK_BLEND_OP_LINEARBURN_EXT;
+        inline constexpr auto vividlight_ext         = VK_BLEND_OP_VIVIDLIGHT_EXT;
+        inline constexpr auto linearlight_ext        = VK_BLEND_OP_LINEARLIGHT_EXT;
+        inline constexpr auto pinlight_ext           = VK_BLEND_OP_PINLIGHT_EXT;
+        inline constexpr auto hardmix_ext            = VK_BLEND_OP_HARDMIX_EXT;
+        inline constexpr auto hsl_hue_ext            = VK_BLEND_OP_HSL_HUE_EXT;
+        inline constexpr auto hsl_saturation_ext     = VK_BLEND_OP_HSL_SATURATION_EXT;
+        inline constexpr auto hsl_color_ext          = VK_BLEND_OP_HSL_COLOR_EXT;
+        inline constexpr auto hsl_luminosity_ext     = VK_BLEND_OP_HSL_LUMINOSITY_EXT;
+        inline constexpr auto plus_ext               = VK_BLEND_OP_PLUS_EXT;
+        inline constexpr auto plus_clamped_ext       = VK_BLEND_OP_PLUS_CLAMPED_EXT;
+        inline constexpr auto plus_clamped_alpha_ext = VK_BLEND_OP_PLUS_CLAMPED_ALPHA_EXT;
+        inline constexpr auto plus_darker_ext        = VK_BLEND_OP_PLUS_DARKER_EXT;
+        inline constexpr auto minus_ext              = VK_BLEND_OP_MINUS_EXT;
+        inline constexpr auto minus_clamped_ext      = VK_BLEND_OP_MINUS_CLAMPED_EXT;
+        inline constexpr auto contrast_ext           = VK_BLEND_OP_CONTRAST_EXT;
+        inline constexpr auto invert_ovg_ext         = VK_BLEND_OP_INVERT_OVG_EXT;
+        inline constexpr auto red_ext                = VK_BLEND_OP_RED_EXT;
+        inline constexpr auto green_ext              = VK_BLEND_OP_GREEN_EXT;
+        inline constexpr auto blue_ext               = VK_BLEND_OP_BLUE_EXT;
+    } // namespace blend_ops
 } // namespace orb::vk
