@@ -274,9 +274,11 @@ auto main() -> int
             .option_optimization_level(shaderc_optimization_level_zero)
             .option_warnings_as_errors();
 
+        println("- Reading shader files");
         auto vs_content = vs_path.read_file().unwrap();
         auto fs_content = fs_path.read_file().unwrap();
 
+        println("- Creating shader modules");
         auto vs_shader_module = vk::shaders::module_builder_t::prepare(device.getmut(), &compiler)
                                     .unwrap()
                                     .kind(vk::shaders::kinds::glsl_vertex)
@@ -293,7 +295,8 @@ auto main() -> int
                                     .build()
                                     .unwrap();
 
-        auto pipeline = vk::pipeline_builder_t::prepare(device.getmut())
+        println("- Creating graphics pipeline");
+        auto pipeline = vk::pipeline_builder_t ::prepare(device.getmut())
                             .unwrap()
                             ->shader_stages()
                             .stage(vs_shader_module, vk::shader_stage_flags::vertex, "main")
@@ -407,10 +410,6 @@ auto main() -> int
 
             // Wait fences
             vk::wait_fences(fences).throw_if_error();
-            vk::wait_and_reset_fences(fences).throw_if_error();
-
-            // Reset fences
-            vk::reset_fences(fences).throw_if_error();
 
             // Acquire the next swapchain image
             auto res = vk::acquire_img(*swapchain, img_avail_sems.handles.back(), nullptr);
@@ -436,6 +435,9 @@ auto main() -> int
                 return 1;
             }
 
+            // Reset fences
+            vk::reset_fences(fences).throw_if_error();
+
             uint32_t img_index = res.img_index();
 
             // Render to the framebuffer
@@ -454,8 +456,10 @@ auto main() -> int
             // Set viewport and scissor
             auto& viewport  = pipeline->viewports.back();
             auto& scissor   = pipeline->scissors.back();
-            viewport.width  = static_cast<float>(swapchain->width);
-            viewport.height = static_cast<float>(swapchain->height);
+            viewport.width  = static_cast<f32>(swapchain->width);
+            viewport.height = static_cast<f32>(swapchain->height);
+            scissor.extent.width = swapchain->width;
+            scissor.extent.height = swapchain->height;
             vkCmdSetViewport(cmd, 0, 1, &viewport);
             vkCmdSetScissor(cmd, 0, 1, &scissor);
 
