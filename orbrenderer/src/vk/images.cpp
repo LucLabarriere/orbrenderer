@@ -145,6 +145,8 @@ namespace orb::vk
         for (const auto& [img, alloc] : flux::zip_all_mut(images.handles, images.allocations))
         {
             vmaDestroyImage(images.allocator, img, alloc);
+            img = nullptr;
+            alloc = nullptr;
         }
     }
 

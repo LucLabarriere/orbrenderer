@@ -50,5 +50,6 @@ namespace orb::vk
     void destroy(render_pass_t& pass)
     {
         vkDestroyRenderPass(pass.device, pass.handle, nullptr);
+        pass.handle = nullptr;
     }
 } // namespace orb::vk

@@ -85,5 +85,7 @@ namespace orb::vk
     {
         vmaDestroyAllocator(device.allocator);
         vkDestroyDevice(device.handle, nullptr);
+        device.allocator = nullptr;
+        device.handle = nullptr;
     }
 } // namespace orb::vk

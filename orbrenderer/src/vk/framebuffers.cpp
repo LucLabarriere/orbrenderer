@@ -59,6 +59,7 @@ namespace orb::vk
         for (auto& fb : fbs.handles)
         {
             vkDestroyFramebuffer(fbs.device, fb, nullptr);
+            fb = nullptr;
         }
     }
 

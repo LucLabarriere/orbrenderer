@@ -177,7 +177,10 @@ namespace orb::vk
         {
             auto destroy_deb_callback_fn = proc_addresses::destroy_deb_utils(instance.handle);
             destroy_deb_callback_fn(instance.handle, instance.debug_utils, nullptr);
+            instance.debug_utils = nullptr;
         }
+
         vkDestroyInstance(instance.handle, nullptr);
+        instance.handle = nullptr;
     }
 } // namespace orb::vk

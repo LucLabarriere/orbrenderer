@@ -31,55 +31,64 @@ namespace orb::vk
     class color_blend_attachment_builder_t
     {
     public:
-        auto color_write_mask(vk::color_components::enum_t component) -> color_blend_attachment_builder_t&
+        auto color_write_mask(vk::color_components::enum_t component)
+            -> color_blend_attachment_builder_t&
         {
             m_attachment_state->colorWriteMask |= component;
             return *this;
         }
 
-        auto blend_enable(bool enable) -> color_blend_attachment_builder_t&
+        auto blend_enable(bool enable)
+            -> color_blend_attachment_builder_t&
         {
             m_attachment_state->blendEnable = enable;
             return *this;
         }
 
-        auto src_color_blend_factor(vk::blend_factors::enum_t factor) -> color_blend_attachment_builder_t&
+        auto src_color_blend_factor(vk::blend_factors::enum_t factor)
+            -> color_blend_attachment_builder_t&
         {
             m_attachment_state->srcColorBlendFactor = factor;
             return *this;
         }
 
-        auto dst_color_blend_factor(vk::blend_factors::enum_t factor) -> color_blend_attachment_builder_t&
+        auto dst_color_blend_factor(vk::blend_factors::enum_t factor)
+            -> color_blend_attachment_builder_t&
         {
             m_attachment_state->dstColorBlendFactor = factor;
             return *this;
         }
 
-        auto color_blend_op(vk::blend_ops::enum_t op) -> color_blend_attachment_builder_t&
+        auto color_blend_op(vk::blend_ops::enum_t op)
+            -> color_blend_attachment_builder_t&
         {
             m_attachment_state->colorBlendOp = op;
             return *this;
         }
 
-        auto src_alpha_blend_factor(vk::blend_factors::enum_t factor) -> color_blend_attachment_builder_t&
+        auto src_alpha_blend_factor(vk::blend_factors::enum_t factor)
+            -> color_blend_attachment_builder_t&
         {
             m_attachment_state->srcAlphaBlendFactor = factor;
             return *this;
         }
 
-        auto dst_alpha_blend_factor(vk::blend_factors::enum_t factor) -> color_blend_attachment_builder_t&
+        auto dst_alpha_blend_factor(vk::blend_factors::enum_t factor)
+            -> color_blend_attachment_builder_t&
         {
             m_attachment_state->dstAlphaBlendFactor = factor;
             return *this;
         }
 
-        auto alpha_blend_op(vk::blend_ops::enum_t op) -> color_blend_attachment_builder_t&
+        auto alpha_blend_op(vk::blend_ops::enum_t op)
+            -> color_blend_attachment_builder_t&
         {
             m_attachment_state->alphaBlendOp = op;
             return *this;
         }
 
-        auto end_attachment() -> color_blending_builder_t&
+        auto end_attachment()
+            -> color_blending_builder_t&
         {
             return *m_color_blending_builder;
         }
@@ -100,18 +109,18 @@ namespace orb::vk
             m_attachment_builder.m_attachment_state       = &next_attachment;
             m_attachment_builder.m_color_blending_builder = this;
 
-            next_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT
-                                           | VK_COLOR_COMPONENT_G_BIT
-                                           | VK_COLOR_COMPONENT_B_BIT
-                                           | VK_COLOR_COMPONENT_A_BIT;
+            next_attachment.colorWriteMask = color_components::r
+                                           | color_components::g
+                                           | color_components::b
+                                           | color_components::a;
 
-            next_attachment.blendEnable         = VK_FALSE;
-            next_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-            next_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-            next_attachment.colorBlendOp        = VK_BLEND_OP_ADD;
-            next_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-            next_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-            next_attachment.alphaBlendOp        = VK_BLEND_OP_ADD;
+            next_attachment.blendEnable         = false;
+            next_attachment.srcColorBlendFactor = blend_factors::one;
+            next_attachment.dstColorBlendFactor = blend_factors::zero;
+            next_attachment.colorBlendOp        = blend_ops::add;
+            next_attachment.srcAlphaBlendFactor = blend_factors::one;
+            next_attachment.dstAlphaBlendFactor = blend_factors::zero;
+            next_attachment.alphaBlendOp        = blend_ops::add;
 
             return m_attachment_builder;
         }
@@ -371,7 +380,7 @@ namespace orb::vk
     class shader_stages_builder_t
     {
     public:
-        auto stage(shaders::module_t&             module,
+        auto stage(shader_module_t&               module,
                    vk::shader_stage_flags::enum_t stage_flags,
                    const char*                    name) -> shader_stages_builder_t&
         {
@@ -430,8 +439,8 @@ namespace orb::vk
             {
                 auto& input_assembly                  = builder->m_input_assembly.m_create_info;
                 input_assembly.sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-                input_assembly.topology               = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-                input_assembly.primitiveRestartEnable = VK_FALSE;
+                input_assembly.topology               = primitive_topologies::triangle_list;
+                input_assembly.primitiveRestartEnable = false;
             }
 
             {
@@ -446,30 +455,30 @@ namespace orb::vk
             {
                 auto& rasterizer                   = builder->m_rasterizer.m_create_info;
                 rasterizer.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-                rasterizer.depthClampEnable        = VK_FALSE;
-                rasterizer.rasterizerDiscardEnable = VK_FALSE;
-                rasterizer.polygonMode             = VK_POLYGON_MODE_FILL;
+                rasterizer.depthClampEnable        = false;
+                rasterizer.rasterizerDiscardEnable = false;
+                rasterizer.polygonMode             = polygon_modes::fill;
                 rasterizer.lineWidth               = 1.0f;
-                rasterizer.cullMode                = cull_modes::none;
+                rasterizer.cullMode                = cull_modes::back;
                 rasterizer.frontFace               = front_faces::clockwise;
-                rasterizer.depthBiasEnable         = VK_FALSE;
+                rasterizer.depthBiasEnable         = false;
             }
 
             {
                 auto& multisample                 = builder->m_multisample.m_create_info;
                 multisample.sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-                multisample.sampleShadingEnable   = VK_FALSE;
-                multisample.rasterizationSamples  = VK_SAMPLE_COUNT_1_BIT;
+                multisample.sampleShadingEnable   = false;
+                multisample.rasterizationSamples  = sample_count_flags::_1;
                 multisample.minSampleShading      = 1.0f;
                 multisample.pSampleMask           = nullptr;
-                multisample.alphaToCoverageEnable = VK_FALSE;
-                multisample.alphaToOneEnable      = VK_FALSE;
+                multisample.alphaToCoverageEnable = false;
+                multisample.alphaToOneEnable      = false;
             }
 
             {
                 auto& color_blending             = builder->m_color_blending.m_create_info;
                 color_blending.sType             = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-                color_blending.logicOpEnable     = VK_FALSE;
+                color_blending.logicOpEnable     = false;
                 color_blending.logicOp           = VK_LOGIC_OP_COPY;
                 color_blending.blendConstants[0] = 0.0f;
                 color_blending.blendConstants[1] = 0.0f;
@@ -487,7 +496,7 @@ namespace orb::vk
             }
 
             builder->m_create_info.subpass            = 0;
-            builder->m_create_info.basePipelineHandle = VK_NULL_HANDLE;
+            builder->m_create_info.basePipelineHandle = nullptr;
             builder->m_create_info.basePipelineIndex  = -1;
 
             builder->m_shader_stages.m_next_builder   = &builder->m_dynamic_states;
@@ -575,7 +584,7 @@ namespace orb::vk
             m_create_info.layout = pipeline->layout;
 
             auto pipeline_create_res = vkCreateGraphicsPipelines(pipeline->device,
-                                                                 VK_NULL_HANDLE,
+                                                                 nullptr,
                                                                  1,
                                                                  &m_create_info,
                                                                  nullptr,
@@ -605,4 +614,12 @@ namespace orb::vk
         color_blending_builder_t  m_color_blending;
         pipeline_layout_builder_t m_pipeline_layout;
     };
+
+    inline void destroy(graphics_pipeline_t& pipeline)
+    {
+        vkDestroyPipelineLayout(pipeline.device, pipeline.layout, nullptr);
+        vkDestroyPipeline(pipeline.device, pipeline.handle, nullptr);
+        pipeline.layout = nullptr;
+        pipeline.handle = nullptr;
+    }
 } // namespace orb::vk

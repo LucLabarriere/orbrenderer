@@ -38,6 +38,7 @@ namespace orb::vk
     void destroy(desc_pool_t& pool)
     {
         vkDestroyDescriptorPool(pool.device, pool.handle, nullptr);
+        pool.handle = nullptr;
     }
 
 } // namespace orb::vk

@@ -50,6 +50,7 @@ namespace orb::vk
         for (auto& [img, view] : views.handles)
         {
             vkDestroyImageView(views.device, view, nullptr);
+            view = nullptr;
         }
     }
 

@@ -85,5 +85,6 @@ namespace orb::vk
     void destroy(cmd_pool_t& pool)
     {
         vkDestroyCommandPool(pool.device, pool.handle, nullptr);
+        pool.handle = nullptr;
     }
 } // namespace orb::vk

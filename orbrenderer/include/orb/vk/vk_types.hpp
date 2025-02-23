@@ -4,6 +4,7 @@
 #include <orb/assert.hpp>
 
 #include <array>
+#include <shaderc/shaderc.h>
 #include <vulkan/vulkan_core.h>
 
 namespace orb::vk
@@ -1584,4 +1585,41 @@ namespace orb::vk
         inline constexpr auto green_ext              = VK_BLEND_OP_GREEN_EXT;
         inline constexpr auto blue_ext               = VK_BLEND_OP_BLUE_EXT;
     } // namespace blend_ops
+
+    namespace shader_kinds
+    {
+        using enum_t = shaderc_shader_kind;
+
+        inline constexpr auto vertex          = shaderc_shader_kind::shaderc_vertex_shader;
+        inline constexpr auto fragment        = shaderc_shader_kind::shaderc_fragment_shader;
+        inline constexpr auto compute         = shaderc_shader_kind::shaderc_compute_shader;
+        inline constexpr auto geometry        = shaderc_shader_kind::shaderc_geometry_shader;
+        inline constexpr auto tess_control    = shaderc_shader_kind::shaderc_tess_control_shader;
+        inline constexpr auto tess_evaluation = shaderc_shader_kind::shaderc_tess_evaluation_shader;
+        inline constexpr auto raygen          = shaderc_shader_kind::shaderc_raygen_shader;
+        inline constexpr auto anyhit          = shaderc_shader_kind::shaderc_anyhit_shader;
+        inline constexpr auto closesthit      = shaderc_shader_kind::shaderc_closesthit_shader;
+        inline constexpr auto miss            = shaderc_shader_kind::shaderc_miss_shader;
+        inline constexpr auto intersection    = shaderc_shader_kind::shaderc_intersection_shader;
+        inline constexpr auto callable        = shaderc_shader_kind::shaderc_callable_shader;
+        inline constexpr auto task            = shaderc_shader_kind::shaderc_task_shader;
+        inline constexpr auto mesh            = shaderc_shader_kind::shaderc_mesh_shader;
+
+        inline constexpr auto glsl_vertex          = shaderc_shader_kind::shaderc_glsl_vertex_shader;
+        inline constexpr auto glsl_fragment        = shaderc_shader_kind::shaderc_glsl_fragment_shader;
+        inline constexpr auto glsl_compute         = shaderc_shader_kind::shaderc_glsl_compute_shader;
+        inline constexpr auto glsl_geometry        = shaderc_shader_kind::shaderc_glsl_geometry_shader;
+        inline constexpr auto glsl_tess_control    = shaderc_shader_kind::shaderc_glsl_tess_control_shader;
+        inline constexpr auto glsl_tess_evaluation = shaderc_shader_kind::shaderc_glsl_tess_evaluation_shader;
+        inline constexpr auto glsl_raygen          = shaderc_shader_kind::shaderc_glsl_raygen_shader;
+        inline constexpr auto glsl_anyhit          = shaderc_shader_kind::shaderc_glsl_anyhit_shader;
+        inline constexpr auto glsl_closesthit      = shaderc_shader_kind::shaderc_glsl_closesthit_shader;
+        inline constexpr auto glsl_miss            = shaderc_shader_kind::shaderc_glsl_miss_shader;
+        inline constexpr auto glsl_intersection    = shaderc_shader_kind::shaderc_glsl_intersection_shader;
+        inline constexpr auto glsl_callable        = shaderc_shader_kind::shaderc_glsl_callable_shader;
+        inline constexpr auto glsl_task            = shaderc_shader_kind::shaderc_glsl_task_shader;
+        inline constexpr auto glsl_mesh            = shaderc_shader_kind::shaderc_glsl_mesh_shader;
+        inline constexpr auto glsl_infer           = shaderc_shader_kind::shaderc_glsl_infer_from_source;
+    } // namespace shader_kinds
+
 } // namespace orb::vk

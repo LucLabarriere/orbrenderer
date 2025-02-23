@@ -266,7 +266,7 @@ auto main() -> int
         const path vs_path { SAMPLE_DIR "main.vs.glsl" };
         const path fs_path { SAMPLE_DIR "main.fs.glsl" };
 
-        vk::shaders::spirv_compiler_t compiler;
+        vk::spirv_compiler_t compiler;
         compiler.option_target_env(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2)
             .option_generate_debug_info()
             .option_target_spirv(shaderc_spirv_version_1_3)
@@ -279,17 +279,17 @@ auto main() -> int
         auto fs_content = fs_path.read_file().unwrap();
 
         println("- Creating shader modules");
-        auto vs_shader_module = vk::shaders::module_builder_t::prepare(device.getmut(), &compiler)
+        auto vs_shader_module = vk::shader_module_builder_t::prepare(device.getmut(), &compiler)
                                     .unwrap()
-                                    .kind(vk::shaders::kinds::glsl_vertex)
+                                    .kind(vk::shader_kinds::glsl_vertex)
                                     .entry_point("main")
                                     .content(std::move(vs_content))
                                     .build()
                                     .unwrap();
 
-        auto fs_shader_module = vk::shaders::module_builder_t::prepare(device.getmut(), &compiler)
+        auto fs_shader_module = vk::shader_module_builder_t::prepare(device.getmut(), &compiler)
                                     .unwrap()
-                                    .kind(vk::shaders::kinds::glsl_fragment)
+                                    .kind(vk::shader_kinds::glsl_fragment)
                                     .entry_point("main")
                                     .content(std::move(fs_content))
                                     .build()
@@ -301,63 +301,23 @@ auto main() -> int
                             ->shader_stages()
                             .stage(vs_shader_module, vk::shader_stage_flags::vertex, "main")
                             .stage(fs_shader_module, vk::shader_stage_flags::fragment, "main")
-
                             .dynamic_states()
                             .dynamic_state(vk::dynamic_states::viewport)
                             .dynamic_state(vk::dynamic_states::scissor)
-
                             .vertex_input()
-
                             .input_assembly()
-                            .primitive_restart(false)
-                            .topology(vk::primitive_topologies::triangle_list)
-
                             .viewport_states()
                             .viewport(0.0f, 0.0f, (f32)swapchain->width, (f32)swapchain->height, 0.0f, 1.0f)
                             .scissor(0.0f, 0.0f, swapchain->width, swapchain->height)
-
                             .rasterizer()
-                            .depth_clamp(false)
-                            .rasterizer_discard(false)
-                            .polygon_mode(vk::polygon_modes::fill)
-                            .line_width(1.0f)
-                            .cull_mode(vk::cull_modes::none)
-                            .front_face(vk::front_faces::counter_clockwise)
-                            .depth_bias(false)
-                            .depth_bias_constant_factor(0.0f)
-                            .depth_bias_clamp(0.0f)
-                            .depth_bias_slope_factor(0.0f)
-
                             .multisample()
-                            .sample_shading(false)
-                            .rasterization_samples(vk::sample_count_flags::_1)
-                            .min_sample_shading(1.0f)
-                            .sample_mask(nullptr)
-                            .alpha_to_coverage(false)
-                            .alpha_to_one(false)
-
                             .color_blending()
                             .new_color_blend_attachment()
-                            .color_write_mask(vk::color_components::r)
-                            .color_write_mask(vk::color_components::g)
-                            .color_write_mask(vk::color_components::b)
-                            .color_write_mask(vk::color_components::a)
-                            .blend_enable(false)
-                            .src_color_blend_factor(vk::blend_factors::one)
-                            .dst_color_blend_factor(vk::blend_factors::zero)
-                            .color_blend_op(vk::blend_ops::add)
-                            .src_alpha_blend_factor(vk::blend_factors::one)
-                            .dst_alpha_blend_factor(vk::blend_factors::zero)
-                            .alpha_blend_op(vk::blend_ops::add)
                             .end_attachment()
-
                             .layout()
-
                             .prepare_pipeline()
                             .render_pass(render_pass.getmut())
                             .subpass(0)
-                            .base_pipeline(nullptr)
-                            .base_pipeline_index(-1)
                             .build()
                             .unwrap();
 
@@ -454,11 +414,11 @@ auto main() -> int
             vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
 
             // Set viewport and scissor
-            auto& viewport  = pipeline->viewports.back();
-            auto& scissor   = pipeline->scissors.back();
-            viewport.width  = static_cast<f32>(swapchain->width);
-            viewport.height = static_cast<f32>(swapchain->height);
-            scissor.extent.width = swapchain->width;
+            auto& viewport        = pipeline->viewports.back();
+            auto& scissor         = pipeline->scissors.back();
+            viewport.width        = static_cast<f32>(swapchain->width);
+            viewport.height       = static_cast<f32>(swapchain->height);
+            scissor.extent.width  = swapchain->width;
             scissor.extent.height = swapchain->height;
             vkCmdSetViewport(cmd, 0, 1, &viewport);
             vkCmdSetScissor(cmd, 0, 1, &scissor);
@@ -513,6 +473,9 @@ auto main() -> int
         vk::destroy(fbs);
         vk::destroy(cmd_pool);
         vk::destroy(sync_objects);
+        vk::destroy(*pipeline);
+        vk::destroy(vs_shader_module);
+        vk::destroy(fs_shader_module);
         vk::destroy(*render_pass);
         vk::destroy(*swapchain);
         vk::destroy(*device);

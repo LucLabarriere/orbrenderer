@@ -272,6 +272,8 @@ namespace orb::vk
     {
         vkDestroySwapchainKHR(swapchain.device->handle, swapchain.handle, nullptr);
         vkDestroySurfaceKHR(swapchain.instance, swapchain.info.surface, nullptr);
+        swapchain.handle       = nullptr;
+        swapchain.info.surface = nullptr;
     }
 
 } // namespace orb::vk

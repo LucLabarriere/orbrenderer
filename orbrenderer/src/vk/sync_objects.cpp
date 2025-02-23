@@ -119,11 +119,13 @@ namespace orb::vk
         for (auto& sem : objs.semaphore_handles)
         {
             vkDestroySemaphore(objs.device, sem, nullptr);
+            sem = nullptr;
         }
 
         for (auto& fence : objs.fence_handles)
         {
             vkDestroyFence(objs.device, fence, nullptr);
+            fence = nullptr;
         }
     }
 
