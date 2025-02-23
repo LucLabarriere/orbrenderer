@@ -24,6 +24,7 @@ Diagnostics:
       - misc-confusable-identifiers
       - bugprone-easily-swappable-parameters
       - bugprone-exception-escape
+      - modernize-use-designated-initializers
 
     CheckOptions:
       { key:   cppcoreguidelines-rvalue-reference-param-not-moved.AllowPartialMove, value: true }

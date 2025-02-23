@@ -341,6 +341,32 @@ namespace orb::vk
     class vertex_input_builder_t
     {
     public:
+        template <typename TVertexStruct>
+        auto binding(ui32 binding, vertex_input_rates::enum_t rate)
+            -> vertex_input_builder_t&
+        {
+            auto& binding_desc = m_bindings.emplace_back();
+
+            binding_desc.binding   = binding;
+            binding_desc.stride    = sizeof(TVertexStruct);
+            binding_desc.inputRate = rate;
+
+            return *this;
+        }
+
+        auto attribute(ui32 location, ui32 offset, vk::vertex_formats::enum_t format)
+            -> vertex_input_builder_t&
+        {
+            auto& attribute_desc = m_attributes.emplace_back();
+
+            attribute_desc.location = location;
+            attribute_desc.binding  = m_bindings.size() - 1;
+            attribute_desc.format   = format;
+            attribute_desc.offset   = offset;
+
+            return *this;
+        }
+
         auto input_assembly() -> input_assembly_builder_t&
         {
             return *m_next_builder;
@@ -350,6 +376,9 @@ namespace orb::vk
         friend pipeline_builder_t;
 
         VkPipelineVertexInputStateCreateInfo m_create_info {};
+
+        std::vector<VkVertexInputBindingDescription>   m_bindings;
+        std::vector<VkVertexInputAttributeDescription> m_attributes;
 
         input_assembly_builder_t* m_next_builder = nullptr;
     };
@@ -569,6 +598,11 @@ namespace orb::vk
 
             m_color_blending.m_create_info.pAttachments    = m_color_blending.m_attachments.data();
             m_color_blending.m_create_info.attachmentCount = m_color_blending.m_attachments.size();
+
+            m_vertex_input.m_create_info.pVertexAttributeDescriptions    = m_vertex_input.m_attributes.data();
+            m_vertex_input.m_create_info.vertexAttributeDescriptionCount = m_vertex_input.m_attributes.size();
+            m_vertex_input.m_create_info.pVertexBindingDescriptions      = m_vertex_input.m_bindings.data();
+            m_vertex_input.m_create_info.vertexBindingDescriptionCount   = m_vertex_input.m_bindings.size();
 
             m_create_info.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
             m_create_info.pVertexInputState   = &m_vertex_input.m_create_info;

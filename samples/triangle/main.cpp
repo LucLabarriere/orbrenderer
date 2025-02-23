@@ -295,6 +295,12 @@ auto main() -> int
                                     .build()
                                     .unwrap();
 
+        struct Vertex
+        {
+            std::array<float, 2> pos;
+            std::array<float, 3> col;
+        };
+
         println("- Creating graphics pipeline");
         auto pipeline = vk::pipeline_builder_t ::prepare(device.getmut())
                             .unwrap()
@@ -305,6 +311,9 @@ auto main() -> int
                             .dynamic_state(vk::dynamic_states::viewport)
                             .dynamic_state(vk::dynamic_states::scissor)
                             .vertex_input()
+                            .binding<Vertex>(0, vk::vertex_input_rates::vertex)
+                            .attribute(0, offsetof(Vertex, pos), vk::vertex_formats::vec2_t)
+                            .attribute(1, offsetof(Vertex, col), vk::vertex_formats::vec3_t)
                             .input_assembly()
                             .viewport_states()
                             .viewport(0.0f, 0.0f, (f32)swapchain->width, (f32)swapchain->height, 0.0f, 1.0f)
@@ -350,6 +359,25 @@ auto main() -> int
                                           max_frames_in_flight,
                                           vk::cmd_buffer_levels::primary)
                                .unwrap();
+
+        println("- Creating vertex buffer");
+        std::vector<Vertex> vertices = {
+            { { 0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
+            {  { 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f } },
+            { { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
+        };
+
+        auto vertex_buffer = vk::vertex_buffer_builder_t::prepare(device.getmut())
+                                 .unwrap()
+                                 .vertices<Vertex>(vertices)
+                                 .memory_flags(vk::vma_alloc_flags::host_access_sequential_write)
+                                 .build()
+                                 .unwrap();
+
+        void* data {};
+        vmaMapMemory(vertex_buffer.allocator, vertex_buffer.allocation, &data);
+        std::memcpy(data, vertices.data(), sizeof(Vertex) * vertices.size());
+        vmaUnmapMemory(vertex_buffer.allocator, vertex_buffer.allocation);
 
         ui32 frame = 0;
 
@@ -412,6 +440,8 @@ auto main() -> int
 
             // Bind the graphics pipeline
             vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+            std::array<VkDeviceSize, 1> offsets = { 0 };
+            vkCmdBindVertexBuffers(cmd, 0, 1, &vertex_buffer.buffer, offsets.data());
 
             // Set viewport and scissor
             auto& viewport        = pipeline->viewports.back();
@@ -424,7 +454,7 @@ auto main() -> int
             vkCmdSetScissor(cmd, 0, 1, &scissor);
 
             // Draw triangle
-            vkCmdDraw(cmd, 3, 1, 0, 0);
+            vkCmdDraw(cmd, vertices.size(), 1, 0, 0);
 
             // End the render pass
             vk::end(*render_pass, cmd);
@@ -468,6 +498,7 @@ auto main() -> int
         window->destroy();
         println("- Destroyed window");
 
+        vk::destroy(vertex_buffer);
         vk::destroy(views);
         vk::destroy(desc_pool);
         vk::destroy(fbs);
