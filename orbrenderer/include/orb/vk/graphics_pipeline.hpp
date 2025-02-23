@@ -263,7 +263,7 @@ namespace orb::vk
     public:
         auto viewport(f32 x, f32 y, f32 width, f32 height, f32 min_depth, f32 max_depth) -> viewport_state_builder_t&
         {
-            auto viewport = m_viewports.emplace_back();
+            auto& viewport = m_viewports.emplace_back();
 
             viewport.x        = x;
             viewport.y        = y;
@@ -277,7 +277,7 @@ namespace orb::vk
 
         auto scissor(i32 x, i32 y, ui32 width, ui32 height) -> viewport_state_builder_t&
         {
-            auto scissor = m_scissors.emplace_back();
+            auto& scissor = m_scissors.emplace_back();
 
             scissor.offset = { .x = x, .y = y };
             scissor.extent = { .width = width, .height = height };
@@ -537,13 +537,14 @@ namespace orb::vk
             auto pipeline    = make_box<graphics_pipeline_t>();
             pipeline->device = m_device->handle;
 
-            if (auto res = vkCreatePipelineLayout(m_device->handle,
-                                                  &m_pipeline_layout.m_create_info,
-                                                  nullptr,
-                                                  &pipeline->layout);
-                res != vkres::ok)
+            auto pipeline_layout_create_res = vkCreatePipelineLayout(m_device->handle,
+                                                                     &m_pipeline_layout.m_create_info,
+                                                                     nullptr,
+                                                                     &pipeline->layout);
+            if (pipeline_layout_create_res != vkres::ok)
             {
-                return error_t { "Could not create pipeline layout: {}", vkres::get_repr(res) };
+                return error_t { "Could not create pipeline layout: {}",
+                                 vkres::get_repr(pipeline_layout_create_res) };
             }
 
             pipeline->viewports = std::move(m_viewport_state.m_viewports);
@@ -561,8 +562,6 @@ namespace orb::vk
             m_color_blending.m_create_info.attachmentCount = m_color_blending.m_attachments.size();
 
             m_create_info.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-            m_create_info.stageCount          = m_shader_stages.m_stages.size();
-            m_create_info.pStages             = m_shader_stages.m_stages.data();
             m_create_info.pVertexInputState   = &m_vertex_input.m_create_info;
             m_create_info.pInputAssemblyState = &m_input_assembly.m_create_info;
             m_create_info.pViewportState      = &m_viewport_state.m_create_info;
@@ -570,9 +569,24 @@ namespace orb::vk
             m_create_info.pMultisampleState   = &m_multisample.m_create_info;
             m_create_info.pColorBlendState    = &m_color_blending.m_create_info;
             m_create_info.pDynamicState       = &m_dynamic_states.m_create_info;
-            m_create_info.layout              = pipeline->layout;
+            m_create_info.stageCount          = m_shader_stages.m_stages.size();
+            m_create_info.pStages             = m_shader_stages.m_stages.data();
 
-            vkCreateGraphicsPipelines(pipeline->device, VK_NULL_HANDLE, 1, &m_create_info, nullptr, &pipeline->handle);
+            m_create_info.layout = pipeline->layout;
+
+            auto pipeline_create_res = vkCreateGraphicsPipelines(pipeline->device,
+                                                                 VK_NULL_HANDLE,
+                                                                 1,
+                                                                 &m_create_info,
+                                                                 nullptr,
+                                                                 &pipeline->handle);
+
+            if (pipeline_create_res != vkres::ok)
+            {
+                return error_t { "Could not create graphics pipeline: {}",
+                                 vkres::get_repr(pipeline_create_res) };
+            }
+
             return pipeline;
         }
 
