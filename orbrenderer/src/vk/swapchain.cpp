@@ -156,6 +156,21 @@ namespace orb::vk
         return std::move(sc);
     }
 
+    void swapchain_t::destroy()
+    {
+        if (handle)
+        {
+            vkDestroySwapchainKHR(device->handle, handle, nullptr);
+            handle = nullptr;
+        }
+
+        if (info.surface)
+        {
+            vkDestroySurfaceKHR(instance, info.surface, nullptr);
+            info.surface = nullptr;
+        }
+    }
+
     auto swapchain_t::rebuild() -> result<void>
     {
         info.oldSwapchain = handle;
@@ -267,13 +282,4 @@ namespace orb::vk
         res.content.emplace<1>(r);
         return res;
     }
-
-    void destroy(swapchain_t& swapchain)
-    {
-        vkDestroySwapchainKHR(swapchain.device->handle, swapchain.handle, nullptr);
-        vkDestroySurfaceKHR(swapchain.instance, swapchain.info.surface, nullptr);
-        swapchain.handle       = nullptr;
-        swapchain.info.surface = nullptr;
-    }
-
 } // namespace orb::vk

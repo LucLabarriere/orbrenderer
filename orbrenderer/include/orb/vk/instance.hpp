@@ -1,7 +1,7 @@
 #pragma once
 
-#include <orb/result.hpp>
 #include <orb/box.hpp>
+#include <orb/result.hpp>
 
 #include "orb/vk/vk_structs.hpp"
 
@@ -15,6 +15,56 @@ namespace orb::vk
     {
         VkInstance               handle {};
         VkDebugUtilsMessengerEXT debug_utils {};
+
+        instance_t() = default;
+
+        instance_t(const instance_t&)                    = delete;
+        auto operator=(const instance_t&) -> instance_t& = delete;
+
+        instance_t(instance_t&& other) noexcept
+        {
+            destroy();
+
+            handle      = other.handle;
+            debug_utils = other.debug_utils;
+
+            other.handle      = nullptr;
+            other.debug_utils = nullptr;
+        }
+
+        auto operator=(instance_t&& other) noexcept -> instance_t&
+        {
+            destroy();
+
+            handle      = other.handle;
+            debug_utils = other.debug_utils;
+
+            other.handle      = nullptr;
+            other.debug_utils = nullptr;
+
+            return *this;
+        }
+
+        ~instance_t()
+        {
+            destroy();
+        }
+
+        void destroy()
+        {
+            if (debug_utils)
+            {
+                auto destroy_deb_callback_fn = proc_addresses::destroy_deb_utils(handle);
+                destroy_deb_callback_fn(handle, debug_utils, nullptr);
+                debug_utils = nullptr;
+            }
+
+            if (handle)
+            {
+                vkDestroyInstance(handle, nullptr);
+                handle = nullptr;
+            }
+        }
     };
 
     class instance_builder_t
@@ -47,7 +97,4 @@ namespace orb::vk
     private:
         instance_builder_t() = default;
     };
-
-    void destroy(instance_t& instance);
-
 } // namespace orb::vk

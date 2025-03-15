@@ -5,15 +5,9 @@ add_library(orbrenderer
           src/vk/device.cpp
           src/vk/render.cpp
           src/vk/swapchain.cpp
-          src/vk/render_pass.cpp
           src/vk/vma.cpp
           src/vk/images.cpp
-          src/vk/views.cpp
           src/vk/imgui.cpp
-          src/vk/sync_objects.cpp
-          src/vk/cmd_pool.cpp
-          src/vk/framebuffers.cpp
-          src/vk/desc_pool.cpp
           src/glfw/driver.cpp
           src/glfw/vk_interoperability.cpp
           src/glfw/window.cpp)

@@ -325,12 +325,12 @@ auto main() -> int
                             .build()
                             .unwrap();
 
-        auto cmd_buffers = vk::alloc_cmds(cmd_pool,
+        auto cmd_buffers = vk::alloc_cmds(cmd_pool.getmut(),
                                           max_frames_in_flight,
                                           vk::cmd_buffer_levels::primary)
                                .unwrap();
 
-        auto copy_cmd_buffers = vk::alloc_cmds(cmd_pool,
+        auto copy_cmd_buffers = vk::alloc_cmds(cmd_pool.getmut(),
                                                max_frames_in_flight,
                                                vk::cmd_buffer_levels::primary)
                                     .unwrap();
@@ -381,9 +381,6 @@ auto main() -> int
             if (res.require_sc_rebuild())
             {
                 vk::device_idle(*device);
-                vk::destroy(imgui_fbs);
-                vk::destroy(imgui_images);
-                vk::destroy(imgui_views);
                 swapchain->rebuild().throw_if_error();
 
                 imgui_images = create_imgui_images(*device, swapchain->width, swapchain->height);
@@ -411,25 +408,26 @@ auto main() -> int
             imgui_pass->begin_info.renderArea.extent = swapchain->extent;
 
             // Begin command buffer recording
-            auto [cmd, begin_res] = cmd_buffers.begin_one_time(frame);
+            auto cmd = cmd_buffers.get(frame).unwrap();
+            cmd.begin_one_time().throw_if_error();
 
             // Begin the render pass
-            vk::begin(*imgui_pass, cmd);
+            imgui_pass->begin(cmd.handle);
 
             // Render ImGui
-            vk::imgui::submit_render(cmd);
+            vk::imgui::submit_render(cmd.handle);
 
             // End the render pass
-            vk::end(*imgui_pass, cmd);
+            imgui_pass->end(cmd.handle);
 
             // End command buffer recording
-            vk::end(cmd);
+            cmd.end();
 
             // Submit render
             vk::submit_helper_t::prepare()
                 .wait_semaphores(img_avail.handles)
                 .signal_semaphores(render_finished.handles)
-                .cmd_buffer(&cmd)
+                .cmd_buffer(&cmd.handle)
                 .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
                 .submit(device->queues.front(), nullptr)
                 .throw_if_error();
@@ -437,30 +435,31 @@ auto main() -> int
             // Copying rendered image to swapchain
             auto rendered_img               = imgui_images.handles.at(frame);
             auto swapchain_img              = swapchain->images.at(img_index);
-            auto [copy_cmd, copy_begin_res] = copy_cmd_buffers.begin_one_time(frame);
+            auto copy_cmd = copy_cmd_buffers.get(frame).unwrap();
+            copy_cmd.begin_one_time().throw_if_error();
 
-            vk::transition_layout(copy_cmd,
+            vk::transition_layout(copy_cmd.handle,
                                   rendered_img,
                                   vk::image_layouts::undefined,
                                   vk::image_layouts::transfer_src_optimal);
-            vk::transition_layout(copy_cmd,
+            vk::transition_layout(copy_cmd.handle,
                                   swapchain_img,
                                   vk::image_layouts::undefined,
                                   vk::image_layouts::transfer_dst_optimal);
 
-            vk::copy_img(copy_cmd, rendered_img, swapchain_img, swapchain->extent);
+            vk::copy_img(copy_cmd.handle, rendered_img, swapchain_img, swapchain->extent);
 
-            vk::transition_layout(copy_cmd,
+            vk::transition_layout(copy_cmd.handle,
                                   swapchain_img,
                                   vk::image_layouts::transfer_dst_optimal,
                                   vk::image_layouts::present_src_khr);
-            vk::end(copy_cmd);
+            copy_cmd.end();
 
             // Submit copy
             vk::submit_helper_t::prepare()
                 .wait_semaphores(render_finished.handles)
                 .signal_semaphores(copy_finished.handles)
-                .cmd_buffer(&copy_cmd)
+                .cmd_buffer(&copy_cmd.handle)
                 .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
                 .submit(device->queues.front(), fence.handles.back())
                 .throw_if_error();
@@ -493,16 +492,6 @@ auto main() -> int
 
         vk::imgui::terminate();
 
-        vk::destroy(imgui_views);
-        vk::destroy(imgui_images);
-        vk::destroy(desc_pool);
-        vk::destroy(imgui_fbs);
-        vk::destroy(cmd_pool);
-        vk::destroy(sync_objects);
-        vk::destroy(*imgui_pass);
-        vk::destroy(*swapchain);
-        vk::destroy(*device);
-        vk::destroy(*instance);
         println("- Terminated Vulkan");
 
         glfw::driver_t::terminate();

@@ -9,9 +9,54 @@ namespace orb::vk
 {
     struct vertex_buffer_t
     {
+        vertex_buffer_t() = default;
+
+        vertex_buffer_t(const vertex_buffer_t&)                    = delete;
+        auto operator=(const vertex_buffer_t&) -> vertex_buffer_t& = delete;
+
+        vertex_buffer_t(vertex_buffer_t&& other) noexcept
+            : allocator(other.allocator),
+              allocation(other.allocation),
+              buffer(other.buffer),
+              size(other.size)
+        {
+            other.buffer     = nullptr;
+            other.allocation = nullptr;
+        }
+
+        auto operator=(vertex_buffer_t&& other) noexcept -> vertex_buffer_t&
+        {
+            allocator  = other.allocator;
+            allocation = other.allocation;
+            buffer     = other.buffer;
+            size       = other.size;
+
+            other.allocation = nullptr;
+            other.buffer     = nullptr;
+
+            return *this;
+        }
+
         VmaAllocator  allocator {};
         VmaAllocation allocation {};
         VkBuffer      buffer {};
+        ui64          size {};
+
+        ~vertex_buffer_t()
+        {
+            destroy();
+        }
+
+        void destroy()
+        {
+            if (buffer && allocation)
+            {
+                vmaDestroyBuffer(allocator, buffer, allocation);
+
+                allocation = nullptr;
+                buffer     = nullptr;
+            }
+        }
     };
 
     class vertex_buffer_builder_t
@@ -21,6 +66,7 @@ namespace orb::vk
             -> result<vertex_buffer_builder_t>
         {
             vertex_buffer_builder_t builder;
+
             builder.m_device = device;
 
             builder.m_create_info.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -28,6 +74,7 @@ namespace orb::vk
             builder.m_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             builder.m_alloc_info.usage        = VMA_MEMORY_USAGE_AUTO;
             builder.m_alloc_info.flags        = 0;
+
             return builder;
         }
 
@@ -43,6 +90,12 @@ namespace orb::vk
             -> vertex_buffer_builder_t&
         {
             m_create_info.sharingMode = mode;
+            return *this;
+        }
+
+        auto buffer_usage_flag(buffer_usage_flags::enum_t flag) -> vertex_buffer_builder_t&
+        {
+            m_create_info.usage |= flag;
             return *this;
         }
 
@@ -70,6 +123,8 @@ namespace orb::vk
                                        &buffer.allocation,
                                        nullptr);
 
+            buffer.size = m_create_info.size;
+
             if (res != vkres::ok)
             {
                 return error_t { "Failed to create vertex buffer: {}", vkres::get_repr(res) };
@@ -83,11 +138,4 @@ namespace orb::vk
         VkBufferCreateInfo      m_create_info {};
         VmaAllocationCreateInfo m_alloc_info {};
     };
-
-    inline void destroy(vertex_buffer_t& buffer)
-    {
-        vmaDestroyBuffer(buffer.allocator, buffer.buffer, buffer.allocation);
-        buffer.buffer     = nullptr;
-        buffer.allocation = nullptr;
-    }
 } // namespace orb::vk

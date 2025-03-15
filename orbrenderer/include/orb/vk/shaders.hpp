@@ -168,6 +168,42 @@ namespace orb::vk
     {
         VkShaderModule handle = nullptr;
         VkDevice       device = nullptr;
+
+        shader_module_t() = default;
+
+        shader_module_t(const shader_module_t&)                    = delete;
+        auto operator=(const shader_module_t&) -> shader_module_t& = delete;
+
+        shader_module_t(shader_module_t&& other) noexcept
+            : handle(other.handle), device(other.device)
+        {
+            other.handle = nullptr;
+            other.device = nullptr;
+        }
+
+        auto operator=(shader_module_t&& other) noexcept -> shader_module_t&
+        {
+            handle = other.handle;
+            device = other.device;
+
+            other.handle = nullptr;
+            other.device = nullptr;
+
+            return *this;
+        }
+
+        ~shader_module_t()
+        {
+            destroy();
+        }
+
+        void destroy()
+        {
+            if (!handle) return;
+
+            vkDestroyShaderModule(device, handle, nullptr);
+            handle = nullptr;
+        }
     };
 
     class shader_module_builder_t
@@ -227,7 +263,10 @@ namespace orb::vk
             create_info.codeSize = (compile_res.cend() - compile_res.cbegin()) * sizeof(unsigned int);
             create_info.pCode    = reinterpret_cast<const uint32_t*>(compile_res.cbegin());
 
-            vkCreateShaderModule(module.device, &create_info, nullptr, &module.handle);
+            if (auto res = vkCreateShaderModule(module.device, &create_info, nullptr, &module.handle); res != vkres::ok)
+            {
+                return error_t { "Could not create shader module: {}", vkres::get_repr(res) };
+            }
 
             return module;
         }
@@ -240,10 +279,4 @@ namespace orb::vk
         std::string          m_content;
         const char*          m_entry_point = "main";
     };
-
-    inline void destroy(shader_module_t module)
-    {
-        vkDestroyShaderModule(module.device, module.handle, nullptr);
-        module.handle = nullptr;
-    }
 } // namespace orb::vk

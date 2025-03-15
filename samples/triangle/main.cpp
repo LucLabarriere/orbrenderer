@@ -249,12 +249,12 @@ auto main() -> int
 {
     try
     {
-        box<glfw::window_t>  window    = create_glfw_window();
-        box<vk::instance_t>  instance  = create_vk_instance();
-        box<vk::gpu_t>       gpu       = create_vk_gpu(*instance);
-        box<vk::device_t>    device    = create_vk_device(*instance, *gpu);
-        box<vk::swapchain_t> swapchain = create_vk_swapchain(*instance, *device, *gpu, *window);
+        box<glfw::window_t> window   = create_glfw_window();
+        box<vk::instance_t> instance = create_vk_instance();
+        box<vk::gpu_t>      gpu      = create_vk_gpu(*instance);
 
+        box<vk::device_t>      device      = create_vk_device(*instance, *gpu);
+        box<vk::swapchain_t>   swapchain   = create_vk_swapchain(*instance, *device, *gpu, *window);
         vk::views_t            views       = create_image_views(*device, swapchain->images);
         box<vk::render_pass_t> render_pass = create_render_pass(device->handle, swapchain->format.format);
         vk::framebuffers_t     fbs         = create_framebuffers(*device,
@@ -355,29 +355,53 @@ auto main() -> int
                             .unwrap();
 
         println("- Creating command buffers");
-        auto cmd_buffers = vk::alloc_cmds(cmd_pool,
+        auto cmd_buffers = vk::alloc_cmds(cmd_pool.getmut(),
                                           max_frames_in_flight,
                                           vk::cmd_buffer_levels::primary)
                                .unwrap();
 
-        println("- Creating vertex buffer");
         std::vector<Vertex> vertices = {
             { { 0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
             {  { 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f } },
             { { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
         };
-
+        println("- Creating vertex buffer");
         auto vertex_buffer = vk::vertex_buffer_builder_t::prepare(device.getmut())
                                  .unwrap()
                                  .vertices<Vertex>(vertices)
-                                 .memory_flags(vk::vma_alloc_flags::host_access_sequential_write)
+                                 .buffer_usage_flag(vk::buffer_usage_flags::transfer_destination)
+                                 .memory_flags(vk::vma_alloc_flags::dedicated_memory)
                                  .build()
                                  .unwrap();
 
-        void* data {};
-        vmaMapMemory(vertex_buffer.allocator, vertex_buffer.allocation, &data);
-        std::memcpy(data, vertices.data(), sizeof(Vertex) * vertices.size());
-        vmaUnmapMemory(vertex_buffer.allocator, vertex_buffer.allocation);
+        println("- Creating staging buffer");
+        auto staging_buffer = vk::staging_buffer_builder_t::prepare(device.getmut(), vertex_buffer.size)
+                                  .unwrap()
+                                  .build()
+                                  .unwrap();
+
+        println("- Copying vertices to staging buffer");
+        staging_buffer.transfer(vertices.data(), sizeof(Vertex) * vertices.size());
+
+        println("- Copying staging buffer to vertex buffer");
+        auto cpy_cmd_buffer = vk::alloc_cmds(cmd_pool.getmut(), 1)
+                                  .unwrap()
+                                  .get(0)
+                                  .unwrap();
+
+        cpy_cmd_buffer.begin_one_time().throw_if_error();
+        cpy_cmd_buffer.copy_buffer(staging_buffer.buffer, vertex_buffer.buffer, vertex_buffer.size);
+        cpy_cmd_buffer.end().throw_if_error();
+
+        println("- Submitting copy command buffer");
+        vk::submit_helper_t::prepare()
+            .cmd_buffer(&cpy_cmd_buffer.handle)
+            .wait_stage(vk::pipeline_stage_flags::transfer)
+            .submit(device->queues.front())
+            .throw_if_error();
+
+        println("- Waiting");
+        vk::device_idle(*device);
 
         ui32 frame = 0;
 
@@ -405,8 +429,6 @@ auto main() -> int
             if (res.require_sc_rebuild())
             {
                 vk::device_idle(*device);
-                vk::destroy(fbs);
-                vk::destroy(views);
                 swapchain->rebuild().throw_if_error();
 
                 views = create_image_views(*device, swapchain->images);
@@ -433,15 +455,16 @@ auto main() -> int
             render_pass->begin_info.renderArea.extent = swapchain->extent;
 
             // Begin command buffer recording
-            auto [cmd, begin_res] = cmd_buffers.begin_one_time(frame);
+            auto cmd = cmd_buffers.get(frame).unwrap();
+            cmd.begin_one_time().throw_if_error();
 
             // Begin the render pass
-            vk::begin(*render_pass, cmd);
+            render_pass->begin(cmd.handle);
 
             // Bind the graphics pipeline
-            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+            vkCmdBindPipeline(cmd.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
             std::array<VkDeviceSize, 1> offsets = { 0 };
-            vkCmdBindVertexBuffers(cmd, 0, 1, &vertex_buffer.buffer, offsets.data());
+            vkCmdBindVertexBuffers(cmd.handle, 0, 1, &vertex_buffer.buffer, offsets.data());
 
             // Set viewport and scissor
             auto& viewport        = pipeline->viewports.back();
@@ -450,23 +473,23 @@ auto main() -> int
             viewport.height       = static_cast<f32>(swapchain->height);
             scissor.extent.width  = swapchain->width;
             scissor.extent.height = swapchain->height;
-            vkCmdSetViewport(cmd, 0, 1, &viewport);
-            vkCmdSetScissor(cmd, 0, 1, &scissor);
+            vkCmdSetViewport(cmd.handle, 0, 1, &viewport);
+            vkCmdSetScissor(cmd.handle, 0, 1, &scissor);
 
             // Draw triangle
-            vkCmdDraw(cmd, vertices.size(), 1, 0, 0);
+            vkCmdDraw(cmd.handle, vertices.size(), 1, 0, 0);
 
             // End the render pass
-            vk::end(*render_pass, cmd);
+            render_pass->end(cmd.handle);
 
             // End command buffer recording
-            vk::end(cmd);
+            vk::end(cmd.handle);
 
             // Submit render
             vk::submit_helper_t::prepare()
                 .wait_semaphores(img_avail_sems.handles)
                 .signal_semaphores(render_finished_sems.handles)
-                .cmd_buffer(&cmd)
+                .cmd_buffer(&cmd.handle)
                 .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
                 .submit(device->queues.front(), fences.handles.back())
                 .throw_if_error();
@@ -498,19 +521,6 @@ auto main() -> int
         window->destroy();
         println("- Destroyed window");
 
-        vk::destroy(vertex_buffer);
-        vk::destroy(views);
-        vk::destroy(desc_pool);
-        vk::destroy(fbs);
-        vk::destroy(cmd_pool);
-        vk::destroy(sync_objects);
-        vk::destroy(*pipeline);
-        vk::destroy(vs_shader_module);
-        vk::destroy(fs_shader_module);
-        vk::destroy(*render_pass);
-        vk::destroy(*swapchain);
-        vk::destroy(*device);
-        vk::destroy(*instance);
         println("- Terminated Vulkan");
 
         glfw::driver_t::terminate();

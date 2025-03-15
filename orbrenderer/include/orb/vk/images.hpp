@@ -4,6 +4,7 @@
 #include "orb/vk/vk_types.hpp"
 
 #include <orb/box.hpp>
+#include <orb/flux.hpp>
 #include <orb/result.hpp>
 
 #include <vector>
@@ -16,6 +17,50 @@ namespace orb::vk
         std::vector<VmaAllocation> allocations;
 
         VmaAllocator allocator = nullptr;
+
+        images_t() = default;
+
+        images_t(const images_t&)                    = delete;
+        auto operator=(const images_t&) -> images_t& = delete;
+
+        images_t(images_t&& other) noexcept
+        {
+            destroy();
+
+            handles     = std::move(other.handles);
+            allocations = std::move(other.allocations);
+            allocator   = other.allocator;
+
+            other.allocator = nullptr;
+        }
+
+        auto operator=(images_t&& other) noexcept -> images_t&
+        {
+            destroy();
+
+            handles     = std::move(other.handles);
+            allocations = std::move(other.allocations);
+            allocator   = other.allocator;
+
+            other.allocator = nullptr;
+
+            return *this;
+        }
+
+        ~images_t()
+        {
+            destroy();
+        }
+
+        void destroy()
+        {
+            for (const auto& [img, alloc] : flux::zip_all_mut(handles, allocations))
+            {
+                vmaDestroyImage(allocator, img, alloc);
+                img   = nullptr;
+                alloc = nullptr;
+            }
+        }
     };
 
     class images_builder_t
@@ -114,6 +159,4 @@ namespace orb::vk
                   VkImage         src,
                   VkImage         dst,
                   VkExtent2D      src_extent);
-
-    void destroy(images_t&);
 } // namespace orb::vk

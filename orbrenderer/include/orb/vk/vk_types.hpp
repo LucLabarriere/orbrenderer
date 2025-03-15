@@ -1879,4 +1879,20 @@ namespace orb::vk
          */
         inline constexpr auto strategy_mask = VMA_ALLOCATION_CREATE_STRATEGY_MASK;
     } // namespace vma_alloc_flags
+
+    namespace buffer_usage_flags
+    {
+        using enum_t = VkBufferUsageFlags;
+
+        inline constexpr auto transfer_source      = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        inline constexpr auto transfer_destination = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        inline constexpr auto uniform_texel_buffer = VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+        inline constexpr auto storage_texel_buffer = VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+        inline constexpr auto uniform_buffer       = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        inline constexpr auto storage_buffer       = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        inline constexpr auto index_buffer         = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        inline constexpr auto vertex_buffer        = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        inline constexpr auto indirect_buffer      = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+    } // namespace buffer_usage_flags
+
 } // namespace orb::vk

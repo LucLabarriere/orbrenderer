@@ -10,10 +10,11 @@
 namespace
 {
     VKAPI_ATTR auto VKAPI_CALL debug_report(
-        VkDebugUtilsMessageSeverityFlagBitsEXT      msg_sev,
-        VkDebugUtilsMessageTypeFlagsEXT             msg_type,
+        VkDebugUtilsMessageSeverityFlagBitsEXT msg_sev,
+        VkDebugUtilsMessageTypeFlagsEXT /*msg_type*/,
         const VkDebugUtilsMessengerCallbackDataEXT* data,
-        void*                                       user_data) -> VkBool32
+        void* /*user_data*/)
+        -> VkBool32
     {
         namespace flags = orb::vk::debug_utils_message_severity_flags;
         namespace col   = orb::colors;
@@ -169,18 +170,5 @@ namespace orb::vk
         }
 
         return instance;
-    }
-
-    void destroy(instance_t& instance)
-    {
-        if (instance.debug_utils)
-        {
-            auto destroy_deb_callback_fn = proc_addresses::destroy_deb_utils(instance.handle);
-            destroy_deb_callback_fn(instance.handle, instance.debug_utils, nullptr);
-            instance.debug_utils = nullptr;
-        }
-
-        vkDestroyInstance(instance.handle, nullptr);
-        instance.handle = nullptr;
     }
 } // namespace orb::vk

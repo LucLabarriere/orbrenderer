@@ -41,6 +41,64 @@ namespace orb::vk
         ui32 height {};
         ui32 img_count {};
 
+        swapchain_t() = default;
+
+        swapchain_t(const swapchain_t&)                    = delete;
+        auto operator=(const swapchain_t&) -> swapchain_t& = delete;
+
+        swapchain_t(swapchain_t&& other) noexcept
+        {
+            if (handle or surface) destroy();
+
+            info         = other.info;
+            cap          = other.cap;
+            device       = other.device;
+            gpu          = other.gpu;
+            window       = other.window;
+            handle       = other.handle;
+            surface      = other.surface;
+            instance     = other.instance;
+            format       = other.format;
+            cmd          = other.cmd;
+            present_mode = other.present_mode;
+            extent       = other.extent;
+            images       = std::move(other.images);
+
+            other.handle  = nullptr;
+            other.surface = nullptr;
+        }
+
+        auto operator=(swapchain_t&& other) noexcept -> swapchain_t&
+        {
+            destroy();
+
+            info         = other.info;
+            cap          = other.cap;
+            device       = other.device;
+            gpu          = other.gpu;
+            window       = other.window;
+            handle       = other.handle;
+            surface      = other.surface;
+            instance     = other.instance;
+            format       = other.format;
+            cmd          = other.cmd;
+            present_mode = other.present_mode;
+            extent       = other.extent;
+            images       = std::move(other.images);
+
+            other.handle  = nullptr;
+            other.surface = nullptr;
+
+            return *this;
+        }
+
+        ~swapchain_t()
+        {
+            destroy();
+        }
+
+        void destroy();
+
         auto rebuild() -> result<void>;
     };
 
@@ -183,6 +241,4 @@ namespace orb::vk
     private:
         VkPresentInfoKHR m_info = vk::structs::present();
     };
-
-    void destroy(swapchain_t& swapchain);
 } // namespace orb::vk

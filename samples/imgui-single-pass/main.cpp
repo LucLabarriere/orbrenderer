@@ -308,7 +308,7 @@ auto main() -> int
                             .build()
                             .unwrap();
 
-        auto cmd_buffers = vk::alloc_cmds(cmd_pool,
+        auto cmd_buffers = vk::alloc_cmds(cmd_pool.getmut(),
                                           max_frames_in_flight,
                                           vk::cmd_buffer_levels::primary)
                                .unwrap();
@@ -358,8 +358,6 @@ auto main() -> int
             if (res.require_sc_rebuild())
             {
                 vk::device_idle(*device);
-                vk::destroy(views);
-                vk::destroy(imgui_fbs);
                 swapchain->rebuild().throw_if_error();
                 views     = create_swapchain_views(*device, swapchain->images);
                 imgui_fbs = create_imgui_framebuffers(*device,
@@ -385,25 +383,26 @@ auto main() -> int
             imgui_pass->begin_info.renderArea.extent = swapchain->extent;
 
             // Begin command buffer recording
-            auto [cmd, begin_res] = cmd_buffers.begin_one_time(frame);
+            auto cmd = cmd_buffers.get(frame).unwrap();
+            cmd.begin_one_time().throw_if_error();
 
             // Begin the render pass
-            vk::begin(*imgui_pass, cmd);
+            imgui_pass->begin(cmd.handle);
 
             // Render ImGui
-            vk::imgui::submit_render(cmd);
+            vk::imgui::submit_render(cmd.handle);
 
             // End the render pass
-            vk::end(*imgui_pass, cmd);
+            imgui_pass->end(cmd.handle);
 
             // End command buffer recording
-            vk::end(cmd);
+            cmd.end();
 
             // Submit
             vk::submit_helper_t::prepare()
                 .wait_semaphores(img_avail.handles)
                 .signal_semaphores(render_finished.handles)
-                .cmd_buffer(&cmd)
+                .cmd_buffer(&cmd.handle)
                 .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
                 .submit(device->queues.front(), fence.handles.back())
                 .throw_if_error();
@@ -435,16 +434,6 @@ auto main() -> int
         println("- Destroyed window");
 
         vk::imgui::terminate();
-
-        vk::destroy(desc_pool);
-        vk::destroy(views);
-        vk::destroy(imgui_fbs);
-        vk::destroy(cmd_pool);
-        vk::destroy(sync_objects);
-        vk::destroy(*imgui_pass);
-        vk::destroy(*swapchain);
-        vk::destroy(*device);
-        vk::destroy(*instance);
         println("- Terminated Vulkan");
 
         glfw::driver_t::terminate();

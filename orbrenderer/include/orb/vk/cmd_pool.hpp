@@ -1,5 +1,6 @@
 #pragma once
 
+#include "orb/vk/device.hpp"
 #include <orb/vk/vk_structs.hpp>
 
 #include <orb/box.hpp>
@@ -16,24 +17,156 @@ namespace orb::vk
 
     struct cmd_pool_t
     {
+        cmd_pool_t() = default;
+
+        cmd_pool_t(const cmd_pool_t&)                    = delete;
+        auto operator=(const cmd_pool_t&) -> cmd_pool_t& = delete;
+
+        cmd_pool_t(cmd_pool_t&& other) noexcept
+        {
+            destroy();
+
+            handle   = other.handle;
+            device   = other.device;
+            qf_index = other.qf_index;
+
+            other.handle = nullptr;
+        }
+
+        auto operator=(cmd_pool_t&& other) noexcept -> cmd_pool_t&
+        {
+            handle   = other.handle;
+            device   = other.device;
+            qf_index = other.qf_index;
+
+            other.handle = nullptr;
+
+            return *this;
+        }
+
+        ~cmd_pool_t()
+        {
+            destroy();
+        }
+
+        void destroy()
+        {
+            if (!handle)
+            {
+                return;
+            }
+
+            vkDestroyCommandPool(device, handle, nullptr);
+            handle = nullptr;
+        }
+
         VkCommandPool handle   = nullptr;
         VkDevice      device   = nullptr;
         ui32          qf_index = 0;
+    };
+
+    struct cmd_buffer_t
+    {
+        VkCommandBuffer handle = nullptr;
+
+        auto reset() -> result<void>
+        {
+            if (auto res = vkResetCommandBuffer(handle, 0); res != vkres::ok)
+            {
+                return error_t { "Could not reset command buffer: {}", vkres::get_repr(res) };
+            }
+
+            return {};
+        }
+
+        auto begin_one_time() -> result<void>
+        {
+            auto info  = structs::cmd_buffer_begin();
+            info.flags = command_buffer_usage_flags::one_time_submit;
+
+            // Resetting cmd buffer
+            if (auto res = vkResetCommandBuffer(handle, 0); res != vkres::ok)
+            {
+                return error_t { "Could not reset command buffer: {}", vkres::get_repr(res) };
+            }
+
+            if (auto res = vkBeginCommandBuffer(handle, &info); res != vkres::ok)
+            {
+                return error_t { "Could not start recording cmd buffer: {}", vkres::get_repr(res) };
+            }
+
+            return {};
+        }
+
+        auto copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize size) -> result<void>
+        {
+            VkBufferCopy copy_region {
+                .srcOffset = 0,
+                .dstOffset = 0,
+                .size      = size,
+            };
+
+            vkCmdCopyBuffer(handle, src, dst, 1, &copy_region);
+
+            return {};
+        }
+
+        auto end() -> result<void>
+        {
+            if (auto res = vkEndCommandBuffer(handle); res != vkres::ok)
+            {
+                return error_t { "Could not end command buffer: {}", vkres::get_repr(res) };
+            }
+
+            return {};
+        }
     };
 
     struct cmd_buffers_t
     {
         std::vector<VkCommandBuffer> handles;
 
-        auto reset(size_t offset) -> VkResult;
-        auto begin_one_time(size_t offset) -> std::tuple<VkCommandBuffer, VkResult>;
+        [[nodiscard]] auto get(size_t offset) -> result<cmd_buffer_t>
+        {
+            if (offset >= handles.size())
+            {
+                return error_t { "Out of range" };
+            }
+
+            return cmd_buffer_t { .handle = handles[offset] };
+        }
     };
 
     class cmd_pool_builder_t
     {
     public:
-        [[nodiscard]] static auto prepare(weak<device_t>, ui32 qf_index) -> result<cmd_pool_builder_t>;
-        [[nodiscard]] auto        build() -> result<cmd_pool_t>;
+        [[nodiscard]] static auto prepare(weak<device_t> device, ui32 qf_index)
+            -> result<cmd_pool_builder_t>
+        {
+            cmd_pool_builder_t d;
+            d.m_device   = device;
+            d.m_qf_index = qf_index;
+            return d;
+        }
+
+        [[nodiscard]] auto build() -> result<box<cmd_pool_t>>
+        {
+            auto pool      = make_box<cmd_pool_t>();
+            pool->device   = m_device->handle;
+            pool->qf_index = m_qf_index;
+
+            auto cmd_pool_info             = structs::create::cmd_pool();
+            cmd_pool_info.queueFamilyIndex = m_qf_index;
+            cmd_pool_info.flags            = m_flags;
+
+            if (auto res = vkCreateCommandPool(m_device->handle, &cmd_pool_info, nullptr, &pool->handle);
+                res != vkres::ok)
+            {
+                return error_t { "Could not create command pool: {}", vkres::get_repr(res) };
+            }
+
+            return pool;
+        }
 
         auto flag(command_pool_create_flags::enum_t flag) -> cmd_pool_builder_t&
         {
@@ -104,8 +237,35 @@ namespace orb::vk
         VkPipelineStageFlags m_wait_stage {};
     };
 
-    auto alloc_cmds(cmd_pool_t&, size_t, cmd_buffer_levels::enum_t) -> result<cmd_buffers_t>;
-    auto end(VkCommandBuffer& cmd) -> result<void>;
-    void destroy(cmd_pool_t&);
+    inline auto alloc_cmds(weak<cmd_pool_t>          pool,
+                           size_t                    count,
+                           cmd_buffer_levels::enum_t level = cmd_buffer_levels::primary)
+        -> result<cmd_buffers_t>
+    {
+        std::vector<VkCommandBuffer> cmds;
+        cmds.resize(count);
 
+        auto cmd_info               = structs::create::cmd_buffer();
+        cmd_info.commandBufferCount = cmds.size();
+        cmd_info.commandPool        = pool->handle;
+        cmd_info.level              = level;
+
+        if (auto res = vkAllocateCommandBuffers(pool->device, &cmd_info, cmds.data());
+            res != vkres::ok)
+        {
+            return error_t { "Could not allocate command buffer: {}", vkres::get_repr(res) };
+        }
+
+        return cmd_buffers_t { .handles = std::move(cmds) };
+    }
+
+    inline auto end(VkCommandBuffer& cmd) -> result<void>
+    {
+        if (auto res = vkEndCommandBuffer(cmd); res != vkres::ok)
+        {
+            return error_t { "Could not end command buffer: {}", vkres::get_repr(res) };
+        }
+
+        return {};
+    }
 } // namespace orb::vk

@@ -24,6 +24,61 @@ namespace orb::vk
         VmaAllocator                        allocator {};
         proc_addresses::set_debug_name_fn_t set_debug_name_fb {};
 
+        device_t() = default;
+
+        device_t(const device_t&)                    = delete;
+        auto operator=(const device_t&) -> device_t& = delete;
+
+        device_t(device_t&& other) noexcept
+        {
+            destroy();
+
+            handle       = other.handle;
+            queues       = std::move(other.queues);
+            allocator    = other.allocator;
+            set_debug_name_fb = other.set_debug_name_fb;
+
+            other.handle       = nullptr;
+            other.allocator    = nullptr;
+            other.set_debug_name_fb = nullptr;
+        }
+
+        auto operator=(device_t&& other) noexcept -> device_t&
+        {
+            destroy();
+
+            handle       = other.handle;
+            queues       = std::move(other.queues);
+            allocator    = other.allocator;
+            set_debug_name_fb = other.set_debug_name_fb;
+
+            other.handle       = nullptr;
+            other.allocator    = nullptr;
+            other.set_debug_name_fb = nullptr;
+
+            return *this;
+        }
+
+        ~device_t()
+        {
+            destroy();
+        }
+
+        void destroy()
+        {
+            if (allocator)
+            {
+                vmaDestroyAllocator(allocator);
+                allocator = nullptr;
+            }
+
+            if (handle)
+            {
+                vkDestroyDevice(handle, nullptr);
+                handle = nullptr;
+            }
+        }
+
         template <vk::vk_type T>
         void set_name(T obj, const char* name)
         {
@@ -62,5 +117,4 @@ namespace orb::vk
 
     auto alloc_cmd(device_t&, VkCommandPool) -> result<VkCommandBuffer>;
     void device_idle(device_t&);
-    void destroy(device_t&);
 } // namespace orb::vk

@@ -139,15 +139,4 @@ namespace orb::vk
                        1,
                        &region);
     } // namespace orb::vk
-
-    void destroy(images_t& images)
-    {
-        for (const auto& [img, alloc] : flux::zip_all_mut(images.handles, images.allocations))
-        {
-            vmaDestroyImage(images.allocator, img, alloc);
-            img = nullptr;
-            alloc = nullptr;
-        }
-    }
-
 } // namespace orb::vk

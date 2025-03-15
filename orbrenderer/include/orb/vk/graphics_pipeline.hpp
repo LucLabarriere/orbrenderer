@@ -441,6 +441,63 @@ namespace orb::vk
 
         std::vector<VkViewport> viewports;
         std::vector<VkRect2D>   scissors;
+
+        graphics_pipeline_t() = default;
+
+        graphics_pipeline_t(const graphics_pipeline_t&)                    = delete;
+        auto operator=(const graphics_pipeline_t&) -> graphics_pipeline_t& = delete;
+
+        graphics_pipeline_t(graphics_pipeline_t&& other) noexcept
+        {
+            destroy();
+
+            device = other.device;
+            handle = other.handle;
+            layout = other.layout;
+
+            viewports = std::move(other.viewports);
+            scissors  = std::move(other.scissors);
+
+            other.handle = nullptr;
+            other.layout = nullptr;
+        }
+
+        auto operator=(graphics_pipeline_t&& other) noexcept -> graphics_pipeline_t&
+        {
+            destroy();
+
+            device = other.device;
+            handle = other.handle;
+            layout = other.layout;
+
+            viewports = std::move(other.viewports);
+            scissors  = std::move(other.scissors);
+
+            other.handle = nullptr;
+            other.layout = nullptr;
+
+            return *this;
+        }
+
+        ~graphics_pipeline_t()
+        {
+            destroy();
+        }
+
+        void destroy()
+        {
+            if (layout)
+            {
+                vkDestroyPipelineLayout(device, layout, nullptr);
+                layout = nullptr;
+            }
+
+            if (handle)
+            {
+                vkDestroyPipeline(device, handle, nullptr);
+                handle = nullptr;
+            }
+        }
     };
 
     class pipeline_builder_t
@@ -648,12 +705,4 @@ namespace orb::vk
         color_blending_builder_t  m_color_blending;
         pipeline_layout_builder_t m_pipeline_layout;
     };
-
-    inline void destroy(graphics_pipeline_t& pipeline)
-    {
-        vkDestroyPipelineLayout(pipeline.device, pipeline.layout, nullptr);
-        vkDestroyPipeline(pipeline.device, pipeline.handle, nullptr);
-        pipeline.layout = nullptr;
-        pipeline.handle = nullptr;
-    }
 } // namespace orb::vk
