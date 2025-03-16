@@ -54,7 +54,9 @@ namespace orb::vk
                                           weak<device_t>,
                                           weak<swapchain_t>,
                                           weak<desc_pool_t>,
-                                          weak<render_pass_t>)
+                                          weak<render_pass_t>,
+                                          ui32    qf_index,
+                                          VkQueue queue)
             -> imgui_driver_builder_t;
 
         [[nodiscard]] auto build() -> result<imgui_driver_t>;

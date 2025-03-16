@@ -10,7 +10,6 @@
 #include "orb/vk/images.hpp"
 #include "orb/vk/imgui.hpp"
 #include "orb/vk/instance.hpp"
-#include "orb/vk/render.hpp"
 #include "orb/vk/render_pass.hpp"
 #include "orb/vk/shaders.hpp"
 #include "orb/vk/staging_buffer.hpp"

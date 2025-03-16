@@ -54,6 +54,7 @@ namespace orb::vk
         inline constexpr auto graphics = VK_QUEUE_GRAPHICS_BIT;
         inline constexpr auto transfer = VK_QUEUE_TRANSFER_BIT;
         inline constexpr auto compute  = VK_QUEUE_COMPUTE_BIT;
+        inline constexpr auto sparse   = VK_QUEUE_SPARSE_BINDING_BIT;
     } // namespace queue_families
 
     namespace instance_create

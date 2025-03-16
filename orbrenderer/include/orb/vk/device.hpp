@@ -6,6 +6,7 @@
 #include <orb/result.hpp>
 
 #include <span>
+#include <unordered_map>
 #include <vector>
 
 using VmaAllocator = struct VmaAllocator_T*;
@@ -16,6 +17,12 @@ namespace orb::vk
     struct queue_family_t;
 
     using priority_t = f32;
+
+    struct queue_info_t
+    {
+        VkDeviceQueueCreateInfo* create_info {};
+        std::vector<priority_t>  priorities {};
+    };
 
     struct device_t
     {
@@ -116,14 +123,23 @@ namespace orb::vk
             return *this;
         };
 
-        auto add_queues(queue_family_t& qf, std::span<const priority_t> priorities) -> device_builder_t&;
+        auto add_queue(weak<queue_family_t>, priority_t) -> device_builder_t&;
 
     private:
         device_builder_t() = default;
 
-        VkInstance                           m_instance {};
-        std::vector<const char*>             m_extensions;
-        weak<gpu_t>                          m_gpu;
-        std::vector<VkDeviceQueueCreateInfo> m_queue_infos;
+        VkInstance               m_instance {};
+        std::vector<const char*> m_extensions;
+        weak<gpu_t>              m_gpu;
+        std::vector<priority_t>  m_priorities;
+
+        struct queue_info_t
+        {
+            size_t create_info_index = 0;
+            std::vector<priority_t>  priorities {};
+        };
+
+        std::vector<VkDeviceQueueCreateInfo>                    m_queue_infos_raw;
+        std::unordered_map<queue_family_t*, queue_info_t> m_queue_infos;
     };
 } // namespace orb::vk

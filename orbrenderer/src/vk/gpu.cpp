@@ -6,6 +6,38 @@
 
 namespace orb::vk
 {
+    auto queue_family_map_t::create(std::span<box<queue_family_t>> queues)
+        -> box<queue_family_map_t>
+    {
+        auto family_map = make_box<queue_family_map_t>();
+
+        for (auto[i, qf] : flux::enumerate_mut(queues))
+        {
+            if (qf->properties.queueFlags & vk::queue_families::graphics)
+            {
+                constexpr size_t index = queue_family_map_t::get_index(queue_families::graphics);
+                family_map->m_families[index].push_back(qf.getmut());
+            }
+            if (qf->properties.queueFlags & vk::queue_families::transfer)
+            {
+                constexpr size_t index = queue_family_map_t::get_index(queue_families::transfer);
+                family_map->m_families[index].push_back(qf.getmut());
+            }
+            if (qf->properties.queueFlags & vk::queue_families::compute)
+            {
+                constexpr size_t index = queue_family_map_t::get_index(queue_families::compute);
+                family_map->m_families[index].push_back(qf.getmut());
+            }
+            if (qf->properties.queueFlags & vk::queue_families::sparse)
+            {
+                constexpr size_t index = queue_family_map_t::get_index(queue_families::sparse);
+                family_map->m_families[index].push_back(qf.getmut());
+            }
+        }
+
+        return family_map;
+    }
+
     auto gpu_selector_t::prepare(VkInstance instance) -> result<gpu_selector_t>
     {
         gpu_selector_t d;
@@ -56,36 +88,34 @@ namespace orb::vk
             gpu->queue_families =
                 flux::enumerate(qf_properties)
                     .map([](auto&& pair) {
-                        const auto& [index, properties] = pair;
-                        return queue_family_t {
-                            .index      = (ui32)index,
-                            .properties = properties
-                        };
+                        return make_box<queue_family_t>((ui32)pair.first, pair.second);
                     })
                     .to<std::vector>();
+
+            gpu->queue_family_map = queue_family_map_t::create(gpu->queue_families);
         }
 
         return d;
     }
 
-    void describe(const vk::gpu_t& gpu)
+    void gpu_t::describe()
     {
         println("- GPU description");
-        println("  * GPU {}: {}", gpu.device_id, gpu.name);
-        println("  * Driver: {}", gpu.driver_version);
-        println("  * Vulkan handle: {}", orb::ptr(gpu.handle));
-        println("  * GPU type: {}", gpu_types::strings[(size_t)gpu.device_type]);
+        println("  * GPU {}: {}", device_id, name);
+        println("  * Driver: {}", driver_version);
+        println("  * Vulkan handle: {}", orb::ptr(handle));
+        println("  * GPU type: {}", gpu_types::strings[(size_t)device_type]);
         println("  * Available queue families");
 
-        for (const auto& [i, qf] : flux::enumerate(gpu.queue_families))
+        for (const auto& [i, qf] : flux::enumerate(queue_families))
         {
             print("    - Queue family {}:", i);
-            if (qf.properties.queueFlags & vk::queue_families::graphics) { print(" Graphics"); }
-            if (qf.properties.queueFlags & vk::queue_families::transfer) { print(" Transfer"); }
-            if (qf.properties.queueFlags & vk::queue_families::compute) { print(" Compute"); }
+            if (qf->properties.queueFlags & vk::queue_families::graphics) { print(" Graphics"); }
+            if (qf->properties.queueFlags & vk::queue_families::transfer) { print(" Transfer"); }
+            if (qf->properties.queueFlags & vk::queue_families::compute) { print(" Compute"); }
 
             println("");
-            println("       Count: {}", qf.properties.queueCount);
+            println("       Count: {}", qf->properties.queueCount);
         }
     };
 

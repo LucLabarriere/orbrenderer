@@ -5,7 +5,6 @@ add_library(orbrenderer
           src/vk/images.cpp
           src/vk/imgui.cpp
           src/vk/instance.cpp
-          src/vk/render.cpp
           src/vk/swapchain.cpp
           src/vk/surface.cpp
           src/vk/vma.cpp

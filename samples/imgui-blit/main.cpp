@@ -15,112 +15,6 @@ static constexpr ui32 max_frames_in_flight = 2;
 
 namespace
 {
-    /** @brief Selects the GPU.
-     *
-     * @param instance The vulkan instance.
-     * @return The selected GPU.
-     */
-    [[nodiscard]] auto create_vk_gpu(vk::instance_t& instance) -> box<vk::gpu_t>
-    {
-        auto gpu = orb::eval | [&] {
-            auto gpus = vk::gpu_selector_t::prepare(instance.handle).unwrap();
-
-            for (const auto& [i, gpu] : flux::enumerate(gpus))
-            {
-                if (gpu->device_type == vk::gpu_types::discrete) { return gpus.select(i); }
-            }
-
-            println("No discrete GPU found, trying out integrated GPUs");
-            for (const auto& [i, gpu] : flux::enumerate(gpus))
-            {
-                if (gpu->device_type == vk::gpu_types::integrated) { return gpus.select(i); }
-            }
-
-            println("No integrated GPU found either, return first available device");
-
-            return gpus.select(0);
-        };
-
-        // Print informations on select gpu
-        vk::describe(*gpu);
-        return gpu;
-    }
-
-    /* @brief Creates the vulkan device
-     *
-     * @param instance The vulkan instance
-     * @param gpu The selected GPU
-     * @return The vulkan device
-     */
-    [[nodiscard]] auto create_vk_device(vk::instance_t& instance, vk::gpu_t& gpu) -> box<vk::device_t>
-    {
-        vk::queue_family_t graphics_queue_family = orb::eval | [&]() -> vk::queue_family_t& {
-            for (auto& qf : gpu.queue_families)
-            {
-                if (qf.properties.queueFlags & vk::queue_families::graphics) { return qf; }
-            }
-
-            panic("No suitable queue family found");
-        };
-
-        println("- Selected queue family {} with {} queues",
-                graphics_queue_family.index,
-                graphics_queue_family.properties.queueCount);
-
-        // Create vulkan device
-        constexpr std::array queue_priorities { 1.0f };
-
-        auto device = vk::device_builder_t::prepare(instance.handle)
-                          .unwrap()
-                          .add_extension(vk::khr_extensions::swapchain)
-                          .add_queues(graphics_queue_family, queue_priorities)
-                          .build(gpu)
-                          .unwrap();
-        return device;
-    }
-
-    /* @brief Creates the vulkan swapchain
-     *
-     * @param instance The vulkan instance
-     * @param device The vulkan device
-     * @param gpu The selected GPU
-     * @param window The GLFW window
-     * @param surface The vulkan surface
-     * @return The vulkan swapchain
-     */
-    [[nodiscard]] auto create_vk_swapchain(vk::instance_t& instance,
-                                           vk::device_t&   device,
-                                           vk::gpu_t&      gpu,
-                                           glfw::window_t& window,
-                                           vk::surface_t&  surface) -> box<vk::swapchain_t>
-    {
-        auto swapchain = vk::swapchain_builder_t::prepare(&instance,
-                                                          &gpu,
-                                                          &device,
-                                                          &window,
-                                                          &surface)
-                             .unwrap()
-                             .fb_dimensions_from_window()
-                             .present_queue_family_index(0)
-
-                             .usage(vk::image_usage_flags::transfer_dst)
-                             .usage(vk::image_usage_flags::color_attachment)
-                             .color_space(vk::color_spaces::srgb_nonlinear_khr)
-                             .format(vk::formats::b8g8r8a8_unorm)
-                             .format(vk::formats::r8g8b8a8_unorm)
-                             .format(vk::formats::b8g8r8_unorm)
-                             .format(vk::formats::r8g8b8_unorm)
-
-                             .present_mode(vk::present_modes::mailbox_khr)
-                             .present_mode(vk::present_modes::immediate_khr)
-                             .present_mode(vk::present_modes::fifo_khr)
-
-                             .build()
-                             .unwrap();
-
-        return swapchain;
-    }
-
     /* @brief Creates the ImGui render pass
      *
      * @param device The vulkan device
@@ -193,9 +87,61 @@ auto main() -> int
                                     .build()
                                     .unwrap();
 
-        box<vk::gpu_t> gpu = create_vk_gpu(*instance);
+        box<vk::gpu_t> gpu = vk::gpu_selector_t::prepare(instance->handle)
+                                 .unwrap()
+                                 .prefer_type(vk::gpu_types::discrete)
+                                 .prefer_type(vk::gpu_types::integrated)
+                                 .select()
+                                 .unwrap();
 
-        box<vk::device_t> device = create_vk_device(*instance, *gpu);
+        gpu->describe();
+
+        auto [graphics_qf, transfer_qf] = orb::eval | [&] {
+            std::span graphics_qfs = gpu->queue_family_map->graphics().unwrap();
+            std::span transfer_qfs = gpu->queue_family_map->transfer().unwrap();
+
+            auto graphics_qf = graphics_qfs.front();
+
+            auto transfer_qf = orb::eval | [&] {
+                for (auto qf : transfer_qfs)
+                {
+                    if (qf->index != graphics_qf->index)
+                    {
+                        return qf;
+                    }
+                }
+
+                return transfer_qfs.front();
+            };
+
+            return std::make_tuple(graphics_qf, transfer_qf);
+        };
+
+        println("- Selected graphics queue family {} with {} queues",
+                graphics_qf->index,
+                graphics_qf->properties.queueCount);
+
+        println("- Selected transfer queue family {} with {} queues",
+                transfer_qf->index,
+                transfer_qf->properties.queueCount);
+
+        auto device = vk::device_builder_t::prepare(instance->handle)
+                          .unwrap()
+                          .add_extension(vk::khr_extensions::swapchain)
+                          .add_queue(graphics_qf, 1.0f)
+                          .add_queue(transfer_qf, 1.0f)
+                          .build(*gpu)
+                          .unwrap();
+
+        for (auto queue : graphics_qf->queues)
+        {
+            device->set_name(queue, "Graphics queue");
+        }
+
+        for (auto queue : transfer_qf->queues)
+        {
+            device->set_name(queue, "Transfer queue");
+        }
 
         box<vk::swapchain_t> swapchain = vk::swapchain_builder_t::prepare(instance.getmut(),
                                                                           gpu.getmut(),
@@ -204,7 +150,7 @@ auto main() -> int
                                                                           &surface)
                                              .unwrap()
                                              .fb_dimensions_from_window()
-                                             .present_queue_family_index(0)
+                                             .present_queue_family_index(graphics_qf->index)
 
                                              .usage(vk::image_usage_flags::transfer_dst)
                                              .usage(vk::image_usage_flags::color_attachment)
@@ -277,14 +223,20 @@ auto main() -> int
                                 .build()
                                 .unwrap();
 
-        auto cmd_pool = vk::cmd_pool_builder_t::prepare(device.getmut(), gpu->queue_families.front().index)
-                            .unwrap()
-                            .flag(vk::command_pool_create_flags::reset_command_buffer_bit)
-                            .build()
-                            .unwrap();
+        auto graphics_cmd_pool = vk::cmd_pool_builder_t::prepare(device.getmut(), graphics_qf->index)
+                                     .unwrap()
+                                     .flag(vk::command_pool_create_flags::reset_command_buffer_bit)
+                                     .build()
+                                     .unwrap();
 
-        auto cmd_buffers      = cmd_pool->alloc_cmds(max_frames_in_flight).unwrap();
-        auto copy_cmd_buffers = cmd_pool->alloc_cmds(max_frames_in_flight).unwrap();
+        auto transfer_cmd_pool = vk::cmd_pool_builder_t::prepare(device.getmut(), transfer_qf->index)
+                                     .unwrap()
+                                     .flag(vk::command_pool_create_flags::reset_command_buffer_bit)
+                                     .build()
+                                     .unwrap();
+
+        auto draw_cmds = graphics_cmd_pool->alloc_cmds(max_frames_in_flight).unwrap();
+        auto copy_cmds = transfer_cmd_pool->alloc_cmds(max_frames_in_flight).unwrap();
 
         auto imgui_driver = vk::imgui_driver_builder_t::prepare(window,
                                                                 instance.getmut(),
@@ -292,7 +244,9 @@ auto main() -> int
                                                                 device.getmut(),
                                                                 swapchain.getmut(),
                                                                 &desc_pool,
-                                                                imgui_pass.getmut())
+                                                                imgui_pass.getmut(),
+                                                                graphics_qf->index,
+                                                                graphics_qf->queues.front())
                                 .dark_theme(true)
                                 .config_flag(ImGuiConfigFlags_NavEnableKeyboard)
                                 .build()
@@ -358,7 +312,7 @@ auto main() -> int
             imgui_pass->begin_info.renderArea.extent = swapchain->extent;
 
             // Begin command buffer recording
-            auto cmd = cmd_buffers.get(frame).unwrap();
+            auto cmd = draw_cmds.get(frame).unwrap();
             cmd.begin_one_time().unwrap();
 
             // Begin the render pass
@@ -379,13 +333,13 @@ auto main() -> int
                 .signal_semaphores(render_finished.handles)
                 .cmd_buffer(&cmd.handle)
                 .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
-                .submit(device->queues.front(), nullptr)
+                .submit(graphics_qf->queues.front(), nullptr)
                 .unwrap();
 
             // Copying rendered image to swapchain
             auto rendered_img  = imgui_images.handles.at(frame);
             auto swapchain_img = swapchain->images.at(img_index);
-            auto copy_cmd      = copy_cmd_buffers.get(frame).unwrap();
+            auto copy_cmd      = copy_cmds.get(frame).unwrap();
             copy_cmd.begin_one_time().unwrap();
 
             vk::transition_layout(copy_cmd.handle,
@@ -410,8 +364,8 @@ auto main() -> int
                 .wait_semaphores(render_finished.handles)
                 .signal_semaphores(copy_finished.handles)
                 .cmd_buffer(&copy_cmd.handle)
-                .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
-                .submit(device->queues.front(), fence.handles.back())
+                .wait_stage(vk::pipeline_stage_flags::transfer)
+                .submit(transfer_qf->queues.front(), fence.handles.back())
                 .unwrap();
 
             // Present the rendered image
@@ -419,7 +373,7 @@ auto main() -> int
                                    .swapchain(*swapchain)
                                    .wait_semaphores(copy_finished.handles)
                                    .img_index(img_index)
-                                   .present(device->queues.front());
+                                   .present(graphics_qf->queues.front());
 
             if (present_res.require_sc_rebuild())
             {

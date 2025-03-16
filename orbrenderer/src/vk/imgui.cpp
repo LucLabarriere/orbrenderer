@@ -68,9 +68,12 @@ namespace orb::vk
                                          weak<device_t>       device,
                                          weak<swapchain_t>    sc,
                                          weak<desc_pool_t>    desc_pool,
-                                         weak<render_pass_t>  pass) -> imgui_driver_builder_t
+                                         weak<render_pass_t>  pass,
+                                         ui32 qf_index,
+                                         VkQueue queue) -> imgui_driver_builder_t
     {
         imgui_driver_builder_t builder {};
+
         builder.m_window    = win;
         builder.m_instance  = instance;
         builder.m_gpu       = gpu;
@@ -81,8 +84,8 @@ namespace orb::vk
         builder.m_info.Instance        = instance->handle;
         builder.m_info.PhysicalDevice  = gpu->handle;
         builder.m_info.Device          = device->handle;
-        builder.m_info.QueueFamily     = 0;
-        builder.m_info.Queue           = device->queues[0];
+        builder.m_info.QueueFamily     = qf_index;
+        builder.m_info.Queue           = queue;
         builder.m_info.PipelineCache   = nullptr;
         builder.m_info.DescriptorPool  = desc_pool->handle;
         builder.m_info.RenderPass      = pass->handle;

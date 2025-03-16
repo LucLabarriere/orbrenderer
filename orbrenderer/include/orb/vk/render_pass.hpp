@@ -104,6 +104,7 @@ namespace orb::vk
             pass->begin_info                   = structs::render_pass_begin();
             pass->begin_info.renderPass        = pass->handle;
             pass->begin_info.clearValueCount   = 1;
+            pass->begin_info.pClearValues      = &pass->clear_color;
             pass->begin_info.renderArea.offset = { .x = 0, .y = 0 };
 
             return pass;

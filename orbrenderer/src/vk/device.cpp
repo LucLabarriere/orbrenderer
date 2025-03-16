@@ -13,13 +13,29 @@ namespace orb::vk
         return d;
     }
 
-    auto device_builder_t::add_queues(queue_family_t& qf, std::span<const priority_t> priorities)
+    auto device_builder_t::add_queue(weak<queue_family_t> qf, priority_t priority)
         -> device_builder_t&
     {
-        auto& info            = m_queue_infos.emplace_back(structs::create::device_queue());
-        info.pQueuePriorities = priorities.data();
-        info.queueCount       = priorities.size();
-        info.queueFamilyIndex = qf.index;
+        auto infoIt = m_queue_infos.find(qf.raw());
+        if (infoIt == m_queue_infos.end())
+        {
+            infoIt = m_queue_infos.emplace(qf.raw(), queue_info_t {}).first;
+
+            infoIt->second.create_info_index = m_queue_infos_raw.size();
+
+            auto& create_info = m_queue_infos_raw.emplace_back(structs::create::device_queue());
+
+            create_info.queueFamilyIndex = qf->index;
+            create_info.queueCount       = 0;
+        }
+
+        auto& info = infoIt->second;
+        auto& create_info = m_queue_infos_raw.at(info.create_info_index);
+
+        info.priorities.push_back(priority);
+
+        create_info.queueCount++;
+        create_info.pQueuePriorities = info.priorities.data();
 
         return *this;
     }
@@ -29,22 +45,26 @@ namespace orb::vk
         auto set_debug_name_fn = proc_addresses::set_debug_name(m_instance);
 
         auto create_info                    = structs::create::device();
-        create_info.queueCreateInfoCount    = m_queue_infos.size();
-        create_info.pQueueCreateInfos       = m_queue_infos.data();
+        create_info.queueCreateInfoCount    = m_queue_infos_raw.size();
+        create_info.pQueueCreateInfos       = m_queue_infos_raw.data();
         create_info.enabledExtensionCount   = m_extensions.size();
         create_info.ppEnabledExtensionNames = m_extensions.data();
 
         auto device = make_box<device_t>();
         auto res    = vkCreateDevice(gpu.handle, &create_info, nullptr, &device->handle);
 
-        if (res != VK_SUCCESS) { return error_t { "Could not create vulkan device: {}", (ui32)res }; }
-
-        for (auto& queue_info : m_queue_infos)
+        if (res != vkres::ok)
         {
-            for (size_t i : flux::range(queue_info.queueCount))
+            return error_t { "Could not create vulkan device: {}", vkres::get_repr(res) };
+        }
+
+        for (auto& [qf, queue_info] : m_queue_infos)
+        {
+            for (size_t i : flux::range(queue_info.priorities.size()))
             {
                 auto& queue = device->queues.emplace_back();
-                vkGetDeviceQueue(device->handle, queue_info.queueFamilyIndex, (ui32)i, &queue);
+                vkGetDeviceQueue(device->handle, qf->index, (ui32)i, &queue);
+                qf->queues.push_back(queue);
             }
         }
 
