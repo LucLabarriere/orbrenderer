@@ -2,7 +2,6 @@
 
 #include "orb/vk/cmd_pool.hpp"
 #include "orb/vk/device.hpp"
-#include "orb/vk/vk_types.hpp"
 
 #include "orb/result.hpp"
 
@@ -58,7 +57,7 @@ namespace orb::vk
         VkBuffer      buffer {};
         VkDeviceSize  size {};
 
-        auto transfer(const void* src_data, ui64 size) -> result<void>
+        [[nodiscard]] auto transfer(const void* src_data, ui64 size) -> result<void>
         {
             void* dst_data {};
             if (size > this->size)

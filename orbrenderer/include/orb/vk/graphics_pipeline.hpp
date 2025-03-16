@@ -3,7 +3,6 @@
 #include "orb/vk/device.hpp"
 #include "orb/vk/render_pass.hpp"
 #include "orb/vk/shaders.hpp"
-#include "orb/vk/vk_types.hpp"
 
 #include <orb/result.hpp>
 
@@ -503,7 +502,7 @@ namespace orb::vk
     class pipeline_builder_t
     {
     public:
-        static auto prepare(weak<device_t> device) -> result<box<pipeline_builder_t>>
+        [[nodiscard]] static auto prepare(weak<device_t> device) -> result<box<pipeline_builder_t>>
         {
             auto builder      = make_box<pipeline_builder_t>();
             builder->m_device = device;
@@ -627,7 +626,7 @@ namespace orb::vk
             return *this;
         }
 
-        auto build() -> result<box<graphics_pipeline_t>>
+        [[nodiscard]] auto build() -> result<box<graphics_pipeline_t>>
         {
             auto pipeline    = make_box<graphics_pipeline_t>();
             pipeline->device = m_device->handle;

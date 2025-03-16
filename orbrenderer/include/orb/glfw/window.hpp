@@ -1,5 +1,11 @@
 #pragma once
 
+#include <orb/box.hpp>
+#include <orb/result.hpp>
+
+using VkInstance   = struct VkInstance_T*;
+using VkSurfaceKHR = struct VkSurfaceKHR_T*;
+
 namespace orb::glfw
 {
     class driver_t;
@@ -7,11 +13,22 @@ namespace orb::glfw
     class window_t
     {
     public:
+        window_t() = default;
+        ~window_t();
+
+        window_t(window_t&&) noexcept;
+        auto operator=(window_t&&) noexcept -> window_t&;
+
+        window_t(const window_t&)            = delete;
+        auto operator=(const window_t&) -> window_t& = delete;
+
         struct fb_dimensions_t
         {
             int w = 0;
             int h = 0;
         };
+
+        auto create_vk_surface(VkInstance) -> result<VkSurfaceKHR>;
 
         void destroy();
 

@@ -1,7 +1,6 @@
 #include "orb/vk/device.hpp"
+
 #include "orb/vk/gpu.hpp"
-#include "orb/vk/vk_structs.hpp"
-#include "orb/vk/vma.hpp"
 
 #include <orb/flux.hpp>
 
@@ -59,25 +58,5 @@ namespace orb::vk
 
         device->set_debug_name_fb = set_debug_name_fn;
         return device;
-    }
-
-    auto alloc_cmd(device_t& device, VkCommandPool pool) -> result<VkCommandBuffer>
-    {
-        auto cmd_info               = vk::structs::create::cmd_buffer();
-        cmd_info.commandPool        = pool;
-        cmd_info.commandBufferCount = 1;
-        VkCommandBuffer cmd {};
-
-        if (auto r = vkAllocateCommandBuffers(device.handle, &cmd_info, &cmd); r != vk::vkres::ok)
-        {
-            return error_t { "Could not allocate cmd buffer: {}", vkres::get_repr(r) };
-        }
-
-        return cmd;
-    }
-
-    void device_idle(device_t& device)
-    {
-        vkDeviceWaitIdle(device.handle);
     }
 } // namespace orb::vk

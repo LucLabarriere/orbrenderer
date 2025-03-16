@@ -5,25 +5,28 @@
 #include "orb/vk/device.hpp"
 #include "orb/vk/gpu.hpp"
 #include "orb/vk/instance.hpp"
-
-#include "imgui_impl_vulkan.h"
+#include "orb/vk/surface.hpp"
 
 #include <orb/eval.hpp>
 #include <orb/flux.hpp>
 #include <orb/utility.hpp>
+
+#include <imgui_impl_vulkan.h>
 
 namespace orb::vk
 {
     auto swapchain_builder_t::prepare(weak<instance_t>     instance,
                                       weak<gpu_t>          gpu,
                                       weak<device_t>       device,
-                                      weak<glfw::window_t> window) -> result<swapchain_builder_t>
+                                      weak<glfw::window_t> window,
+                                      weak<surface_t>      surface) -> result<swapchain_builder_t>
     {
         auto builder = swapchain_builder_t {
             .window   = window,
             .instance = instance,
             .gpu      = gpu,
             .device   = device,
+            .surface  = surface,
             .sc       = make_box<swapchain_t>(),
         };
 
@@ -54,27 +57,31 @@ namespace orb::vk
 
     auto swapchain_builder_t::build() -> result<box<swapchain_t>>
     {
-        auto surface_res = glfw::driver_t::create_vk_surface(instance->handle, *window);
-        if (!surface_res) return surface_res.error();
-        auto surface = surface_res.value();
-
         sc->window   = window;
         sc->device   = device;
         sc->gpu      = gpu;
         sc->instance = instance->handle;
-        sc->surface  = surface;
+        sc->surface  = surface->handle;
 
         // Check for WSI support
-        VkBool32 res {};
-        vkGetPhysicalDeviceSurfaceSupportKHR(gpu->handle, present_qf_index, surface, &res);
-        if (res != VK_TRUE) { return error_t { "Error no WSI support on GPU." }; }
+        VkBool32 support {};
+        if (auto res = vkGetPhysicalDeviceSurfaceSupportKHR(gpu->handle, present_qf_index, surface->handle, &support);
+            res != vkres::ok)
+        {
+            return error_t { "Could not check for WSI support: {}", vkres::get_repr(res) };
+        }
+
+        if (support != VK_TRUE)
+        {
+            return error_t { "Error no WSI support on GPU." };
+        }
 
         sc->format.format = orb::eval | [&] {
             ui32                            count {};
             std::vector<VkSurfaceFormatKHR> avail_formats;
-            vkGetPhysicalDeviceSurfaceFormatsKHR(gpu->handle, surface, &count, nullptr);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(gpu->handle, surface->handle, &count, nullptr);
             avail_formats.resize(count);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(gpu->handle, surface, &count, avail_formats.data());
+            vkGetPhysicalDeviceSurfaceFormatsKHR(gpu->handle, surface->handle, &count, avail_formats.data());
 
             if (count == 1)
             {
@@ -110,9 +117,9 @@ namespace orb::vk
             // which is mandatory
             ui32                          count {};
             std::vector<VkPresentModeKHR> avail_modes;
-            vkGetPhysicalDeviceSurfacePresentModesKHR(gpu->handle, surface, &count, nullptr);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(gpu->handle, surface->handle, &count, nullptr);
             avail_modes.resize(count);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(gpu->handle, surface, &count, avail_modes.data());
+            vkGetPhysicalDeviceSurfacePresentModesKHR(gpu->handle, surface->handle, &count, avail_modes.data());
             for (const auto& request : present_modes)
             {
                 for (const auto& avail : avail_modes)
@@ -141,7 +148,7 @@ namespace orb::vk
             };
         }
 
-        sc->info.surface          = surface;
+        sc->info.surface          = surface->handle;
         sc->info.imageFormat      = sc->format.format;
         sc->info.imageColorSpace  = sc->format.colorSpace;
         sc->info.imageArrayLayers = 1;
@@ -151,7 +158,10 @@ namespace orb::vk
         sc->info.presentMode      = sc->present_mode;
         sc->info.clipped          = VK_TRUE;
 
-        if (auto r = sc->rebuild(); !r) { return r.error(); };
+        if (auto r = sc->rebuild(); !r)
+        {
+            return r.error();
+        };
 
         return std::move(sc);
     }

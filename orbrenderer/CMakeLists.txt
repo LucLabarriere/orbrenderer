@@ -1,15 +1,15 @@
 
 add_library(orbrenderer
-  STATIC  src/vk/instance.cpp
+  STATIC  src/vk/device.cpp
           src/vk/gpu.cpp
-          src/vk/device.cpp
-          src/vk/render.cpp
-          src/vk/swapchain.cpp
-          src/vk/vma.cpp
           src/vk/images.cpp
           src/vk/imgui.cpp
+          src/vk/instance.cpp
+          src/vk/render.cpp
+          src/vk/swapchain.cpp
+          src/vk/surface.cpp
+          src/vk/vma.cpp
           src/glfw/driver.cpp
-          src/glfw/vk_interoperability.cpp
           src/glfw/window.cpp)
 
 add_library(orb::orbrenderer

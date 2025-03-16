@@ -1,9 +1,9 @@
 #pragma once
 
+#include "orb/vk/core.hpp"
+
 #include <orb/box.hpp>
 #include <orb/result.hpp>
-
-#include "orb/vk/vk_structs.hpp"
 
 #include <functional>
 #include <span>

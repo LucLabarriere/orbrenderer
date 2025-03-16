@@ -1,7 +1,6 @@
 #pragma once
 
 #include "orb/vk/device.hpp"
-#include <orb/vk/vk_structs.hpp>
 
 #include <orb/box.hpp>
 #include <orb/result.hpp>
@@ -14,56 +13,6 @@ namespace orb::vk
 {
     struct device_t;
     struct gpu_t;
-
-    struct cmd_pool_t
-    {
-        cmd_pool_t() = default;
-
-        cmd_pool_t(const cmd_pool_t&)                    = delete;
-        auto operator=(const cmd_pool_t&) -> cmd_pool_t& = delete;
-
-        cmd_pool_t(cmd_pool_t&& other) noexcept
-        {
-            destroy();
-
-            handle   = other.handle;
-            device   = other.device;
-            qf_index = other.qf_index;
-
-            other.handle = nullptr;
-        }
-
-        auto operator=(cmd_pool_t&& other) noexcept -> cmd_pool_t&
-        {
-            handle   = other.handle;
-            device   = other.device;
-            qf_index = other.qf_index;
-
-            other.handle = nullptr;
-
-            return *this;
-        }
-
-        ~cmd_pool_t()
-        {
-            destroy();
-        }
-
-        void destroy()
-        {
-            if (!handle)
-            {
-                return;
-            }
-
-            vkDestroyCommandPool(device, handle, nullptr);
-            handle = nullptr;
-        }
-
-        VkCommandPool handle   = nullptr;
-        VkDevice      device   = nullptr;
-        ui32          qf_index = 0;
-    };
 
     struct cmd_buffer_t
     {
@@ -134,6 +83,77 @@ namespace orb::vk
             }
 
             return cmd_buffer_t { .handle = handles[offset] };
+        }
+    };
+
+    struct cmd_pool_t
+    {
+        VkCommandPool handle   = nullptr;
+        VkDevice      device   = nullptr;
+        ui32          qf_index = 0;
+
+        cmd_pool_t() = default;
+
+        cmd_pool_t(const cmd_pool_t&)                    = delete;
+        auto operator=(const cmd_pool_t&) -> cmd_pool_t& = delete;
+
+        cmd_pool_t(cmd_pool_t&& other) noexcept
+        {
+            destroy();
+
+            handle   = other.handle;
+            device   = other.device;
+            qf_index = other.qf_index;
+
+            other.handle = nullptr;
+        }
+
+        auto operator=(cmd_pool_t&& other) noexcept -> cmd_pool_t&
+        {
+            handle   = other.handle;
+            device   = other.device;
+            qf_index = other.qf_index;
+
+            other.handle = nullptr;
+
+            return *this;
+        }
+
+        ~cmd_pool_t()
+        {
+            destroy();
+        }
+
+        void destroy()
+        {
+            if (!handle)
+            {
+                return;
+            }
+
+            vkDestroyCommandPool(device, handle, nullptr);
+            handle = nullptr;
+        }
+
+        [[nodiscard]] auto alloc_cmds(size_t                    count,
+                        cmd_buffer_levels::enum_t level = cmd_buffer_levels::primary)
+            -> result<cmd_buffers_t>
+        {
+            std::vector<VkCommandBuffer> cmds;
+            cmds.resize(count);
+
+            auto cmd_info               = structs::create::cmd_buffer();
+            cmd_info.commandBufferCount = cmds.size();
+            cmd_info.commandPool        = handle;
+            cmd_info.level              = level;
+
+            if (auto res = vkAllocateCommandBuffers(device, &cmd_info, cmds.data());
+                res != vkres::ok)
+            {
+                return error_t { "Could not allocate command buffer: {}", vkres::get_repr(res) };
+            }
+
+            return cmd_buffers_t { .handles = std::move(cmds) };
         }
     };
 
@@ -220,7 +240,7 @@ namespace orb::vk
             return *this;
         }
 
-        auto submit(VkQueue queue, VkFence fence = nullptr) -> result<void>
+        [[nodiscard]] auto submit(VkQueue queue, VkFence fence = nullptr) -> result<void>
         {
             m_info.pWaitDstStageMask = &m_wait_stage;
 
@@ -236,36 +256,4 @@ namespace orb::vk
         VkSubmitInfo         m_info = structs::submit();
         VkPipelineStageFlags m_wait_stage {};
     };
-
-    inline auto alloc_cmds(weak<cmd_pool_t>          pool,
-                           size_t                    count,
-                           cmd_buffer_levels::enum_t level = cmd_buffer_levels::primary)
-        -> result<cmd_buffers_t>
-    {
-        std::vector<VkCommandBuffer> cmds;
-        cmds.resize(count);
-
-        auto cmd_info               = structs::create::cmd_buffer();
-        cmd_info.commandBufferCount = cmds.size();
-        cmd_info.commandPool        = pool->handle;
-        cmd_info.level              = level;
-
-        if (auto res = vkAllocateCommandBuffers(pool->device, &cmd_info, cmds.data());
-            res != vkres::ok)
-        {
-            return error_t { "Could not allocate command buffer: {}", vkres::get_repr(res) };
-        }
-
-        return cmd_buffers_t { .handles = std::move(cmds) };
-    }
-
-    inline auto end(VkCommandBuffer& cmd) -> result<void>
-    {
-        if (auto res = vkEndCommandBuffer(cmd); res != vkres::ok)
-        {
-            return error_t { "Could not end command buffer: {}", vkres::get_repr(res) };
-        }
-
-        return {};
-    }
 } // namespace orb::vk

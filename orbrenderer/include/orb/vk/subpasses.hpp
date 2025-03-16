@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orb/vk/vk_structs.hpp"
+#include "orb/vk/core.hpp"
 
 #include <span>
 #include <vector>

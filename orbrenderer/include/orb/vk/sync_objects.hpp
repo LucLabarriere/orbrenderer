@@ -1,8 +1,6 @@
 #pragma once
 
 #include "orb/vk/device.hpp"
-#include "orb/vk/vk_structs.hpp"
-#include "orb/vk/vk_types.hpp"
 
 #include <orb/box.hpp>
 #include <orb/result.hpp>
@@ -18,6 +16,35 @@ namespace orb::vk
     {
         std::span<VkFence> handles;
         VkDevice           device = nullptr;
+
+        [[nodiscard]] auto wait() -> result<void>
+        {
+            const auto res = vkWaitForFences(device,
+                                             handles.size(),
+                                             handles.data(),
+                                             VK_TRUE,
+                                             UINT64_MAX);
+            if (res != vkres::ok)
+            {
+                return error_t { "Failed to wait for fence: {}", vkres::get_repr(res) };
+            }
+
+            return {};
+        }
+
+        [[nodiscard]] auto reset() -> result<void>
+        {
+            const auto res = vkResetFences(device,
+                                           handles.size(),
+                                           handles.data());
+
+            if (res != vkres::ok)
+            {
+                return error_t { "Failed to reset fence: {}", vkres::get_repr(res) };
+            }
+
+            return {};
+        }
     };
 
     struct semaphores_t
@@ -158,61 +185,4 @@ namespace orb::vk
         ui32           m_semaphore_count = 0;
         ui32           m_fence_count     = 0;
     };
-
-    [[nodiscard]] inline auto wait_fences(fences_t& fences) -> result<void>
-    {
-        const auto res = vkWaitForFences(fences.device,
-                                         fences.handles.size(),
-                                         fences.handles.data(),
-                                         VK_TRUE,
-                                         UINT64_MAX);
-        if (res != vkres::ok)
-        {
-            return error_t { "Failed to wait for fence: {}", vkres::get_repr(res) };
-        }
-
-        return {};
-    }
-
-    [[nodiscard]] inline auto reset_fences(fences_t& fences) -> result<void>
-    {
-        const auto res = vkResetFences(fences.device,
-                                       fences.handles.size(),
-                                       fences.handles.data());
-
-        if (res != vkres::ok)
-        {
-            return error_t { "Failed to reset fence: {}", vkres::get_repr(res) };
-        }
-
-        return {};
-    }
-
-    [[nodiscard]] inline auto wait_and_reset_fences(fences_t& fences) -> result<void>
-    {
-        {
-            const auto res = vkWaitForFences(fences.device,
-                                             fences.handles.size(),
-                                             fences.handles.data(),
-                                             VK_TRUE,
-                                             UINT64_MAX);
-            if (res != vkres::ok)
-            {
-                return error_t { "Failed to wait for fence: {}", vkres::get_repr(res) };
-            }
-        }
-
-        {
-            const auto res = vkResetFences(fences.device,
-                                           fences.handles.size(),
-                                           fences.handles.data());
-
-            if (res != vkres::ok)
-            {
-                return error_t { "Failed to reset fence: {}", vkres::get_repr(res) };
-            }
-        }
-
-        return {};
-    }
 } // namespace orb::vk

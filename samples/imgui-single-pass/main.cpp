@@ -7,37 +7,20 @@
 #include <orb/eval.hpp>
 #include <orb/flux.hpp>
 #include <orb/glfw.hpp>
-#include <orb/print_time.hpp>
-#include <orb/renderer.hpp>
-#include <orb/vk.hpp>
+#include <orb/time.hpp>
+#include <orb/vk/all.hpp>
 
 using namespace orb;
 
 namespace
 {
-    /* @brief Initializes GLFW and creates the window
+    /** @brief Creates the vulkan instance.
      *
-     * @return The GLFW window
-     */
-    [[nodiscard]] auto create_glfw_window() -> box<glfw::window_t>
-    {
-        begin_chrono();
-
-        glfw::driver_t::initialize().throw_if_error();
-        auto w = glfw::driver_t::create_window_for_vk().unwrap();
-
-        print_chrono("- GLFW window create time: {}");
-        return w;
-    }
-
-    /* @brief Creates the vulkan instance
-     *
-     * @return The vulkan instance
+     * @return The vulkan instance.
      */
     [[nodiscard]] auto create_vk_instance() -> box<vk::instance_t>
     {
         constexpr auto portability = vk::khr_extensions::portability_enumeration;
-        begin_chrono();
 
         // Initialize the vulkan instance
         auto instance_builder = vk::instance_builder_t::prepare().unwrap();
@@ -55,19 +38,16 @@ namespace
                             .build()
                             .unwrap();
 
-        print_chrono("- Vulkan instance create time: {}");
         return instance;
     }
 
-    /* @brief Selects the GPU
+    /** @brief Selects the GPU.
      *
-     * @param instance The vulkan instance
-     * @return The selected GPU
+     * @param instance The vulkan instance.
+     * @return The selected GPU.
      */
     [[nodiscard]] auto create_vk_gpu(vk::instance_t& instance) -> box<vk::gpu_t>
     {
-        begin_chrono();
-
         auto gpu = orb::eval | [&] {
             auto gpus = vk::available_gpus_t::create(instance.handle).unwrap();
 
@@ -87,8 +67,6 @@ namespace
             return gpus.select(0);
         };
 
-        print_chrono("- GPU selection time: {}");
-
         // Print informations on select gpu
         vk::describe(*gpu);
         return gpu;
@@ -102,8 +80,6 @@ namespace
      */
     [[nodiscard]] auto create_vk_device(vk::instance_t& instance, vk::gpu_t& gpu) -> box<vk::device_t>
     {
-        begin_chrono();
-
         vk::queue_family_t graphics_queue_family = orb::eval | [&]() -> vk::queue_family_t& {
             for (auto& qf : gpu.queue_families)
             {
@@ -126,7 +102,6 @@ namespace
                           .add_queues(graphics_queue_family, queue_priorities)
                           .build(gpu)
                           .unwrap();
-        print_chrono("- Vulkan device create time: {}");
         return device;
     }
 
@@ -136,23 +111,25 @@ namespace
      * @param device The vulkan device
      * @param gpu The selected GPU
      * @param window The GLFW window
+     * @param surface The vulkan surface
      * @return The vulkan swapchain
      */
     [[nodiscard]] auto create_vk_swapchain(vk::instance_t& instance,
                                            vk::device_t&   device,
                                            vk::gpu_t&      gpu,
-                                           glfw::window_t& window) -> box<vk::swapchain_t>
+                                           glfw::window_t& window,
+                                           vk::surface_t&  surface) -> box<vk::swapchain_t>
     {
-        begin_chrono();
-
         auto swapchain = vk::swapchain_builder_t::prepare(&instance,
                                                           &gpu,
                                                           &device,
-                                                          &window)
+                                                          &window,
+                                                          &surface)
                              .unwrap()
                              .fb_dimensions_from_window()
                              .present_queue_family_index(0)
 
+                             .usage(vk::image_usage_flags::transfer_dst)
                              .usage(vk::image_usage_flags::color_attachment)
                              .color_space(vk::color_spaces::srgb_nonlinear_khr)
                              .format(vk::formats::b8g8r8a8_unorm)
@@ -166,7 +143,7 @@ namespace
 
                              .build()
                              .unwrap();
-        print_chrono("- Vulkan swapchain create time: {}");
+
         return swapchain;
     }
 
@@ -178,7 +155,6 @@ namespace
      */
     [[nodiscard]] auto create_imgui_pass(VkDevice device, VkFormat sc_img_format) -> box<vk::render_pass_t>
     {
-        begin_chrono();
         vk::attachments_t attachments;
         vk::subpasses_t   subpasses;
 
@@ -217,13 +193,11 @@ namespace
                               .unwrap();
         imgui_pass->bind_color();
 
-        print_chrono("- ImGui render pass create time: {}");
         return imgui_pass;
     }
 
     [[nodiscard]] auto create_swapchain_views(vk::device_t& device, std::span<VkImage> images) -> vk::views_t
     {
-        begin_chrono();
         auto builder = vk::views_builder_t::prepare(device.handle)
                            .unwrap();
 
@@ -237,7 +211,6 @@ namespace
                          .format(vk::formats::b8g8r8a8_unorm)
                          .build()
                          .unwrap();
-        print_chrono("- Image views create time: {}");
         return views;
     }
 
@@ -247,8 +220,6 @@ namespace
                                                  ui32          w,
                                                  ui32          h) -> vk::framebuffers_t
     {
-        begin_chrono();
-
         auto imgui_fbs_builder = vk::framebuffers_builder_t::prepare(&device, pass)
                                      .unwrap()
                                      .size(w, h);
@@ -262,7 +233,6 @@ namespace
                              .build()
                              .unwrap();
 
-        print_chrono("- ImGui framebuffers create time: {}");
         return imgui_fbs;
     }
 
@@ -274,11 +244,15 @@ auto main() -> int
 
     try
     {
-        box<glfw::window_t>    window     = create_glfw_window();
-        box<vk::instance_t>    instance   = create_vk_instance();
+        box<glfw::driver_t> glfw_driver = glfw::driver_t::create().unwrap();
+
+        weak<glfw::window_t> window   = glfw_driver->create_window_for_vk().unwrap();
+        box<vk::instance_t>  instance = create_vk_instance();
+
+        vk::surface_t          surface    = vk::surface_builder_t::prepare(instance->handle, window).build().unwrap();
         box<vk::gpu_t>         gpu        = create_vk_gpu(*instance);
         box<vk::device_t>      device     = create_vk_device(*instance, *gpu);
-        box<vk::swapchain_t>   swapchain  = create_vk_swapchain(*instance, *device, *gpu, *window);
+        box<vk::swapchain_t>   swapchain  = create_vk_swapchain(*instance, *device, *gpu, *window, surface);
         box<vk::render_pass_t> imgui_pass = create_imgui_pass(device->handle, swapchain->format.format);
         vk::views_t            views      = create_swapchain_views(*device, swapchain->images);
         vk::framebuffers_t     imgui_fbs  = create_imgui_framebuffers(*device,
@@ -308,26 +282,25 @@ auto main() -> int
                             .build()
                             .unwrap();
 
-        auto cmd_buffers = vk::alloc_cmds(cmd_pool.getmut(),
-                                          max_frames_in_flight,
-                                          vk::cmd_buffer_levels::primary)
-                               .unwrap();
+        auto cmd_buffers = cmd_pool->alloc_cmds(max_frames_in_flight).unwrap();
 
-        // Init ImGui
-        vk::imgui::initialize({ .window    = window.getmut(),
-                                .instance  = instance.getmut(),
-                                .gpu       = gpu.getmut(),
-                                .device    = device.getmut(),
-                                .swapchain = swapchain.getmut(),
-                                .pass      = imgui_pass->handle,
-                                .desc_pool = desc_pool.handle })
-            .throw_if_error();
+        auto imgui_driver = vk::imgui_driver_builder_t::prepare(window,
+                                                                instance.getmut(),
+                                                                gpu.getmut(),
+                                                                device.getmut(),
+                                                                swapchain.getmut(),
+                                                                &desc_pool,
+                                                                imgui_pass.getmut())
+                                .dark_theme(true)
+                                .config_flag(ImGuiConfigFlags_NavEnableKeyboard)
+                                .build()
+                                .unwrap();
 
         ui32 frame = 0;
 
         while (!window->should_close())
         {
-            glfw::driver_t::poll_events();
+            glfw_driver->poll_events();
 
             if (window->minimized())
             {
@@ -341,23 +314,23 @@ auto main() -> int
             auto render_finished = sync_objects.semaphores(frame + max_frames_in_flight, 1);
 
             // Start a new ImGui frame
-            vk::imgui::new_frame();
+            imgui_driver.new_frame();
 
             // Render the ImGui demo window
             ImGui::ShowDemoWindow();
 
-            // Prepare ImGui for rendering
-            vk::imgui::render();
+            // Render ImGui
+            imgui_driver.render();
 
             // Wait fences
-            vk::wait_fences(fence).throw_if_error();
+            fence.wait().unwrap();
 
             // Acquire the next swapchain image
             auto res = vk::acquire_img(*swapchain, img_avail.handles.back(), nullptr);
 
             if (res.require_sc_rebuild())
             {
-                vk::device_idle(*device);
+                device->wait().unwrap();
                 swapchain->rebuild().throw_if_error();
                 views     = create_swapchain_views(*device, swapchain->images);
                 imgui_fbs = create_imgui_framebuffers(*device,
@@ -374,7 +347,7 @@ auto main() -> int
             }
 
             // Reset fences
-            vk::reset_fences(fence).throw_if_error();
+            fence.reset().unwrap();
 
             uint32_t img_index = res.img_index();
 
@@ -390,7 +363,7 @@ auto main() -> int
             imgui_pass->begin(cmd.handle);
 
             // Render ImGui
-            vk::imgui::submit_render(cmd.handle);
+            imgui_driver.submit_render(cmd.handle);
 
             // End the render pass
             imgui_pass->end(cmd.handle);
@@ -427,17 +400,7 @@ auto main() -> int
             frame = (frame + 1) % max_frames_in_flight;
         }
 
-        vk::device_idle(*device);
-
-        // Terminate glfw
-        window->destroy();
-        println("- Destroyed window");
-
-        vk::imgui::terminate();
-        println("- Terminated Vulkan");
-
-        glfw::driver_t::terminate();
-        println("- Terminated GLFW");
+        device->wait().unwrap();
     }
     catch (const orb::exception& e)
     {

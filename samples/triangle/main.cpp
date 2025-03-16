@@ -1,11 +1,11 @@
 #include <span>
 #include <thread>
 
+#include <orb/renderer.hpp>
 #include <orb/eval.hpp>
 #include <orb/files.hpp>
 #include <orb/flux.hpp>
-#include <orb/print_time.hpp>
-#include <orb/renderer.hpp>
+#include <orb/time.hpp>
 
 using namespace orb;
 
@@ -13,18 +13,6 @@ static constexpr ui32 max_frames_in_flight = 2;
 
 namespace
 {
-    /* @brief Initializes GLFW and creates the window
-     *
-     * @return The GLFW window
-     */
-    [[nodiscard]] auto create_glfw_window() -> box<glfw::window_t>
-    {
-        glfw::driver_t::initialize().throw_if_error();
-        auto w = glfw::driver_t::create_window_for_vk().unwrap();
-
-        return w;
-    }
-
     /** @brief Creates the vulkan instance.
      *
      * @return The vulkan instance.
@@ -122,17 +110,20 @@ namespace
      * @param device The vulkan device
      * @param gpu The selected GPU
      * @param window The GLFW window
+     * @param surface The vulkan surface
      * @return The vulkan swapchain
      */
     [[nodiscard]] auto create_vk_swapchain(vk::instance_t& instance,
                                            vk::device_t&   device,
                                            vk::gpu_t&      gpu,
-                                           glfw::window_t& window) -> box<vk::swapchain_t>
+                                           glfw::window_t& window,
+                                           vk::surface_t&  surface) -> box<vk::swapchain_t>
     {
         auto swapchain = vk::swapchain_builder_t::prepare(&instance,
                                                           &gpu,
                                                           &device,
-                                                          &window)
+                                                          &window,
+                                                          &surface)
                              .unwrap()
                              .fb_dimensions_from_window()
                              .present_queue_family_index(0)
@@ -249,12 +240,16 @@ auto main() -> int
 {
     try
     {
-        box<glfw::window_t> window   = create_glfw_window();
-        box<vk::instance_t> instance = create_vk_instance();
-        box<vk::gpu_t>      gpu      = create_vk_gpu(*instance);
+        box<glfw::driver_t> glfw_driver = glfw::driver_t::create().unwrap();
+
+        weak<glfw::window_t> window   = glfw_driver->create_window_for_vk().unwrap();
+        box<vk::instance_t>  instance = create_vk_instance();
+
+        vk::surface_t  surface = vk::surface_builder_t::prepare(instance->handle, window).build().unwrap();
+        box<vk::gpu_t> gpu     = create_vk_gpu(*instance);
 
         box<vk::device_t>      device      = create_vk_device(*instance, *gpu);
-        box<vk::swapchain_t>   swapchain   = create_vk_swapchain(*instance, *device, *gpu, *window);
+        box<vk::swapchain_t>   swapchain   = create_vk_swapchain(*instance, *device, *gpu, *window, surface);
         vk::views_t            views       = create_image_views(*device, swapchain->images);
         box<vk::render_pass_t> render_pass = create_render_pass(device->handle, swapchain->format.format);
         vk::framebuffers_t     fbs         = create_framebuffers(*device,
@@ -355,10 +350,7 @@ auto main() -> int
                             .unwrap();
 
         println("- Creating command buffers");
-        auto cmd_buffers = vk::alloc_cmds(cmd_pool.getmut(),
-                                          max_frames_in_flight,
-                                          vk::cmd_buffer_levels::primary)
-                               .unwrap();
+        auto cmd_buffers = cmd_pool->alloc_cmds(max_frames_in_flight).unwrap();
 
         std::vector<Vertex> vertices = {
             { { 0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
@@ -381,33 +373,30 @@ auto main() -> int
                                   .unwrap();
 
         println("- Copying vertices to staging buffer");
-        staging_buffer.transfer(vertices.data(), sizeof(Vertex) * vertices.size());
+        staging_buffer.transfer(vertices.data(), sizeof(Vertex) * vertices.size()).unwrap();
 
         println("- Copying staging buffer to vertex buffer");
-        auto cpy_cmd_buffer = vk::alloc_cmds(cmd_pool.getmut(), 1)
-                                  .unwrap()
-                                  .get(0)
-                                  .unwrap();
+        auto cpy_cmd_buffer = cmd_pool->alloc_cmds(1).unwrap().get(0).unwrap();
 
-        cpy_cmd_buffer.begin_one_time().throw_if_error();
+        cpy_cmd_buffer.begin_one_time().unwrap();
         cpy_cmd_buffer.copy_buffer(staging_buffer.buffer, vertex_buffer.buffer, vertex_buffer.size);
-        cpy_cmd_buffer.end().throw_if_error();
+        cpy_cmd_buffer.end().unwrap();
 
         println("- Submitting copy command buffer");
         vk::submit_helper_t::prepare()
             .cmd_buffer(&cpy_cmd_buffer.handle)
             .wait_stage(vk::pipeline_stage_flags::transfer)
             .submit(device->queues.front())
-            .throw_if_error();
+            .unwrap();
 
-        println("- Waiting");
-        vk::device_idle(*device);
+        device->wait().unwrap();
 
         ui32 frame = 0;
 
+        println("- Main loop");
         while (!window->should_close())
         {
-            glfw::driver_t::poll_events();
+            glfw_driver->poll_events();
 
             if (window->minimized())
             {
@@ -421,15 +410,15 @@ auto main() -> int
             auto render_finished_sems = sync_objects.semaphores(frame + max_frames_in_flight, 1);
 
             // Wait fences
-            vk::wait_fences(fences).throw_if_error();
+            fences.wait().unwrap();
 
             // Acquire the next swapchain image
             auto res = vk::acquire_img(*swapchain, img_avail_sems.handles.back(), nullptr);
 
             if (res.require_sc_rebuild())
             {
-                vk::device_idle(*device);
-                swapchain->rebuild().throw_if_error();
+                device->wait().unwrap();
+                swapchain->rebuild().unwrap();
 
                 views = create_image_views(*device, swapchain->images);
                 fbs   = create_framebuffers(*device,
@@ -446,7 +435,7 @@ auto main() -> int
             }
 
             // Reset fences
-            vk::reset_fences(fences).throw_if_error();
+            fences.reset().unwrap();
 
             uint32_t img_index = res.img_index();
 
@@ -456,7 +445,7 @@ auto main() -> int
 
             // Begin command buffer recording
             auto cmd = cmd_buffers.get(frame).unwrap();
-            cmd.begin_one_time().throw_if_error();
+            cmd.begin_one_time().unwrap();
 
             // Begin the render pass
             render_pass->begin(cmd.handle);
@@ -483,7 +472,7 @@ auto main() -> int
             render_pass->end(cmd.handle);
 
             // End command buffer recording
-            vk::end(cmd.handle);
+            cmd.end().unwrap();
 
             // Submit render
             vk::submit_helper_t::prepare()
@@ -492,7 +481,7 @@ auto main() -> int
                 .cmd_buffer(&cmd.handle)
                 .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
                 .submit(device->queues.front(), fences.handles.back())
-                .throw_if_error();
+                .unwrap();
 
             // Present the rendered image
             auto present_res = vk::present_helper_t::prepare()
@@ -512,19 +501,9 @@ auto main() -> int
             }
 
             frame = (frame + 1) % max_frames_in_flight;
-            vk::device_idle(*device);
         }
 
-        vk::device_idle(*device);
-
-        // Terminate glfw
-        window->destroy();
-        println("- Destroyed window");
-
-        println("- Terminated Vulkan");
-
-        glfw::driver_t::terminate();
-        println("- Terminated GLFW");
+        device->wait().unwrap();
     }
     catch (const orb::exception& e)
     {

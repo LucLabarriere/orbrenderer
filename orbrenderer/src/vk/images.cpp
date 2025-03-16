@@ -1,6 +1,6 @@
 #include "orb/vk/images.hpp"
+
 #include "orb/vk/device.hpp"
-#include "orb/vk/vk_structs.hpp"
 
 #include <orb/flux.hpp>
 

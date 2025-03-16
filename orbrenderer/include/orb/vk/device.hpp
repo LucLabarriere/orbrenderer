@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orb/vk/vk_types.hpp"
+#include "orb/vk/core.hpp"
 
 #include <orb/box.hpp>
 #include <orb/result.hpp>
@@ -33,13 +33,13 @@ namespace orb::vk
         {
             destroy();
 
-            handle       = other.handle;
-            queues       = std::move(other.queues);
-            allocator    = other.allocator;
+            handle            = other.handle;
+            queues            = std::move(other.queues);
+            allocator         = other.allocator;
             set_debug_name_fb = other.set_debug_name_fb;
 
-            other.handle       = nullptr;
-            other.allocator    = nullptr;
+            other.handle            = nullptr;
+            other.allocator         = nullptr;
             other.set_debug_name_fb = nullptr;
         }
 
@@ -47,13 +47,13 @@ namespace orb::vk
         {
             destroy();
 
-            handle       = other.handle;
-            queues       = std::move(other.queues);
-            allocator    = other.allocator;
+            handle            = other.handle;
+            queues            = std::move(other.queues);
+            allocator         = other.allocator;
             set_debug_name_fb = other.set_debug_name_fb;
 
-            other.handle       = nullptr;
-            other.allocator    = nullptr;
+            other.handle            = nullptr;
+            other.allocator         = nullptr;
             other.set_debug_name_fb = nullptr;
 
             return *this;
@@ -90,6 +90,18 @@ namespace orb::vk
             };
             set_debug_name_fb(handle, &name_info);
         }
+
+        [[nodiscard]] auto wait() -> result<void>
+        {
+            const auto res = vkDeviceWaitIdle(handle);
+
+            if (res != vkres::ok)
+            {
+                return error_t { "Failed to wait for device: {}", vkres::get_repr(res) };
+            }
+
+            return {};
+        }
     };
 
     class device_builder_t
@@ -114,7 +126,4 @@ namespace orb::vk
         weak<gpu_t>                          m_gpu;
         std::vector<VkDeviceQueueCreateInfo> m_queue_infos;
     };
-
-    auto alloc_cmd(device_t&, VkCommandPool) -> result<VkCommandBuffer>;
-    void device_idle(device_t&);
 } // namespace orb::vk

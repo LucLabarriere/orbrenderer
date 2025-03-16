@@ -1,13 +1,11 @@
 #pragma once
 
-#include "orb/box.hpp"
-#include "orb/files.hpp"
-#include "orb/result.hpp"
 #include "orb/vk/device.hpp"
-#include "orb/vk/vk_structs.hpp"
-#include "orb/vk/vk_types.hpp"
 
-#include <shaderc/shaderc.hpp>
+#include <orb/box.hpp>
+#include <orb/files.hpp>
+#include <orb/result.hpp>
+
 #include <string_view>
 
 namespace orb::vk
@@ -209,7 +207,7 @@ namespace orb::vk
     class shader_module_builder_t
     {
     public:
-        static auto prepare(weak<device_t>         device,
+        [[nodiscard]] static auto prepare(weak<device_t>         device,
                             weak<spirv_compiler_t> compiler) -> result<shader_module_builder_t>
         {
             shader_module_builder_t builder {};
@@ -236,7 +234,7 @@ namespace orb::vk
             return *this;
         }
 
-        auto build() -> result<shader_module_t>
+        [[nodiscard]] auto build() -> result<shader_module_t>
         {
             auto preprocess_res = m_compiler->preprocess_glsl(m_content,
                                                               m_kind,

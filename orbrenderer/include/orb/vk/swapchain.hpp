@@ -1,7 +1,6 @@
 #pragma once
 
-#include "orb/vk/vk_structs.hpp"
-#include "orb/vk/vk_types.hpp"
+#include "orb/vk/core.hpp"
 
 #include <orb/box.hpp>
 #include <orb/result.hpp>
@@ -20,6 +19,7 @@ namespace orb::vk
     struct instance_t;
     struct gpu_t;
     struct device_t;
+    struct surface_t;
 
     struct swapchain_t
     {
@@ -109,6 +109,7 @@ namespace orb::vk
         weak<instance_t>     instance;
         weak<gpu_t>          gpu;
         weak<device_t>       device;
+        weak<surface_t>      surface;
 
         box<swapchain_t> sc {};
 
@@ -118,8 +119,11 @@ namespace orb::vk
         std::vector<formats::enum_t>       formats;
         std::vector<present_modes::enum_t> present_modes;
 
-        [[nodiscard]] static auto prepare(
-            weak<instance_t> instance, weak<gpu_t> gpu, weak<device_t> device, weak<glfw::window_t> window)
+        [[nodiscard]] static auto prepare(weak<instance_t>     instance,
+                                          weak<gpu_t>          gpu,
+                                          weak<device_t>       device,
+                                          weak<glfw::window_t> window,
+                                          weak<surface_t>      surface)
             -> result<swapchain_builder_t>;
 
         auto fb_dimensions(i32 w, i32 h) -> swapchain_builder_t&;

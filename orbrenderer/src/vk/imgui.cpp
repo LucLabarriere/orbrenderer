@@ -1,5 +1,7 @@
 #include "orb/vk/imgui.hpp"
+
 #include "orb/glfw/window.hpp"
+#include "orb/vk/desc_pool.hpp"
 #include "orb/vk/device.hpp"
 #include "orb/vk/gpu.hpp"
 #include "orb/vk/instance.hpp"
@@ -10,68 +12,123 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
-namespace orb::vk::imgui
+namespace orb::vk
 {
-
-    auto initialize(imgui_init_args_t args) -> result<void>
+    imgui_driver_t::~imgui_driver_t()
     {
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO();
-        (void)io;
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
-
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-        // ImGui::StyleColorsLight();
-
-        // Setup Platform/Renderer backends
-        ImGui_ImplGlfw_InitForVulkan(args.window->get_handle<GLFWwindow>(), true);
-        ImGui_ImplVulkan_InitInfo init_info {};
-        init_info.Instance        = args.instance->handle;
-        init_info.PhysicalDevice  = args.gpu->handle;
-        init_info.Device          = args.device->handle;
-        init_info.QueueFamily     = 0;
-        init_info.Queue           = args.device->queues[0];
-        init_info.PipelineCache   = nullptr;
-        init_info.DescriptorPool  = args.desc_pool;
-        init_info.RenderPass      = args.pass;
-        init_info.Subpass         = 0;
-        init_info.MinImageCount   = args.swapchain->info.minImageCount;
-        init_info.ImageCount      = args.swapchain->img_count;
-        init_info.MSAASamples     = vk::sample_count_flags::_1;
-        init_info.Allocator       = nullptr;
-        init_info.CheckVkResultFn = nullptr;
-
-        if (!ImGui_ImplVulkan_Init(&init_info)) { return error_t { "Could not initialize ImGui" }; }
-
-        return {};
+        destroy();
     }
 
-    void new_frame()
+    imgui_driver_t::imgui_driver_t(imgui_driver_t&& other) noexcept
+    {
+        destroy();
+
+        m_initialized       = other.m_initialized;
+        other.m_initialized = false;
+    }
+
+    auto imgui_driver_t::operator=(imgui_driver_t&& other) noexcept -> imgui_driver_t&
+    {
+        destroy();
+
+        m_initialized       = other.m_initialized;
+        other.m_initialized = false;
+        return *this;
+    }
+
+    void imgui_driver_t::destroy()
+    {
+        if (!m_initialized) return;
+
+        ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+    }
+
+    auto imgui_driver_t::new_frame() -> void
     {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
     }
 
-    void render()
+    void imgui_driver_t::render()
     {
         ImGui::Render();
     }
 
-    void submit_render(VkCommandBuffer cmd)
+    void imgui_driver_t::submit_render(VkCommandBuffer cmd)
     {
-        ImDrawData* draw_data = ImGui::GetDrawData();
-        ImGui_ImplVulkan_RenderDrawData(draw_data, cmd);
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
     }
 
-    void terminate()
+    auto imgui_driver_builder_t::prepare(weak<glfw::window_t> win,
+                                         weak<instance_t>     instance,
+                                         weak<gpu_t>          gpu,
+                                         weak<device_t>       device,
+                                         weak<swapchain_t>    sc,
+                                         weak<desc_pool_t>    desc_pool,
+                                         weak<render_pass_t>  pass) -> imgui_driver_builder_t
     {
-        ImGui_ImplVulkan_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
+        imgui_driver_builder_t builder {};
+        builder.m_window    = win;
+        builder.m_instance  = instance;
+        builder.m_gpu       = gpu;
+        builder.m_device    = device;
+        builder.m_swapchain = sc;
+        builder.m_desc_pool = desc_pool;
+
+        builder.m_info.Instance        = instance->handle;
+        builder.m_info.PhysicalDevice  = gpu->handle;
+        builder.m_info.Device          = device->handle;
+        builder.m_info.QueueFamily     = 0;
+        builder.m_info.Queue           = device->queues[0];
+        builder.m_info.PipelineCache   = nullptr;
+        builder.m_info.DescriptorPool  = desc_pool->handle;
+        builder.m_info.RenderPass      = pass->handle;
+        builder.m_info.Subpass         = 0;
+        builder.m_info.MinImageCount   = sc->info.minImageCount;
+        builder.m_info.ImageCount      = sc->img_count;
+        builder.m_info.MSAASamples     = vk::sample_count_flags::_1;
+        builder.m_info.Allocator       = nullptr;
+        builder.m_info.CheckVkResultFn = nullptr;
+
+        return builder;
     }
 
-} // namespace orb::imgui
+    auto imgui_driver_builder_t::build() -> result<imgui_driver_t>
+    {
+        imgui_driver_t driver {};
+
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+
+        ImGuiIO& io    = ImGui::GetIO();
+        io.ConfigFlags = m_flags;
+
+        if (m_dark_theme)
+        {
+            ImGui::StyleColorsDark();
+        }
+        else
+        {
+            ImGui::StyleColorsLight();
+        }
+
+        // Setup Platform/Renderer backends
+        if (!ImGui_ImplGlfw_InitForVulkan(m_window->get_handle<GLFWwindow>(), true))
+        {
+            return error_t { "Could not initialize GLFW for ImGui" };
+        }
+
+        if (!ImGui_ImplVulkan_Init(&m_info))
+        {
+            return error_t { "Could not initialize Vulkan for ImGui" };
+        }
+
+        driver.m_initialized = true;
+
+        return driver;
+    }
+
+} // namespace orb::vk

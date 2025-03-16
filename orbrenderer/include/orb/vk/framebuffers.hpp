@@ -1,7 +1,6 @@
 #pragma once
 
 #include "orb/vk/device.hpp"
-#include "orb/vk/vk_structs.hpp"
 
 #include <orb/box.hpp>
 #include <orb/flux.hpp>

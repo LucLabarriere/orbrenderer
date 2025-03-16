@@ -1,14 +1,12 @@
 #pragma once
 
 #include "orb/vk/device.hpp"
-#include <orb/vk/vk_structs.hpp>
 
 #include <orb/box.hpp>
 #include <orb/result.hpp>
 #include <orb/utility.hpp>
 
 #include <vector>
-#include <vulkan/vulkan_core.h>
 
 namespace orb::vk
 {

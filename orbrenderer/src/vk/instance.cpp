@@ -1,11 +1,10 @@
 #include "orb/vk/instance.hpp"
-#include "orb/vk/vk_types.hpp"
 
 #include <orb/eval.hpp>
 #include <orb/print_time.hpp>
 #include <orb/utility.hpp>
 
-#include "glfw/glfw_header.hpp"
+#include "glfw/core.hpp"
 
 namespace
 {

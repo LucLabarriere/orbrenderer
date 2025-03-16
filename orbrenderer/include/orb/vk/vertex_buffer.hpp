@@ -1,9 +1,8 @@
 #pragma once
 
 #include "orb/vk/device.hpp"
-#include "orb/vk/vk_types.hpp"
 
-#include "orb/result.hpp"
+#include <orb/result.hpp>
 
 namespace orb::vk
 {

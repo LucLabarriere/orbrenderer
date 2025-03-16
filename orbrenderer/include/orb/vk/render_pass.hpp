@@ -2,7 +2,6 @@
 
 #include "orb/vk/attachments.hpp"
 #include "orb/vk/subpasses.hpp"
-#include "orb/vk/vk_structs.hpp"
 
 #include <orb/box.hpp>
 #include <orb/result.hpp>

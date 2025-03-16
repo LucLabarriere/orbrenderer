@@ -1,6 +1,6 @@
 #pragma once
 
-#include "orb/vk/vk_types.hpp"
+#include "orb/vk/core.hpp"
 
 #include <orb/box.hpp>
 #include <orb/result.hpp>
