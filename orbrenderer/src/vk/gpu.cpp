@@ -6,18 +6,21 @@
 
 namespace orb::vk
 {
-    auto available_gpus_t::create(VkInstance instance) -> result<available_gpus_t>
+    auto gpu_selector_t::prepare(VkInstance instance) -> result<gpu_selector_t>
     {
-        available_gpus_t d;
-        auto&            gpus = d.m_gpus;
+        gpu_selector_t d;
+        auto&          gpus = d.m_gpus;
 
         ui32                          count = 0;
         std::vector<VkPhysicalDevice> gpu_handles;
         vkEnumeratePhysicalDevices(instance, &count, nullptr);
         gpu_handles.resize(count);
-        auto err = vkEnumeratePhysicalDevices(instance, &count, gpu_handles.data());
+        auto res = vkEnumeratePhysicalDevices(instance, &count, gpu_handles.data());
 
-        if (err != 0) { return error_t { "Could not enumerate physical devices: VkError {}", (int64_t)err }; }
+        if (res != vk::vkres::ok)
+        {
+            return error_t { "Could not enumerate physical devices: VkError {}", vk::vkres::get_repr(res) };
+        }
 
         for (VkPhysicalDevice& device : gpu_handles)
         {
@@ -37,7 +40,10 @@ namespace orb::vk
             }));
         }
 
-        if (gpus.empty()) { return error_t { "No GPU found" }; }
+        if (gpus.empty())
+        {
+            return error_t { "No GPU found" };
+        }
 
         for (auto& gpu : gpus)
         {
@@ -46,11 +52,15 @@ namespace orb::vk
             std::vector<VkQueueFamilyProperties> qf_properties;
             qf_properties.resize(count);
             vkGetPhysicalDeviceQueueFamilyProperties(gpu->handle, &count, qf_properties.data());
+
             gpu->queue_families =
                 flux::enumerate(qf_properties)
                     .map([](auto&& pair) {
                         const auto& [index, properties] = pair;
-                        return queue_family_t { .index = (ui32)index, .properties = properties };
+                        return queue_family_t {
+                            .index      = (ui32)index,
+                            .properties = properties
+                        };
                     })
                     .to<std::vector>();
         }
@@ -66,12 +76,14 @@ namespace orb::vk
         println("  * Vulkan handle: {}", orb::ptr(gpu.handle));
         println("  * GPU type: {}", gpu_types::strings[(size_t)gpu.device_type]);
         println("  * Available queue families");
+
         for (const auto& [i, qf] : flux::enumerate(gpu.queue_families))
         {
             print("    - Queue family {}:", i);
             if (qf.properties.queueFlags & vk::queue_families::graphics) { print(" Graphics"); }
             if (qf.properties.queueFlags & vk::queue_families::transfer) { print(" Transfer"); }
             if (qf.properties.queueFlags & vk::queue_families::compute) { print(" Compute"); }
+
             println("");
             println("       Count: {}", qf.properties.queueCount);
         }

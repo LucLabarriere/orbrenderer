@@ -1,10 +1,10 @@
 #include <span>
 #include <thread>
 
-#include <orb/renderer.hpp>
 #include <orb/eval.hpp>
 #include <orb/files.hpp>
 #include <orb/flux.hpp>
+#include <orb/renderer.hpp>
 #include <orb/time.hpp>
 
 using namespace orb;
@@ -13,33 +13,6 @@ static constexpr ui32 max_frames_in_flight = 2;
 
 namespace
 {
-    /** @brief Creates the vulkan instance.
-     *
-     * @return The vulkan instance.
-     */
-    [[nodiscard]] auto create_vk_instance() -> box<vk::instance_t>
-    {
-        constexpr auto portability = vk::khr_extensions::portability_enumeration;
-
-        // Initialize the vulkan instance
-        auto instance_builder = vk::instance_builder_t::prepare().unwrap();
-
-        if (instance_builder.is_ext_available(portability))
-        {
-            instance_builder.add_extension(portability);
-            instance_builder.create_info.flags |= vk::instance_create::portability;
-        }
-
-        auto instance = instance_builder.add_glfw_required_extensions()
-                            .add_extension(vk::khr_extensions::device_properties_2)
-                            .add_extension(vk::extensions::debug_utils)
-                            .debug_layer(vk::validation_layers::validation)
-                            .build()
-                            .unwrap();
-
-        return instance;
-    }
-
     /** @brief Selects the GPU.
      *
      * @param instance The vulkan instance.
@@ -48,7 +21,7 @@ namespace
     [[nodiscard]] auto create_vk_gpu(vk::instance_t& instance) -> box<vk::gpu_t>
     {
         auto gpu = orb::eval | [&] {
-            auto gpus = vk::available_gpus_t::create(instance.handle).unwrap();
+            auto gpus = vk::gpu_selector_t::prepare(instance.handle).unwrap();
 
             for (const auto& [i, gpu] : flux::enumerate(gpus))
             {
@@ -193,47 +166,6 @@ namespace
 
         return render_pass;
     }
-
-    [[nodiscard]] auto create_image_views(vk::device_t& device, std::span<VkImage> images) -> vk::views_t
-    {
-        auto builder = vk::views_builder_t::prepare(device.handle)
-                           .unwrap();
-
-        for (const auto& img : images)
-        {
-            builder.image(img);
-        }
-
-        auto views = builder
-                         .aspect_mask(vk::image_aspect_flags::color)
-                         .format(vk::formats::b8g8r8a8_srgb)
-                         .build()
-                         .unwrap();
-        return views;
-    }
-
-    [[nodiscard]] auto create_framebuffers(vk::device_t& device,
-                                           VkRenderPass  pass,
-                                           vk::views_t&  views,
-                                           ui32          w,
-                                           ui32          h) -> vk::framebuffers_t
-    {
-        auto fbs_builder = vk::framebuffers_builder_t::prepare(&device, pass)
-                               .unwrap()
-                               .size(w, h);
-
-        for (const auto& [img, view] : views.handles)
-        {
-            fbs_builder.attachment(view);
-        }
-
-        auto fbs = fbs_builder
-                       .build()
-                       .unwrap();
-
-        return fbs;
-    }
-
 } // namespace
 
 auto main() -> int
@@ -243,20 +175,68 @@ auto main() -> int
         box<glfw::driver_t> glfw_driver = glfw::driver_t::create().unwrap();
 
         weak<glfw::window_t> window   = glfw_driver->create_window_for_vk().unwrap();
-        box<vk::instance_t>  instance = create_vk_instance();
+        box<vk::instance_t>  instance = vk::instance_builder_t::prepare()
+                                           .unwrap()
+                                           .add_glfw_required_extensions()
+                                           .molten_vk(orb::on_macos ? true : false)
+                                           .add_extension(vk::khr_extensions::device_properties_2)
+                                           .add_extension(vk::extensions::debug_utils)
+                                           .debug_layer(vk::validation_layers::validation)
+                                           .build()
+                                           .unwrap();
 
         vk::surface_t  surface = vk::surface_builder_t::prepare(instance->handle, window).build().unwrap();
         box<vk::gpu_t> gpu     = create_vk_gpu(*instance);
 
-        box<vk::device_t>      device      = create_vk_device(*instance, *gpu);
-        box<vk::swapchain_t>   swapchain   = create_vk_swapchain(*instance, *device, *gpu, *window, surface);
-        vk::views_t            views       = create_image_views(*device, swapchain->images);
+        box<vk::device_t> device = create_vk_device(*instance, *gpu);
+
+        box<vk::swapchain_t> swapchain = vk::swapchain_builder_t::prepare(instance.getmut(),
+                                                                          gpu.getmut(),
+                                                                          device.getmut(),
+                                                                          window,
+                                                                          &surface)
+                                             .unwrap()
+                                             .fb_dimensions_from_window()
+                                             .present_queue_family_index(0)
+
+                                             .usage(vk::image_usage_flags::color_attachment)
+                                             .color_space(vk::color_spaces::srgb_nonlinear_khr)
+                                             .format(vk::formats::b8g8r8a8_srgb)
+                                             .format(vk::formats::r8g8b8a8_srgb)
+                                             .format(vk::formats::b8g8r8_srgb)
+                                             .format(vk::formats::r8g8b8_srgb)
+
+                                             .present_mode(vk::present_modes::mailbox_khr)
+                                             .present_mode(vk::present_modes::immediate_khr)
+                                             .present_mode(vk::present_modes::fifo_khr)
+
+                                             .build()
+                                             .unwrap();
+
         box<vk::render_pass_t> render_pass = create_render_pass(device->handle, swapchain->format.format);
-        vk::framebuffers_t     fbs         = create_framebuffers(*device,
-                                                     render_pass->handle,
-                                                     views,
-                                                     swapchain->width,
-                                                     swapchain->height);
+
+        const auto create_views = [&] {
+            return vk::views_builder_t::prepare(device->handle)
+                .unwrap()
+                .images(swapchain->images)
+                .aspect_mask(vk::image_aspect_flags::color)
+                .format(vk::formats::b8g8r8a8_srgb)
+                .build()
+                .unwrap();
+        };
+
+        vk::views_t views = create_views();
+
+        const auto create_fbs = [&] {
+            return vk::framebuffers_builder_t::prepare(device.getmut(), render_pass->handle)
+                .unwrap()
+                .size(swapchain->width, swapchain->height)
+                .attachments(views.handles)
+                .build()
+                .unwrap();
+        };
+
+        vk::framebuffers_t fbs = create_fbs();
 
         const path vs_path { SAMPLE_DIR "main.vs.glsl" };
         const path fs_path { SAMPLE_DIR "main.fs.glsl" };
@@ -420,12 +400,8 @@ auto main() -> int
                 device->wait().unwrap();
                 swapchain->rebuild().unwrap();
 
-                views = create_image_views(*device, swapchain->images);
-                fbs   = create_framebuffers(*device,
-                                          render_pass->handle,
-                                          views,
-                                          swapchain->width,
-                                          swapchain->height);
+                views = create_views();
+                fbs   = create_fbs();
                 continue;
             }
             else if (res.is_error())

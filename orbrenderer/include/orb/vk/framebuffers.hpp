@@ -1,6 +1,7 @@
 #pragma once
 
 #include "orb/vk/device.hpp"
+#include "orb/vk/views.hpp"
 
 #include <orb/box.hpp>
 #include <orb/flux.hpp>
@@ -108,6 +109,16 @@ namespace orb::vk
             }
 
             return fbs;
+        }
+
+        auto attachments(std::span<const img_view_pair_t> attachments) -> framebuffers_builder_t&
+        {
+            for (auto& a : attachments)
+            {
+                attachment(a.view);
+            }
+
+            return *this;
         }
 
         auto attachment(VkImageView view) -> framebuffers_builder_t&

@@ -5,6 +5,7 @@
 #include <orb/box.hpp>
 #include <orb/result.hpp>
 
+#include <span>
 #include <vector>
 
 namespace orb::vk
@@ -104,6 +105,17 @@ namespace orb::vk
         auto image(VkImage img) -> views_builder_t&
         {
             m_handles.emplace_back(img, nullptr);
+
+            return *this;
+        }
+
+        auto images(std::span<VkImage> imgs) -> views_builder_t&
+        {
+            for (auto img : imgs)
+            {
+                image(img);
+            }
+
             return *this;
         }
 

@@ -31,10 +31,10 @@ namespace orb::vk
 
     void describe(const gpu_t& gpu);
 
-    class available_gpus_t
+    class gpu_selector_t
     {
     public:
-        [[nodiscard]] static auto create(VkInstance instance) -> result<available_gpus_t>;
+        [[nodiscard]] static auto prepare(VkInstance instance) -> result<gpu_selector_t>;
 
         [[nodiscard]] auto begin() const { return m_gpus.begin(); }
         [[nodiscard]] auto end() const { return m_gpus.end(); }
@@ -49,7 +49,7 @@ namespace orb::vk
         }
 
     private:
-        available_gpus_t() = default;
+        gpu_selector_t() = default;
 
         std::vector<box<gpu_t>> m_gpus;
     };

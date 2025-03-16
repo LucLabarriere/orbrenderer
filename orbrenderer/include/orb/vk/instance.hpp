@@ -80,6 +80,19 @@ namespace orb::vk
         [[nodiscard]] auto is_ext_available(std::string_view extension) -> bool;
         auto               add_glfw_required_extensions() -> instance_builder_t&;
 
+        auto molten_vk(bool enable) -> instance_builder_t&
+        {
+            constexpr auto ext = vk::khr_extensions::portability_enumeration;
+
+            if (enable && is_ext_available(ext))
+            {
+                add_extension(ext);
+                create_info.flags |= vk::instance_create::portability;
+            }
+
+            return *this;
+        }
+
         auto debug_layer(const char* layer) -> instance_builder_t&
         {
             val_layers.push_back(layer);
