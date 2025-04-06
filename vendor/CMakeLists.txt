@@ -1,15 +1,7 @@
 include(FetchContent)
 
 # orblib
-message(STATUS "Getting orblib")
-FetchContent_Declare(
-    orblib
-    GIT_REPOSITORY https://github.com/LucLabarriere/orblib
-    GIT_TAG        main
-    GIT_PROGRESS   TRUE
-    GIT_SHALLOW    TRUE
-)
-FetchContent_MakeAvailable(orblib)
+add_subdirectory(orblib SYSTEM)
 
 # GLFW
 add_subdirectory(glfw   SYSTEM)
