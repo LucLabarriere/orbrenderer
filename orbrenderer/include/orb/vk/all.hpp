@@ -18,4 +18,5 @@
 #include "orb/vk/swapchain.hpp"
 #include "orb/vk/sync_objects.hpp"
 #include "orb/vk/vertex_buffer.hpp"
+#include "orb/vk/index_buffer.hpp"
 #include "orb/vk/views.hpp"
