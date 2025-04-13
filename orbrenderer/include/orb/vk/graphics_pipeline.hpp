@@ -27,6 +27,41 @@ namespace orb::vk
         pipeline_builder_t* m_next_builder = nullptr;
     };
 
+    class desc_set_layout_builder_t
+    {
+    public:
+        auto binding(ui32                           binding,
+                     vk::desc_types::enum_t         type,
+                     ui32                           count,
+                     vk::shader_stage_flags::enum_t stage_flags)
+            -> desc_set_layout_builder_t&
+        {
+            auto& binding_desc = m_bindings.emplace_back();
+
+            binding_desc.binding         = binding;
+            binding_desc.descriptorType  = type;
+            binding_desc.descriptorCount = count;
+            binding_desc.stageFlags      = stage_flags;
+
+            return *this;
+        }
+
+        auto pipeline_layout() -> pipeline_layout_builder_t&
+        {
+            return *m_next_builder;
+        }
+
+    private:
+        friend pipeline_builder_t;
+
+        VkDescriptorSetLayoutCreateInfo m_create_info = vk::structs::create::desc_set_layout();
+
+        std::vector<VkDescriptorSetLayoutBinding> m_bindings;
+
+        weak<device_t>             m_device       = nullptr;
+        pipeline_layout_builder_t* m_next_builder = nullptr;
+    };
+
     class color_blend_attachment_builder_t
     {
     public:
@@ -124,7 +159,7 @@ namespace orb::vk
             return m_attachment_builder;
         }
 
-        auto layout() -> pipeline_layout_builder_t&
+        auto desc_set_layout() -> desc_set_layout_builder_t&
         {
             return *m_next_builder;
         }
@@ -136,7 +171,7 @@ namespace orb::vk
 
         std::vector<VkPipelineColorBlendAttachmentState> m_attachments;
         color_blend_attachment_builder_t                 m_attachment_builder;
-        pipeline_layout_builder_t*                       m_next_builder = nullptr;
+        desc_set_layout_builder_t*                       m_next_builder = nullptr;
     };
 
     class multisample_builder_t
@@ -434,9 +469,10 @@ namespace orb::vk
 
     struct graphics_pipeline_t
     {
-        VkDevice         device = nullptr;
-        VkPipeline       handle = nullptr;
-        VkPipelineLayout layout = nullptr;
+        VkDevice              device          = nullptr;
+        VkPipeline            handle          = nullptr;
+        VkDescriptorSetLayout desc_set_layout = nullptr;
+        VkPipelineLayout      layout          = nullptr;
 
         std::vector<VkViewport> viewports;
         std::vector<VkRect2D>   scissors;
@@ -450,30 +486,34 @@ namespace orb::vk
         {
             destroy();
 
-            device = other.device;
-            handle = other.handle;
-            layout = other.layout;
+            device          = other.device;
+            handle          = other.handle;
+            desc_set_layout = other.desc_set_layout;
+            layout          = other.layout;
 
             viewports = std::move(other.viewports);
             scissors  = std::move(other.scissors);
 
-            other.handle = nullptr;
-            other.layout = nullptr;
+            other.handle          = nullptr;
+            other.desc_set_layout = nullptr;
+            other.layout          = nullptr;
         }
 
         auto operator=(graphics_pipeline_t&& other) noexcept -> graphics_pipeline_t&
         {
             destroy();
 
-            device = other.device;
-            handle = other.handle;
-            layout = other.layout;
+            device          = other.device;
+            handle          = other.handle;
+            desc_set_layout = other.desc_set_layout;
+            layout          = other.layout;
 
             viewports = std::move(other.viewports);
             scissors  = std::move(other.scissors);
 
-            other.handle = nullptr;
-            other.layout = nullptr;
+            other.handle          = nullptr;
+            other.desc_set_layout = nullptr;
+            other.layout          = nullptr;
 
             return *this;
         }
@@ -485,6 +525,12 @@ namespace orb::vk
 
         void destroy()
         {
+            if (desc_set_layout)
+            {
+                vkDestroyDescriptorSetLayout(device, desc_set_layout, nullptr);
+                desc_set_layout = nullptr;
+            }
+
             if (layout)
             {
                 vkDestroyPipelineLayout(device, layout, nullptr);
@@ -572,6 +618,11 @@ namespace orb::vk
             }
 
             {
+                auto desc_set_layout  = builder->m_desc_set_layout.m_create_info;
+                desc_set_layout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            }
+
+            {
                 auto& pipeline_layout                  = builder->m_pipeline_layout.m_create_info;
                 pipeline_layout.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
                 pipeline_layout.setLayoutCount         = 0;
@@ -591,7 +642,8 @@ namespace orb::vk
             builder->m_viewport_state.m_next_builder  = &builder->m_rasterizer;
             builder->m_rasterizer.m_next_builder      = &builder->m_multisample;
             builder->m_multisample.m_next_builder     = &builder->m_color_blending;
-            builder->m_color_blending.m_next_builder  = &builder->m_pipeline_layout;
+            builder->m_color_blending.m_next_builder  = &builder->m_desc_set_layout;
+            builder->m_desc_set_layout.m_next_builder = &builder->m_pipeline_layout;
             builder->m_pipeline_layout.m_next_builder = builder.getmut().raw();
 
             return builder;
@@ -630,6 +682,23 @@ namespace orb::vk
         {
             auto pipeline    = make_box<graphics_pipeline_t>();
             pipeline->device = m_device->handle;
+
+            m_desc_set_layout.m_create_info.bindingCount = m_desc_set_layout.m_bindings.size();
+            m_desc_set_layout.m_create_info.pBindings    = m_desc_set_layout.m_bindings.data();
+
+            auto desc_set_layout_create_res = vkCreateDescriptorSetLayout(m_device->handle,
+                                                                          &m_desc_set_layout.m_create_info,
+                                                                          nullptr,
+                                                                          &pipeline->desc_set_layout);
+
+            if (desc_set_layout_create_res != vkres::ok)
+            {
+                return error_t { "Could not create descriptor set layout: {}",
+                                 vkres::get_repr(desc_set_layout_create_res) };
+            }
+
+            m_pipeline_layout.m_create_info.setLayoutCount = 1;
+            m_pipeline_layout.m_create_info.pSetLayouts    = &pipeline->desc_set_layout;
 
             auto pipeline_layout_create_res = vkCreatePipelineLayout(m_device->handle,
                                                                      &m_pipeline_layout.m_create_info,
@@ -702,6 +771,7 @@ namespace orb::vk
         rasterizer_builder_t      m_rasterizer;
         multisample_builder_t     m_multisample;
         color_blending_builder_t  m_color_blending;
+        desc_set_layout_builder_t m_desc_set_layout;
         pipeline_layout_builder_t m_pipeline_layout;
     };
 } // namespace orb::vk

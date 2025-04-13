@@ -223,11 +223,14 @@ auto main() -> int
                             .viewport(0.0f, 0.0f, (f32)swapchain->width, (f32)swapchain->height, 0.0f, 1.0f)
                             .scissor(0.0f, 0.0f, swapchain->width, swapchain->height)
                             .rasterizer()
+                            .front_face(vk::front_faces::counter_clockwise)
                             .multisample()
                             .color_blending()
                             .new_color_blend_attachment()
                             .end_attachment()
-                            .layout()
+                            .desc_set_layout()
+                            .binding(0, vk::desc_types::uniform_buffer, 1, vk::shader_stage_flags::vertex)
+                            .pipeline_layout()
                             .prepare_pipeline()
                             .render_pass(render_pass.getmut())
                             .subpass(0)
@@ -237,8 +240,17 @@ auto main() -> int
         println("- Creating descriptor pool");
         auto desc_pool = vk::desc_pool_builder_t::prepare(device.getmut())
                              .unwrap()
-                             .pool(vk::desc_types::sampler, 100)
+                             .pool(vk::desc_types::uniform_buffer, max_frames_in_flight)
                              .flag(vk::descriptor_pool_create_flags::free_descriptor_set_bit)
+                             .max_desc_sets(max_frames_in_flight)
+                             .build()
+                             .unwrap();
+
+        println("- Creating descriptor sets");
+        auto desc_sets = vk::desc_sets_builder_t::prepare(device.getmut(),
+                                                          desc_pool.handle,
+                                                          pipeline->desc_set_layout)
+                             .count(max_frames_in_flight)
                              .build()
                              .unwrap();
 
@@ -267,6 +279,8 @@ auto main() -> int
         println("- Creating command buffers");
         auto draw_cmds = graphics_cmd_pool->alloc_cmds(max_frames_in_flight).unwrap();
 
+        std::vector<vk::uniform_buffer_t> uniform_buffers(max_frames_in_flight);
+
         std::vector<vertex_t> vertices = {
             { { -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
             {  { 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f } },
@@ -275,6 +289,28 @@ auto main() -> int
         };
 
         std::vector<ui16> indices = { 0, 1, 2, 2, 3, 0 };
+
+        println("- Creating uniform buffers");
+        for (auto& ubo : uniform_buffers)
+        {
+            ubo = vk::uniform_buffer_builder_t::prepare(device.getmut(), sizeof(ubo_t))
+                      .unwrap()
+                      .build()
+                      .unwrap();
+        }
+
+        println("- Creating descriptor set writers");
+        std::vector<vk::buffer_desc_set_writer_t> desc_set_writers;
+        desc_set_writers.resize(max_frames_in_flight);
+        for (const auto& [writer, desc_set, buffer] : flux::zip_all_mut(desc_set_writers,
+                                                                        desc_sets.handles,
+                                                                        uniform_buffers))
+        {
+            writer = vk::buffer_desc_set_writer_t::prepare(device->handle, desc_set, 0)
+                         .buffer(buffer.buffer)
+                         .range(sizeof(ubo_t));
+            writer.update_sets().unwrap();
+        }
 
         println("- Creating vertex buffer");
         auto vertex_buffer = vk::vertex_buffer_builder_t::prepare(device.getmut())
@@ -340,7 +376,11 @@ auto main() -> int
 
         ui32 frame = 0;
 
+        ubo_t ubo_data {};
+
         println("- Main loop");
+        auto t0 = orb::sys_watch::now();
+
         while (!window->should_close())
         {
             glfw_driver->poll_events();
@@ -351,6 +391,20 @@ auto main() -> int
                 std::this_thread::sleep_for(orb::milliseconds_t(100));
                 continue;
             }
+
+            ubo_data.model = glm::rotate(glm::mat4(1.0f),
+                                         t0.elapsed_time().count() * 0.01f,
+                                         glm::vec3(0.0f, 0.0f, 1.0f));
+
+            ubo_data.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f),
+                                        glm::vec3(0.0f, 0.0f, 0.0f),
+                                        glm::vec3(0.0f, 0.0f, 1.0f));
+
+            ubo_data.proj = glm::perspective(glm::radians(45.0f),
+                                             (f32)swapchain->width / (f32)swapchain->height,
+                                             0.1f,
+                                             10.0f);
+            ubo_data.proj[1][1] *= -1;
 
             auto fences               = sync_objects.fences(frame, 1);
             auto img_avail_sems       = sync_objects.semaphores(frame, 1);
@@ -380,6 +434,12 @@ auto main() -> int
             // Reset fences
             fences.reset().unwrap();
 
+            auto& ubo        = uniform_buffers.at(frame);
+            auto& ubo_writer = desc_set_writers.at(frame);
+
+            ubo.transfer(&ubo_data, sizeof(ubo_data)).unwrap();
+            ubo_writer.update_sets().unwrap();
+
             uint32_t img_index = res.img_index();
 
             // Render to the framebuffer
@@ -408,6 +468,15 @@ auto main() -> int
             scissor.extent.height = swapchain->height;
             vkCmdSetViewport(cmd.handle, 0, 1, &viewport);
             vkCmdSetScissor(cmd.handle, 0, 1, &scissor);
+
+            vkCmdBindDescriptorSets(cmd.handle,
+                                    vk::pipeline_bind_points::graphics,
+                                    pipeline->layout,
+                                    0,
+                                    1,
+                                    &desc_sets.handles.at(frame),
+                                    0,
+                                    nullptr);
 
             // Draw quad
             vkCmdDrawIndexed(cmd.handle, static_cast<ui32>(indices.size()), 1, 0, 0, 0);
