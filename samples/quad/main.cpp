@@ -219,20 +219,13 @@ auto main() -> int
                             .color_blending()
                             .new_color_blend_attachment()
                             .end_attachment()
-                            .layout()
+                            .desc_set_layout()
+                            .pipeline_layout()
                             .prepare_pipeline()
                             .render_pass(render_pass.getmut())
                             .subpass(0)
                             .build()
                             .unwrap();
-
-        fmt::println("- Creating descriptor pool");
-        auto desc_pool = vk::desc_pool_builder_t::prepare(device.getmut())
-                             .unwrap()
-                             .pool(vk::desc_types::sampler, 100)
-                             .flag(vk::descriptor_pool_create_flags::free_descriptor_set_bit)
-                             .build()
-                             .unwrap();
 
         fmt::println("- Creating synchronization objects");
         // Synchronization

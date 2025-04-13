@@ -10,8 +10,6 @@
 
 namespace orb::vk
 {
-    struct device_t;
-
     struct desc_pool_t
     {
         VkDescriptorPool handle = nullptr;
@@ -24,8 +22,6 @@ namespace orb::vk
 
         desc_pool_t(desc_pool_t&& other) noexcept
         {
-            destroy();
-
             handle = other.handle;
             device = other.device;
 
@@ -35,6 +31,8 @@ namespace orb::vk
 
         auto operator=(desc_pool_t&& other) noexcept -> desc_pool_t&
         {
+            destroy();
+
             handle = other.handle;
             device = other.device;
 

@@ -1968,6 +1968,21 @@ namespace orb::vk
                 };
             }
 
+            [[nodiscard]] inline auto desc_set_layout() -> VkDescriptorSetLayoutCreateInfo
+            {
+                return {
+                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+                };
+            }
+
+            [[nodiscard]] inline auto desc_sets(VkDescriptorPool pool) -> VkDescriptorSetAllocateInfo
+            {
+                return {
+                    .sType          = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                    .descriptorPool = pool,
+                };
+            }
+
             [[nodiscard]] inline auto swapchain() -> VkSwapchainCreateInfoKHR
             {
                 return {
