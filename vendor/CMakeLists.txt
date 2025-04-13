@@ -9,6 +9,9 @@ add_subdirectory(glfw   SYSTEM)
 # VMA
 add_subdirectory(VulkanMemoryAllocator SYSTEM)
 
+# GLM
+add_subdirectory(glm SYSTEM)
+
 # imgui
 add_library(orb_imgui
   STATIC  imgui/imgui_widgets.cpp

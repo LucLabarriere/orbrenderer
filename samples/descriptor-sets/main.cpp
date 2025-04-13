@@ -4,6 +4,7 @@
 #include <orb/eval.hpp>
 #include <orb/files.hpp>
 #include <orb/flux.hpp>
+#include <orb/maths.hpp>
 #include <orb/renderer.hpp>
 #include <orb/time.hpp>
 
@@ -60,13 +61,13 @@ auto main() -> int
             return std::make_tuple(graphics_qf, transfer_qf);
         };
 
-        fmt::println("- Selected graphics queue family {} with {} queues",
-                     graphics_qf->index,
-                     graphics_qf->properties.queueCount);
+        println("- Selected graphics queue family {} with {} queues",
+                graphics_qf->index,
+                graphics_qf->properties.queueCount);
 
-        fmt::println("- Selected transfer queue family {} with {} queues",
-                     transfer_qf->index,
-                     transfer_qf->properties.queueCount);
+        println("- Selected transfer queue family {} with {} queues",
+                transfer_qf->index,
+                transfer_qf->properties.queueCount);
 
         auto device = vk::device_builder_t::prepare(instance->handle)
                           .unwrap()
@@ -170,11 +171,11 @@ auto main() -> int
             .option_optimization_level(shaderc_optimization_level_zero)
             .option_warnings_as_errors();
 
-        fmt::println("- Reading shader files");
+        println("- Reading shader files");
         auto vs_content = vs_path.read_file().unwrap();
         auto fs_content = fs_path.read_file().unwrap();
 
-        fmt::println("- Creating shader modules");
+        println("- Creating shader modules");
         auto vs_shader_module = vk::shader_module_builder_t::prepare(device.getmut(), &compiler)
                                     .unwrap()
                                     .kind(vk::shader_kinds::glsl_vertex)
@@ -197,7 +198,14 @@ auto main() -> int
             std::array<float, 3> col;
         };
 
-        fmt::println("- Creating graphics pipeline");
+        struct ubo_t
+        {
+            glm::mat4 model;
+            glm::mat4 view;
+            glm::mat4 proj;
+        };
+
+        println("- Creating graphics pipeline");
         auto pipeline = vk::pipeline_builder_t ::prepare(device.getmut())
                             .unwrap()
                             ->shader_stages()
@@ -226,7 +234,7 @@ auto main() -> int
                             .build()
                             .unwrap();
 
-        fmt::println("- Creating descriptor pool");
+        println("- Creating descriptor pool");
         auto desc_pool = vk::desc_pool_builder_t::prepare(device.getmut())
                              .unwrap()
                              .pool(vk::desc_types::sampler, 100)
@@ -234,16 +242,16 @@ auto main() -> int
                              .build()
                              .unwrap();
 
-        fmt::println("- Creating synchronization objects");
+        println("- Creating synchronization objects");
         // Synchronization
         auto sync_objects = vk::sync_objects_builder_t::prepare(device.getmut())
                                 .unwrap()
-                                .semaphores(max_frames_in_flight + swapchain->images.size())
+                                .semaphores(max_frames_in_flight * 2)
                                 .fences(max_frames_in_flight)
                                 .build()
                                 .unwrap();
 
-        fmt::println("- Creating command pool and command buffers");
+        println("- Creating command pool and command buffers");
         auto graphics_cmd_pool = vk::cmd_pool_builder_t::prepare(device.getmut(), graphics_qf->index)
                                      .unwrap()
                                      .flag(vk::command_pool_create_flags::reset_command_buffer_bit)
@@ -256,7 +264,7 @@ auto main() -> int
                                      .build()
                                      .unwrap();
 
-        fmt::println("- Creating command buffers");
+        println("- Creating command buffers");
         auto draw_cmds = graphics_cmd_pool->alloc_cmds(max_frames_in_flight).unwrap();
 
         std::vector<vertex_t> vertices = {
@@ -268,7 +276,7 @@ auto main() -> int
 
         std::vector<ui16> indices = { 0, 1, 2, 2, 3, 0 };
 
-        fmt::println("- Creating vertex buffer");
+        println("- Creating vertex buffer");
         auto vertex_buffer = vk::vertex_buffer_builder_t::prepare(device.getmut())
                                  .unwrap()
                                  .vertices<vertex_t>(vertices)
@@ -277,7 +285,7 @@ auto main() -> int
                                  .build()
                                  .unwrap();
 
-        fmt::println("- Creating index buffer");
+        println("- Creating index buffer");
         auto index_buffer = vk::index_buffer_builder_t::prepare(device.getmut())
                                 .unwrap()
                                 .indices(std::span<const ui16> { indices })
@@ -286,23 +294,23 @@ auto main() -> int
                                 .build()
                                 .unwrap();
 
-        fmt::println("- Creating staging buffer");
+        println("- Creating staging buffer");
         auto staging_buffer = vk::staging_buffer_builder_t::prepare(device.getmut(), vertex_buffer.size)
                                   .unwrap()
                                   .build()
                                   .unwrap();
 
-        fmt::println("- Copying vertices to staging buffer");
+        println("- Copying vertices to staging buffer");
         staging_buffer.transfer(vertices.data(), sizeof(vertex_t) * vertices.size()).unwrap();
 
-        fmt::println("- Copying staging buffer to vertex buffer");
+        println("- Copying staging buffer to vertex buffer");
         auto cpy_cmd = transfer_cmd_pool->alloc_cmds(1).unwrap().get(0).unwrap();
 
         cpy_cmd.begin_one_time().unwrap();
         cpy_cmd.copy_buffer(staging_buffer.buffer, vertex_buffer.buffer, vertex_buffer.size);
         cpy_cmd.end().unwrap();
 
-        fmt::println("- Submitting copy command buffer");
+        println("- Submitting copy command buffer");
         vk::submit_helper_t::prepare()
             .cmd_buffer(&cpy_cmd.handle)
             .wait_stage(vk::pipeline_stage_flags::transfer)
@@ -311,17 +319,17 @@ auto main() -> int
 
         device->wait().unwrap();
 
-        fmt::println("- Copying indices to staging buffer");
+        println("- Copying indices to staging buffer");
         staging_buffer.transfer(indices.data(), sizeof(ui16) * indices.size()).unwrap();
 
-        fmt::println("- Copying staging buffer to index buffer");
+        println("- Copying staging buffer to index buffer");
         cpy_cmd = transfer_cmd_pool->alloc_cmds(1).unwrap().get(0).unwrap();
 
         cpy_cmd.begin_one_time().unwrap();
         cpy_cmd.copy_buffer(staging_buffer.buffer, index_buffer.buffer, index_buffer.size);
         cpy_cmd.end().unwrap();
 
-        fmt::println("- Submitting copy command buffer");
+        println("- Submitting copy command buffer");
         vk::submit_helper_t::prepare()
             .cmd_buffer(&cpy_cmd.handle)
             .wait_stage(vk::pipeline_stage_flags::transfer)
@@ -332,7 +340,7 @@ auto main() -> int
 
         ui32 frame = 0;
 
-        fmt::println("- Main loop");
+        println("- Main loop");
         while (!window->should_close())
         {
             glfw_driver->poll_events();
@@ -346,6 +354,7 @@ auto main() -> int
 
             auto fences               = sync_objects.fences(frame, 1);
             auto img_avail_sems       = sync_objects.semaphores(frame, 1);
+            auto render_finished_sems = sync_objects.semaphores(frame + max_frames_in_flight, 1);
 
             // Wait fences
             fences.wait().unwrap();
@@ -364,7 +373,7 @@ auto main() -> int
             }
             else if (res.is_error())
             {
-                fmt::println("Acquire img error");
+                println("Acquire img error");
                 return 1;
             }
 
@@ -372,8 +381,6 @@ auto main() -> int
             fences.reset().unwrap();
 
             uint32_t img_index = res.img_index();
-
-            auto render_finished_sems = sync_objects.semaphores(img_index + max_frames_in_flight, 1);
 
             // Render to the framebuffer
             render_pass->begin_info.framebuffer       = fbs.handles[img_index];
@@ -433,7 +440,7 @@ auto main() -> int
             }
             else if (present_res.is_error())
             {
-                fmt::println("Frame present error: {}", vk::vkres::get_repr(present_res.error()));
+                println("Frame present error: {}", vk::vkres::get_repr(present_res.error()));
                 return 1;
             }
 
@@ -444,7 +451,7 @@ auto main() -> int
     }
     catch (const orb::exception& e)
     {
-        fmt::println("Fatal error: {}", e.what());
+        println("Fatal error: {}", e.what());
         return 1;
     }
 

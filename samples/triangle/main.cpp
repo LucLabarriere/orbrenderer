@@ -191,7 +191,7 @@ auto main() -> int
                                     .build()
                                     .unwrap();
 
-        struct Vertex
+        struct vertex_t
         {
             std::array<float, 2> pos;
             std::array<float, 3> col;
@@ -207,9 +207,9 @@ auto main() -> int
                             .dynamic_state(vk::dynamic_states::viewport)
                             .dynamic_state(vk::dynamic_states::scissor)
                             .vertex_input()
-                            .binding<Vertex>(0, vk::vertex_input_rates::vertex)
-                            .attribute(0, offsetof(Vertex, pos), vk::vertex_formats::vec2_t)
-                            .attribute(1, offsetof(Vertex, col), vk::vertex_formats::vec3_t)
+                            .binding<vertex_t>(0, vk::vertex_input_rates::vertex)
+                            .attribute(0, offsetof(vertex_t, pos), vk::vertex_formats::vec2_t)
+                            .attribute(1, offsetof(vertex_t, col), vk::vertex_formats::vec3_t)
                             .input_assembly()
                             .viewport_states()
                             .viewport(0.0f, 0.0f, (f32)swapchain->width, (f32)swapchain->height, 0.0f, 1.0f)
@@ -259,7 +259,7 @@ auto main() -> int
         fmt::println("- Creating command buffers");
         auto draw_cmds = graphics_cmd_pool->alloc_cmds(max_frames_in_flight).unwrap();
 
-        std::vector<Vertex> vertices = {
+        std::vector<vertex_t> vertices = {
             { { 0.0f, -0.5f }, { 1.0f, 0.0f, 0.0f } },
             {  { 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f } },
             { { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
@@ -268,7 +268,7 @@ auto main() -> int
         fmt::println("- Creating vertex buffer");
         auto vertex_buffer = vk::vertex_buffer_builder_t::prepare(device.getmut())
                                  .unwrap()
-                                 .vertices<Vertex>(vertices)
+                                 .vertices<vertex_t>(vertices)
                                  .buffer_usage_flag(vk::buffer_usage_flags::transfer_destination)
                                  .memory_flags(vk::vma_alloc_flags::dedicated_memory)
                                  .build()
@@ -281,7 +281,7 @@ auto main() -> int
                                   .unwrap();
 
         fmt::println("- Copying vertices to staging buffer");
-        staging_buffer.transfer(vertices.data(), sizeof(Vertex) * vertices.size()).unwrap();
+        staging_buffer.transfer(vertices.data(), sizeof(vertex_t) * vertices.size()).unwrap();
 
         fmt::println("- Copying staging buffer to vertex buffer");
         auto cpy_cmd = transfer_cmd_pool->alloc_cmds(1).unwrap().get(0).unwrap();
