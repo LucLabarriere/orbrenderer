@@ -19,7 +19,8 @@ target_link_libraries(orbrenderer
           orb::imgui
           Vulkan::Vulkan
           Vulkan::shaderc_combined
-          GPUOpen::VulkanMemoryAllocator)
+          GPUOpen::VulkanMemoryAllocator
+          glm::glm)
 
 target_include_directories(orbrenderer
   PUBLIC  include

@@ -4,6 +4,7 @@
 #include <orb/eval.hpp>
 #include <orb/files.hpp>
 #include <orb/flux.hpp>
+#include <orb/maths.hpp>
 #include <orb/renderer.hpp>
 #include <orb/time.hpp>
 
@@ -195,6 +196,13 @@ auto main() -> int
         {
             std::array<float, 2> pos;
             std::array<float, 3> col;
+        };
+
+        struct ubo_t
+        {
+            glm::mat4 model;
+            glm::mat4 view;
+            glm::mat4 proj;
         };
 
         println("- Creating graphics pipeline");
