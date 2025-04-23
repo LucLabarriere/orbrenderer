@@ -6,7 +6,8 @@
 
 namespace orb::vk
 {
-    struct index_buffer_t {
+    struct index_buffer_t
+    {
         index_buffer_t() = default;
 
         index_buffer_t(const index_buffer_t&)                    = delete;
@@ -39,6 +40,7 @@ namespace orb::vk
         VmaAllocation allocation {};
         VkBuffer      buffer {};
         ui64          size {};
+        size_t        count {};
         VkIndexType   index_type {};
 
         ~index_buffer_t()
@@ -81,12 +83,18 @@ namespace orb::vk
         auto indices(std::span<const TIndexType> indices)
             -> index_buffer_builder_t&
         {
+            m_count            = indices.size();
             m_create_info.size = indices.size() * sizeof(TIndexType);
-            if constexpr (std::is_same_v<TIndexType, ui32>) {
+            if constexpr (std::is_same_v<TIndexType, ui32>)
+            {
                 m_index_type = VK_INDEX_TYPE_UINT32;
-            } else if constexpr (std::is_same_v<TIndexType, ui16>) {
+            }
+            else if constexpr (std::is_same_v<TIndexType, ui16>)
+            {
                 m_index_type = VK_INDEX_TYPE_UINT16;
-            } else if constexpr (std::is_same_v<TIndexType, ui8>) {
+            }
+            else if constexpr (std::is_same_v<TIndexType, ui8>)
+            {
                 m_index_type = VK_INDEX_TYPE_UINT8_EXT;
             }
 
@@ -121,6 +129,7 @@ namespace orb::vk
         [[nodiscard]] auto build() -> result<index_buffer_t>
         {
             index_buffer_t buffer {};
+            buffer.count     = m_count;
             buffer.allocator = m_device->allocator;
 
             auto res = vmaCreateBuffer(m_device->allocator,
@@ -145,5 +154,6 @@ namespace orb::vk
         VkBufferCreateInfo      m_create_info {};
         VmaAllocationCreateInfo m_alloc_info {};
         VkIndexType             m_index_type {};
+        size_t                  m_count {};
     };
-}
+} // namespace orb::vk
