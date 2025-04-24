@@ -111,7 +111,7 @@ namespace orb::vk
                      VK_VERSION_MINOR(api_version),
                      VK_VERSION_PATCH(api_version));
         fmt::println("  * Vulkan handle: {}", fmt::ptr(handle));
-        fmt::println("  * GPU type: {}", gpu_type_names[(size_t)device_type]);
+        fmt::println("  * GPU type: {}", gpu_type_names.at(device_type));
         fmt::println("  * Available queue families");
 
         for (const auto& [i, qf] : flux::enumerate(queue_families))

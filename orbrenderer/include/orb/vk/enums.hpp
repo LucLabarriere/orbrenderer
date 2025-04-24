@@ -1,13 +1,19 @@
 #pragma once
 
+#include "orb/eternal.hpp"
+
 #include <orb/utility.hpp>
 
 #include <array>
+#include <map>
 #include <string_view>
 #include <vulkan/vulkan_core.h>
 
+#define NAME_ENTRY(e) { e, #e }
+
 namespace orb::vk
 {
+
     enum class gpu_type : ui32
     {
         other = 0,
@@ -17,13 +23,15 @@ namespace orb::vk
         cpu,
     };
 
-    inline constexpr std::array<std::string_view, 5> gpu_type_names = {
-        "Other type",
-        "Integrated",
-        "Discrete",
-        "Virtual",
-        "CPU"
-    };
+    inline constexpr auto gpu_type_names = create_name_map<gpu_type>({
+        NAME_ENTRY(gpu_type::other),
+        NAME_ENTRY(gpu_type::integrated),
+        NAME_ENTRY(gpu_type::discrete),
+        NAME_ENTRY(gpu_type::virtual_gpu),
+        NAME_ENTRY(gpu_type::cpu),
+    });
+
+    static_assert(gpu_type_names.unique());
 
     enum class queue_family : ui32
     {
@@ -35,10 +43,23 @@ namespace orb::vk
         video_decode = 1 << 5,
     };
 
+    inline constexpr auto queue_family_names = create_name_map<queue_family>({
+        NAME_ENTRY(queue_family::graphics),
+        NAME_ENTRY(queue_family::compute),
+        NAME_ENTRY(queue_family::transfer),
+        NAME_ENTRY(queue_family::sparse),
+        NAME_ENTRY(queue_family::prot),
+        NAME_ENTRY(queue_family::video_decode),
+    });
+
     enum class instance_create : ui32
     {
         portability = 1 << 0,
     };
+
+    inline constexpr auto instance_create_names = create_name_map<instance_create>({
+        NAME_ENTRY(instance_create::portability),
+    });
 
     enum class descriptor_type : ui32
     {
@@ -63,6 +84,26 @@ namespace orb::vk
         mutable_valve              = 1000351000,
     };
 
+    inline constexpr auto descriptor_type_names = create_name_map<descriptor_type>({
+        NAME_ENTRY(descriptor_type::sampled_image),
+        NAME_ENTRY(descriptor_type::storage_image),
+        NAME_ENTRY(descriptor_type::uniform_texel_buffer),
+        NAME_ENTRY(descriptor_type::storage_texel_buffer),
+        NAME_ENTRY(descriptor_type::uniform_buffer),
+        NAME_ENTRY(descriptor_type::storage_buffer),
+        NAME_ENTRY(descriptor_type::uniform_buffer_dynamic),
+        NAME_ENTRY(descriptor_type::storage_buffer_dynamic),
+        NAME_ENTRY(descriptor_type::input_attachment),
+        NAME_ENTRY(descriptor_type::inline_uniform_block),
+        NAME_ENTRY(descriptor_type::acceleration_structure_khr),
+        NAME_ENTRY(descriptor_type::acceleration_structure_nv),
+        NAME_ENTRY(descriptor_type::sample_weight_image_qcom),
+        NAME_ENTRY(descriptor_type::block_match_image_qcom),
+        NAME_ENTRY(descriptor_type::mutable_ext),
+        NAME_ENTRY(descriptor_type::inline_uniform_block_ext),
+        NAME_ENTRY(descriptor_type::mutable_valve),
+    });
+
     enum class attachment_load_op : ui32
     {
         load = 0,
@@ -71,12 +112,25 @@ namespace orb::vk
         none = 1000400000,
     };
 
+    inline constexpr auto attachment_load_op_names = create_name_map<attachment_load_op>({
+        NAME_ENTRY(attachment_load_op::load),
+        NAME_ENTRY(attachment_load_op::clear),
+        NAME_ENTRY(attachment_load_op::dont_care),
+        NAME_ENTRY(attachment_load_op::none),
+    });
+
     enum class attachment_store_op : ui32
     {
         store = 0,
         dont_care,
         none = 1000301000,
     };
+
+    inline constexpr auto attachment_store_op_names = create_name_map<attachment_store_op>({
+        NAME_ENTRY(attachment_store_op::store),
+        NAME_ENTRY(attachment_store_op::dont_care),
+        NAME_ENTRY(attachment_store_op::none),
+    });
 
     enum class pipeline_bind_point : ui32
     {
@@ -86,11 +140,23 @@ namespace orb::vk
         ray_tracing_nv  = 1000165000,
     };
 
+    inline constexpr auto pipeline_bind_point_names = create_name_map<pipeline_bind_point>({
+        NAME_ENTRY(pipeline_bind_point::graphics),
+        NAME_ENTRY(pipeline_bind_point::compute),
+        NAME_ENTRY(pipeline_bind_point::ray_tracing_khr),
+        NAME_ENTRY(pipeline_bind_point::ray_tracing_nv),
+    });
+
     enum class cmd_buffer_level : ui32
     {
         primary   = 0,
         secondary = 1,
     };
+
+    inline constexpr auto cmd_buffer_level_names = create_name_map<cmd_buffer_level>({
+        NAME_ENTRY(cmd_buffer_level::primary),
+        NAME_ENTRY(cmd_buffer_level::secondary),
+    });
 
     enum class access_flag : ui32
     {
@@ -129,6 +195,41 @@ namespace orb::vk
         transform_feedback_counter_write_ext      = 1 << 27,
     };
 
+    inline constexpr auto access_flag_names = create_name_map<access_flag>({
+        NAME_ENTRY(access_flag::none),
+        NAME_ENTRY(access_flag::indirect_command_read),
+        NAME_ENTRY(access_flag::index_read),
+        NAME_ENTRY(access_flag::vertex_attribute_read),
+        NAME_ENTRY(access_flag::uniform_read),
+        NAME_ENTRY(access_flag::input_attachment_read),
+        NAME_ENTRY(access_flag::shader_read),
+        NAME_ENTRY(access_flag::shader_write),
+        NAME_ENTRY(access_flag::color_attachment_read),
+        NAME_ENTRY(access_flag::color_attachment_write),
+        NAME_ENTRY(access_flag::depth_stencil_attachment_read),
+        NAME_ENTRY(access_flag::depth_stencil_attachment_write),
+        NAME_ENTRY(access_flag::transfer_read),
+        NAME_ENTRY(access_flag::transfer_write),
+        NAME_ENTRY(access_flag::host_read),
+        NAME_ENTRY(access_flag::host_write),
+        NAME_ENTRY(access_flag::memory_read),
+        NAME_ENTRY(access_flag::memory_write),
+        NAME_ENTRY(access_flag::command_preprocess_read_nv),
+        NAME_ENTRY(access_flag::command_preprocess_write_nv),
+        NAME_ENTRY(access_flag::color_attachment_read_noncoherent_ext),
+        NAME_ENTRY(access_flag::conditional_rendering_read_ext),
+        NAME_ENTRY(access_flag::acceleration_structure_read_khr),
+        NAME_ENTRY(access_flag::acceleration_structure_read_nv),
+        NAME_ENTRY(access_flag::acceleration_structure_write_khr),
+        NAME_ENTRY(access_flag::acceleration_structure_write_nv),
+        NAME_ENTRY(access_flag::fragment_shading_rate_attachment_read_khr),
+        NAME_ENTRY(access_flag::shading_rate_image_read_nv),
+        NAME_ENTRY(access_flag::fragment_density_map_read_ext),
+        NAME_ENTRY(access_flag::transform_feedback_write_ext),
+        NAME_ENTRY(access_flag::transform_feedback_counter_read_ext),
+        NAME_ENTRY(access_flag::transform_feedback_counter_write_ext),
+    });
+
     enum class image_aspect_flag : ui32
     {
         none           = 0,
@@ -144,6 +245,21 @@ namespace orb::vk
         memory_plane_2 = 1 << 9,
         memory_plane_3 = 1 << 10,
     };
+
+    inline constexpr auto image_aspect_flag_names = create_name_map<image_aspect_flag>({
+        NAME_ENTRY(image_aspect_flag::none),
+        NAME_ENTRY(image_aspect_flag::color),
+        NAME_ENTRY(image_aspect_flag::depth),
+        NAME_ENTRY(image_aspect_flag::stencil),
+        NAME_ENTRY(image_aspect_flag::metadata),
+        NAME_ENTRY(image_aspect_flag::plane_0),
+        NAME_ENTRY(image_aspect_flag::plane_1),
+        NAME_ENTRY(image_aspect_flag::plane_2),
+        NAME_ENTRY(image_aspect_flag::memory_plane_0),
+        NAME_ENTRY(image_aspect_flag::memory_plane_1),
+        NAME_ENTRY(image_aspect_flag::memory_plane_2),
+        NAME_ENTRY(image_aspect_flag::memory_plane_3),
+    });
 
     enum class pipeline_stage_flag : ui32
     {
@@ -181,6 +297,42 @@ namespace orb::vk
         acceleration_structure_build_khr     = 1 << 25,
         acceleration_structure_build_nv      = 1 << 25,
     };
+
+    inline constexpr auto pipeline_stage_flag_name = create_name_map<pipeline_stage_flag>({
+        NAME_ENTRY(pipeline_stage_flag::none),
+        NAME_ENTRY(pipeline_stage_flag::none_khr),
+        NAME_ENTRY(pipeline_stage_flag::top_of_pipe),
+        NAME_ENTRY(pipeline_stage_flag::draw_indirect),
+        NAME_ENTRY(pipeline_stage_flag::vertex_input),
+        NAME_ENTRY(pipeline_stage_flag::vertex_shader),
+        NAME_ENTRY(pipeline_stage_flag::tessellation_control_shader),
+        NAME_ENTRY(pipeline_stage_flag::tessellation_evaluation_shader),
+        NAME_ENTRY(pipeline_stage_flag::geometry_shader),
+        NAME_ENTRY(pipeline_stage_flag::fragment_shader),
+        NAME_ENTRY(pipeline_stage_flag::early_fragment_tests),
+        NAME_ENTRY(pipeline_stage_flag::late_fragment_tests),
+        NAME_ENTRY(pipeline_stage_flag::color_attachment_output),
+        NAME_ENTRY(pipeline_stage_flag::compute_shader),
+        NAME_ENTRY(pipeline_stage_flag::transfer),
+        NAME_ENTRY(pipeline_stage_flag::bottom_of_pipe),
+        NAME_ENTRY(pipeline_stage_flag::host),
+        NAME_ENTRY(pipeline_stage_flag::all_graphics),
+        NAME_ENTRY(pipeline_stage_flag::all_commands),
+        NAME_ENTRY(pipeline_stage_flag::command_preprocess_nv),
+        NAME_ENTRY(pipeline_stage_flag::conditional_rendering_ext),
+        NAME_ENTRY(pipeline_stage_flag::task_shader_ext),
+        NAME_ENTRY(pipeline_stage_flag::task_shader_nv),
+        NAME_ENTRY(pipeline_stage_flag::mesh_shader_ext),
+        NAME_ENTRY(pipeline_stage_flag::mesh_shader_nv),
+        NAME_ENTRY(pipeline_stage_flag::ray_tracing_shader_khr),
+        NAME_ENTRY(pipeline_stage_flag::ray_tracing_shader_nv),
+        NAME_ENTRY(pipeline_stage_flag::fragment_shading_rate_attachment_khr),
+        NAME_ENTRY(pipeline_stage_flag::shading_rate_image_nv),
+        NAME_ENTRY(pipeline_stage_flag::fragment_density_process_ext),
+        NAME_ENTRY(pipeline_stage_flag::transform_feedback_ext),
+        NAME_ENTRY(pipeline_stage_flag::acceleration_structure_build_khr),
+        NAME_ENTRY(pipeline_stage_flag::acceleration_structure_build_nv),
+    });
 
     enum class format : ui32
     {
@@ -492,6 +644,316 @@ namespace orb::vk
         a4b4g4r4_unorm_pack16_ext,
     };
 
+    inline constexpr auto format_names = create_name_map<format>({
+        NAME_ENTRY(format::undefined),
+        NAME_ENTRY(format::r4g4_unorm_pack8),
+        NAME_ENTRY(format::r4g4b4a4_unorm_pack16),
+        NAME_ENTRY(format::b4g4r4a4_unorm_pack16),
+        NAME_ENTRY(format::r5g6b5_unorm_pack16),
+        NAME_ENTRY(format::b5g6r5_unorm_pack16),
+        NAME_ENTRY(format::r5g5b5a1_unorm_pack16),
+        NAME_ENTRY(format::b5g5r5a1_unorm_pack16),
+        NAME_ENTRY(format::a1r5g5b5_unorm_pack16),
+        NAME_ENTRY(format::r8_unorm),
+        NAME_ENTRY(format::r8_snorm),
+        NAME_ENTRY(format::r8_uscaled),
+        NAME_ENTRY(format::r8_sscaled),
+        NAME_ENTRY(format::r8_uint),
+        NAME_ENTRY(format::r8_sint),
+        NAME_ENTRY(format::r8_srgb),
+        NAME_ENTRY(format::r8g8_unorm),
+        NAME_ENTRY(format::r8g8_snorm),
+        NAME_ENTRY(format::r8g8_uscaled),
+        NAME_ENTRY(format::r8g8_sscaled),
+        NAME_ENTRY(format::r8g8_uint),
+        NAME_ENTRY(format::r8g8_sint),
+        NAME_ENTRY(format::r8g8_srgb),
+        NAME_ENTRY(format::r8g8b8_unorm),
+        NAME_ENTRY(format::r8g8b8_snorm),
+        NAME_ENTRY(format::r8g8b8_uscaled),
+        NAME_ENTRY(format::r8g8b8_sscaled),
+        NAME_ENTRY(format::r8g8b8_uint),
+        NAME_ENTRY(format::r8g8b8_sint),
+        NAME_ENTRY(format::r8g8b8_srgb),
+        NAME_ENTRY(format::b8g8r8_unorm),
+        NAME_ENTRY(format::b8g8r8_snorm),
+        NAME_ENTRY(format::b8g8r8_uscaled),
+        NAME_ENTRY(format::b8g8r8_sscaled),
+        NAME_ENTRY(format::b8g8r8_uint),
+        NAME_ENTRY(format::b8g8r8_sint),
+        NAME_ENTRY(format::b8g8r8_srgb),
+        NAME_ENTRY(format::r8g8b8a8_unorm),
+        NAME_ENTRY(format::r8g8b8a8_snorm),
+        NAME_ENTRY(format::r8g8b8a8_uscaled),
+        NAME_ENTRY(format::r8g8b8a8_sscaled),
+        NAME_ENTRY(format::r8g8b8a8_uint),
+        NAME_ENTRY(format::r8g8b8a8_sint),
+        NAME_ENTRY(format::r8g8b8a8_srgb),
+        NAME_ENTRY(format::b8g8r8a8_unorm),
+        NAME_ENTRY(format::b8g8r8a8_snorm),
+        NAME_ENTRY(format::b8g8r8a8_uscaled),
+        NAME_ENTRY(format::b8g8r8a8_sscaled),
+        NAME_ENTRY(format::b8g8r8a8_uint),
+        NAME_ENTRY(format::b8g8r8a8_sint),
+        NAME_ENTRY(format::b8g8r8a8_srgb),
+        NAME_ENTRY(format::a8b8g8r8_unorm_pack32),
+        NAME_ENTRY(format::a8b8g8r8_snorm_pack32),
+        NAME_ENTRY(format::a8b8g8r8_uscaled_pack32),
+        NAME_ENTRY(format::a8b8g8r8_sscaled_pack32),
+        NAME_ENTRY(format::a8b8g8r8_uint_pack32),
+        NAME_ENTRY(format::a8b8g8r8_sint_pack32),
+        NAME_ENTRY(format::a8b8g8r8_srgb_pack32),
+        NAME_ENTRY(format::a2r10g10b10_unorm_pack32),
+        NAME_ENTRY(format::a2r10g10b10_snorm_pack32),
+        NAME_ENTRY(format::a2r10g10b10_uscaled_pack32),
+        NAME_ENTRY(format::a2r10g10b10_sscaled_pack32),
+        NAME_ENTRY(format::a2r10g10b10_uint_pack32),
+        NAME_ENTRY(format::a2r10g10b10_sint_pack32),
+        NAME_ENTRY(format::a2b10g10r10_unorm_pack32),
+        NAME_ENTRY(format::a2b10g10r10_snorm_pack32),
+        NAME_ENTRY(format::a2b10g10r10_uscaled_pack32),
+        NAME_ENTRY(format::a2b10g10r10_sscaled_pack32),
+        NAME_ENTRY(format::a2b10g10r10_uint_pack32),
+        NAME_ENTRY(format::a2b10g10r10_sint_pack32),
+        NAME_ENTRY(format::r16_unorm),
+        NAME_ENTRY(format::r16_snorm),
+        NAME_ENTRY(format::r16_uscaled),
+        NAME_ENTRY(format::r16_sscaled),
+        NAME_ENTRY(format::r16_uint),
+        NAME_ENTRY(format::r16_sint),
+        NAME_ENTRY(format::r16_sfloat),
+        NAME_ENTRY(format::r16g16_unorm),
+        NAME_ENTRY(format::r16g16_snorm),
+        NAME_ENTRY(format::r16g16_uscaled),
+        NAME_ENTRY(format::r16g16_sscaled),
+        NAME_ENTRY(format::r16g16_uint),
+        NAME_ENTRY(format::r16g16_sint),
+        NAME_ENTRY(format::r16g16_sfloat),
+        NAME_ENTRY(format::r16g16b16_unorm),
+        NAME_ENTRY(format::r16g16b16_snorm),
+        NAME_ENTRY(format::r16g16b16_uscaled),
+        NAME_ENTRY(format::r16g16b16_sscaled),
+        NAME_ENTRY(format::r16g16b16_uint),
+        NAME_ENTRY(format::r16g16b16_sint),
+        NAME_ENTRY(format::r16g16b16_sfloat),
+        NAME_ENTRY(format::r16g16b16a16_unorm),
+        NAME_ENTRY(format::r16g16b16a16_snorm),
+        NAME_ENTRY(format::r16g16b16a16_uscaled),
+        NAME_ENTRY(format::r16g16b16a16_sscaled),
+        NAME_ENTRY(format::r16g16b16a16_uint),
+        NAME_ENTRY(format::r16g16b16a16_sint),
+        NAME_ENTRY(format::r16g16b16a16_sfloat),
+        NAME_ENTRY(format::r32_uint),
+        NAME_ENTRY(format::r32_sint),
+        NAME_ENTRY(format::r32_sfloat),
+        NAME_ENTRY(format::r32g32_uint),
+        NAME_ENTRY(format::r32g32_sint),
+        NAME_ENTRY(format::r32g32_sfloat),
+        NAME_ENTRY(format::r32g32b32_uint),
+        NAME_ENTRY(format::r32g32b32_sint),
+        NAME_ENTRY(format::r32g32b32_sfloat),
+        NAME_ENTRY(format::r32g32b32a32_uint),
+        NAME_ENTRY(format::r32g32b32a32_sint),
+        NAME_ENTRY(format::r32g32b32a32_sfloat),
+        NAME_ENTRY(format::r64_uint),
+        NAME_ENTRY(format::r64_sint),
+        NAME_ENTRY(format::r64_sfloat),
+        NAME_ENTRY(format::r64g64_uint),
+        NAME_ENTRY(format::r64g64_sint),
+        NAME_ENTRY(format::r64g64_sfloat),
+        NAME_ENTRY(format::r64g64b64_uint),
+        NAME_ENTRY(format::r64g64b64_sint),
+        NAME_ENTRY(format::r64g64b64_sfloat),
+        NAME_ENTRY(format::r64g64b64a64_uint),
+        NAME_ENTRY(format::r64g64b64a64_sint),
+        NAME_ENTRY(format::r64g64b64a64_sfloat),
+        NAME_ENTRY(format::b10g11r11_ufloat_pack32),
+        NAME_ENTRY(format::e5b9g9r9_ufloat_pack32),
+        NAME_ENTRY(format::d16_unorm),
+        NAME_ENTRY(format::x8_d24_unorm_pack32),
+        NAME_ENTRY(format::d32_sfloat),
+        NAME_ENTRY(format::s8_uint),
+        NAME_ENTRY(format::d16_unorm_s8_uint),
+        NAME_ENTRY(format::d24_unorm_s8_uint),
+        NAME_ENTRY(format::d32_sfloat_s8_uint),
+        NAME_ENTRY(format::bc1_rgb_unorm_block),
+        NAME_ENTRY(format::bc1_rgb_srgb_block),
+        NAME_ENTRY(format::bc1_rgba_unorm_block),
+        NAME_ENTRY(format::bc1_rgba_srgb_block),
+        NAME_ENTRY(format::bc2_unorm_block),
+        NAME_ENTRY(format::bc2_srgb_block),
+        NAME_ENTRY(format::bc3_unorm_block),
+        NAME_ENTRY(format::bc3_srgb_block),
+        NAME_ENTRY(format::bc4_unorm_block),
+        NAME_ENTRY(format::bc4_snorm_block),
+        NAME_ENTRY(format::bc5_unorm_block),
+        NAME_ENTRY(format::bc5_snorm_block),
+        NAME_ENTRY(format::bc6h_ufloat_block),
+        NAME_ENTRY(format::bc6h_sfloat_block),
+        NAME_ENTRY(format::bc7_unorm_block),
+        NAME_ENTRY(format::bc7_srgb_block),
+        NAME_ENTRY(format::etc2_r8g8b8_unorm_block),
+        NAME_ENTRY(format::etc2_r8g8b8_srgb_block),
+        NAME_ENTRY(format::etc2_r8g8b8a1_unorm_block),
+        NAME_ENTRY(format::etc2_r8g8b8a1_srgb_block),
+        NAME_ENTRY(format::etc2_r8g8b8a8_unorm_block),
+        NAME_ENTRY(format::etc2_r8g8b8a8_srgb_block),
+        NAME_ENTRY(format::eac_r11_unorm_block),
+        NAME_ENTRY(format::eac_r11_snorm_block),
+        NAME_ENTRY(format::eac_r11g11_unorm_block),
+        NAME_ENTRY(format::eac_r11g11_snorm_block),
+        NAME_ENTRY(format::astc_4x4_unorm_block),
+        NAME_ENTRY(format::astc_4x4_srgb_block),
+        NAME_ENTRY(format::astc_5x4_unorm_block),
+        NAME_ENTRY(format::astc_5x4_srgb_block),
+        NAME_ENTRY(format::astc_5x5_unorm_block),
+        NAME_ENTRY(format::astc_5x5_srgb_block),
+        NAME_ENTRY(format::astc_6x5_unorm_block),
+        NAME_ENTRY(format::astc_6x5_srgb_block),
+        NAME_ENTRY(format::astc_6x6_unorm_block),
+        NAME_ENTRY(format::astc_6x6_srgb_block),
+        NAME_ENTRY(format::astc_8x5_unorm_block),
+        NAME_ENTRY(format::astc_8x5_srgb_block),
+        NAME_ENTRY(format::astc_8x6_unorm_block),
+        NAME_ENTRY(format::astc_8x6_srgb_block),
+        NAME_ENTRY(format::astc_8x8_unorm_block),
+        NAME_ENTRY(format::astc_8x8_srgb_block),
+        NAME_ENTRY(format::astc_10x5_unorm_block),
+        NAME_ENTRY(format::astc_10x5_srgb_block),
+        NAME_ENTRY(format::astc_10x6_unorm_block),
+        NAME_ENTRY(format::astc_10x6_srgb_block),
+        NAME_ENTRY(format::astc_10x8_unorm_block),
+        NAME_ENTRY(format::astc_10x8_srgb_block),
+        NAME_ENTRY(format::astc_10x10_unorm_block),
+        NAME_ENTRY(format::astc_10x10_srgb_block),
+        NAME_ENTRY(format::astc_12x10_unorm_block),
+        NAME_ENTRY(format::astc_12x10_srgb_block),
+        NAME_ENTRY(format::astc_12x12_unorm_block),
+        NAME_ENTRY(format::astc_12x12_srgb_block),
+        NAME_ENTRY(format::g8b8g8r8_422_unorm),
+        NAME_ENTRY(format::b8g8r8g8_422_unorm),
+        NAME_ENTRY(format::g8_b8_r8_3plane_420_unorm),
+        NAME_ENTRY(format::g8_b8r8_2plane_420_unorm),
+        NAME_ENTRY(format::g8_b8_r8_3plane_422_unorm),
+        NAME_ENTRY(format::g8_b8r8_2plane_422_unorm),
+        NAME_ENTRY(format::g8_b8_r8_3plane_444_unorm),
+        NAME_ENTRY(format::r10x6_unorm_pack16),
+        NAME_ENTRY(format::r10x6g10x6_unorm_2pack16),
+        NAME_ENTRY(format::r10x6g10x6b10x6a10x6_unorm_4pack16),
+        NAME_ENTRY(format::g10x6b10x6g10x6r10x6_422_unorm_4pack16),
+        NAME_ENTRY(format::b10x6g10x6r10x6g10x6_422_unorm_4pack16),
+        NAME_ENTRY(format::g10x6_b10x6_r10x6_3plane_420_unorm_3pack16),
+        NAME_ENTRY(format::g10x6_b10x6r10x6_2plane_420_unorm_3pack16),
+        NAME_ENTRY(format::g10x6_b10x6_r10x6_3plane_422_unorm_3pack16),
+        NAME_ENTRY(format::g10x6_b10x6r10x6_2plane_422_unorm_3pack16),
+        NAME_ENTRY(format::g10x6_b10x6_r10x6_3plane_444_unorm_3pack16),
+        NAME_ENTRY(format::r12x4_unorm_pack16),
+        NAME_ENTRY(format::r12x4g12x4_unorm_2pack16),
+
+        NAME_ENTRY(format::r12x4g12x4b12x4a12x4_unorm_4pack16),
+        NAME_ENTRY(format::g12x4b12x4g12x4r12x4_422_unorm_4pack16),
+        NAME_ENTRY(format::b12x4g12x4r12x4g12x4_422_unorm_4pack16),
+        NAME_ENTRY(format::g12x4_b12x4_r12x4_3plane_420_unorm_3pack16),
+        NAME_ENTRY(format::g12x4_b12x4r12x4_2plane_420_unorm_3pack16),
+        NAME_ENTRY(format::g12x4_b12x4_r12x4_3plane_422_unorm_3pack16),
+        NAME_ENTRY(format::g12x4_b12x4r12x4_2plane_422_unorm_3pack16),
+        NAME_ENTRY(format::g12x4_b12x4_r12x4_3plane_444_unorm_3pack16),
+
+        NAME_ENTRY(format::g16b16g16r16_422_unorm),
+        NAME_ENTRY(format::b16g16r16g16_422_unorm),
+        NAME_ENTRY(format::g16_b16_r16_3plane_420_unorm),
+        NAME_ENTRY(format::g16_b16r16_2plane_420_unorm),
+        NAME_ENTRY(format::g16_b16_r16_3plane_422_unorm),
+        NAME_ENTRY(format::g16_b16r16_2plane_422_unorm),
+        NAME_ENTRY(format::g16_b16_r16_3plane_444_unorm),
+        NAME_ENTRY(format::g8_b8r8_2plane_444_unorm),
+        NAME_ENTRY(format::g10x6_b10x6r10x6_2plane_444_unorm_3pack16),
+        NAME_ENTRY(format::g12x4_b12x4r12x4_2plane_444_unorm_3pack16),
+        NAME_ENTRY(format::g16_b16r16_2plane_444_unorm),
+        NAME_ENTRY(format::a4r4g4b4_unorm_pack16),
+        NAME_ENTRY(format::a4b4g4r4_unorm_pack16),
+        NAME_ENTRY(format::astc_4x4_sfloat_block),
+        NAME_ENTRY(format::astc_5x4_sfloat_block),
+        NAME_ENTRY(format::astc_5x5_sfloat_block),
+        NAME_ENTRY(format::astc_6x5_sfloat_block),
+        NAME_ENTRY(format::astc_6x6_sfloat_block),
+        NAME_ENTRY(format::astc_8x5_sfloat_block),
+        NAME_ENTRY(format::astc_8x6_sfloat_block),
+        NAME_ENTRY(format::astc_8x8_sfloat_block),
+        NAME_ENTRY(format::astc_10x5_sfloat_block),
+        NAME_ENTRY(format::astc_10x6_sfloat_block),
+        NAME_ENTRY(format::astc_10x8_sfloat_block),
+        NAME_ENTRY(format::astc_10x10_sfloat_block),
+        NAME_ENTRY(format::astc_12x10_sfloat_block),
+        NAME_ENTRY(format::astc_12x12_sfloat_block),
+        NAME_ENTRY(format::pvrtc1_2bpp_unorm_block_img),
+        NAME_ENTRY(format::pvrtc1_4bpp_unorm_block_img),
+        NAME_ENTRY(format::pvrtc2_2bpp_unorm_block_img),
+        NAME_ENTRY(format::pvrtc2_4bpp_unorm_block_img),
+        NAME_ENTRY(format::pvrtc1_2bpp_srgb_block_img),
+        NAME_ENTRY(format::pvrtc1_4bpp_srgb_block_img),
+        NAME_ENTRY(format::pvrtc2_2bpp_srgb_block_img),
+        NAME_ENTRY(format::pvrtc2_4bpp_srgb_block_img),
+        NAME_ENTRY(format::r16g16_s10_5_nv),
+        NAME_ENTRY(format::astc_4x4_sfloat_block_ext),
+        NAME_ENTRY(format::astc_5x4_sfloat_block_ext),
+        NAME_ENTRY(format::astc_5x5_sfloat_block_ext),
+        NAME_ENTRY(format::astc_6x5_sfloat_block_ext),
+        NAME_ENTRY(format::astc_6x6_sfloat_block_ext),
+        NAME_ENTRY(format::astc_8x5_sfloat_block_ext),
+        NAME_ENTRY(format::astc_8x6_sfloat_block_ext),
+        NAME_ENTRY(format::astc_8x8_sfloat_block_ext),
+        NAME_ENTRY(format::astc_10x5_sfloat_block_ext),
+        NAME_ENTRY(format::astc_10x6_sfloat_block_ext),
+        NAME_ENTRY(format::astc_10x8_sfloat_block_ext),
+        NAME_ENTRY(format::astc_10x10_sfloat_block_ext),
+        NAME_ENTRY(format::astc_12x10_sfloat_block_ext),
+        NAME_ENTRY(format::astc_12x12_sfloat_block_ext),
+        NAME_ENTRY(format::g8b8g8r8_422_unorm_khr),
+        NAME_ENTRY(format::b8g8r8g8_422_unorm_khr),
+        NAME_ENTRY(format::g8_b8_r8_3plane_420_unorm_khr),
+        NAME_ENTRY(format::g8_b8r8_2plane_420_unorm_khr),
+        NAME_ENTRY(format::g8_b8_r8_3plane_422_unorm_khr),
+        NAME_ENTRY(format::g8_b8r8_2plane_422_unorm_khr),
+        NAME_ENTRY(format::g8_b8_r8_3plane_444_unorm_khr),
+        NAME_ENTRY(format::r10x6_unorm_pack16_khr),
+        NAME_ENTRY(format::r10x6g10x6_unorm_2pack16_khr),
+
+        NAME_ENTRY(format::r10x6g10x6b10x6a10x6_unorm_4pack16_khr),
+        NAME_ENTRY(format::g10x6b10x6g10x6r10x6_422_unorm_4pack16_khr),
+        NAME_ENTRY(format::b10x6g10x6r10x6g10x6_422_unorm_4pack16_khr),
+        NAME_ENTRY(format::g10x6_b10x6_r10x6_3plane_420_unorm_3pack16_khr),
+        NAME_ENTRY(format::g10x6_b10x6r10x6_2plane_420_unorm_3pack16_khr),
+        NAME_ENTRY(format::g10x6_b10x6_r10x6_3plane_422_unorm_3pack16_khr),
+        NAME_ENTRY(format::g10x6_b10x6r10x6_2plane_422_unorm_3pack16_khr),
+        NAME_ENTRY(format::g10x6_b10x6_r10x6_3plane_444_unorm_3pack16_khr),
+        NAME_ENTRY(format::r12x4_unorm_pack16_khr),
+        NAME_ENTRY(format::r12x4g12x4_unorm_2pack16_khr),
+        NAME_ENTRY(format::r12x4g12x4b12x4a12x4_unorm_4pack16_khr),
+        NAME_ENTRY(format::g12x4b12x4g12x4r12x4_422_unorm_4pack16_khr),
+        NAME_ENTRY(format::b12x4g12x4r12x4g12x4_422_unorm_4pack16_khr),
+        NAME_ENTRY(format::g12x4_b12x4_r12x4_3plane_420_unorm_3pack16_khr),
+        NAME_ENTRY(format::g12x4_b12x4r12x4_2plane_420_unorm_3pack16_khr),
+        NAME_ENTRY(format::g12x4_b12x4_r12x4_3plane_422_unorm_3pack16_khr),
+        NAME_ENTRY(format::g12x4_b12x4r12x4_2plane_422_unorm_3pack16_khr),
+        NAME_ENTRY(format::g12x4_b12x4_r12x4_3plane_444_unorm_3pack16_khr),
+        NAME_ENTRY(format::g10x6_b10x6r10x6_2plane_444_unorm_3pack16_ext),
+        NAME_ENTRY(format::g12x4_b12x4r12x4_2plane_444_unorm_3pack16_ext),
+
+        NAME_ENTRY(format::g16b16g16r16_422_unorm_khr),
+        NAME_ENTRY(format::b16g16r16g16_422_unorm_khr),
+        NAME_ENTRY(format::g16_b16_r16_3plane_420_unorm_khr),
+        NAME_ENTRY(format::g16_b16r16_2plane_420_unorm_khr),
+        NAME_ENTRY(format::g16_b16_r16_3plane_422_unorm_khr),
+        NAME_ENTRY(format::g16_b16r16_2plane_422_unorm_khr),
+        NAME_ENTRY(format::g16_b16_r16_3plane_444_unorm_khr),
+        NAME_ENTRY(format::g8_b8r8_2plane_444_unorm_ext),
+        NAME_ENTRY(format::g16_b16r16_2plane_444_unorm_ext),
+        NAME_ENTRY(format::a4r4g4b4_unorm_pack16_ext),
+        NAME_ENTRY(format::a4b4g4r4_unorm_pack16_ext),
+
+    });
+
     enum class present_mode : ui32
     {
         immediate_khr,
@@ -501,6 +963,15 @@ namespace orb::vk
         shared_demand_refresh_khr = 1000111000,
         shared_continuous_refresh_khr,
     };
+
+    inline constexpr auto present_mode_names = create_name_map<present_mode>({
+        NAME_ENTRY(present_mode::immediate_khr),
+        NAME_ENTRY(present_mode::mailbox_khr),
+        NAME_ENTRY(present_mode::fifo_khr),
+        NAME_ENTRY(present_mode::fifo_relaxed_khr),
+        NAME_ENTRY(present_mode::shared_demand_refresh_khr),
+        NAME_ENTRY(present_mode::shared_continuous_refresh_khr),
+    });
 
     enum class color_space : ui32
     {
@@ -522,6 +993,26 @@ namespace orb::vk
         display_native_amd = 1000213000,
         dci_p3_linear_ext  = display_p3_linear_ext,
     };
+
+    inline constexpr auto color_space_names = create_name_map<color_space>({
+        NAME_ENTRY(color_space::srgb_nonlinear_khr),
+        NAME_ENTRY(color_space::display_p3_nonlinear_ext),
+        NAME_ENTRY(color_space::extended_srgb_linear_ext),
+        NAME_ENTRY(color_space::display_p3_linear_ext),
+        NAME_ENTRY(color_space::dci_p3_nonlinear_ext),
+        NAME_ENTRY(color_space::bt709_linear_ext),
+        NAME_ENTRY(color_space::bt709_nonlinear_ext),
+        NAME_ENTRY(color_space::bt2020_linear_ext),
+        NAME_ENTRY(color_space::hdr10_st2084_ext),
+        NAME_ENTRY(color_space::dolbyvision_ext),
+        NAME_ENTRY(color_space::hdr10_hlg_ext),
+        NAME_ENTRY(color_space::adobergb_linear_ext),
+        NAME_ENTRY(color_space::adobergb_nonlinear_ext),
+        NAME_ENTRY(color_space::pass_through_ext),
+        NAME_ENTRY(color_space::extended_srgb_nonlinear_ext),
+        NAME_ENTRY(color_space::display_native_amd),
+        NAME_ENTRY(color_space::dci_p3_linear_ext),
+    });
 
     enum class image_usage_flag : ui32
     {
@@ -548,11 +1039,40 @@ namespace orb::vk
         sample_block_match_qcom              = 1 << 21,
     };
 
+    inline constexpr auto image_usage_flag_names = create_name_map<image_usage_flag>({
+        NAME_ENTRY(image_usage_flag::transfer_src),
+        NAME_ENTRY(image_usage_flag::transfer_dst),
+        NAME_ENTRY(image_usage_flag::sampled),
+        NAME_ENTRY(image_usage_flag::storage),
+        NAME_ENTRY(image_usage_flag::color_attachment),
+        NAME_ENTRY(image_usage_flag::depth_stencil_attachment),
+        NAME_ENTRY(image_usage_flag::transient_attachment),
+        NAME_ENTRY(image_usage_flag::input_attachment),
+        NAME_ENTRY(image_usage_flag::fragment_shading_rate_attachment_khr),
+        NAME_ENTRY(image_usage_flag::shading_rate_image_nv),
+        NAME_ENTRY(image_usage_flag::fragment_density_map_ext),
+        NAME_ENTRY(image_usage_flag::video_decode_dst_khr),
+        NAME_ENTRY(image_usage_flag::video_decode_src_khr),
+        NAME_ENTRY(image_usage_flag::video_decode_dpb_khr),
+        NAME_ENTRY(image_usage_flag::video_encode_dst_khr),
+        NAME_ENTRY(image_usage_flag::video_encode_src_khr),
+        NAME_ENTRY(image_usage_flag::video_encode_dpb_khr),
+        NAME_ENTRY(image_usage_flag::invocation_mask_huawei),
+        NAME_ENTRY(image_usage_flag::attachment_feedback_loop_ext),
+        NAME_ENTRY(image_usage_flag::sample_weight_qcom),
+        NAME_ENTRY(image_usage_flag::sample_block_match_qcom),
+    });
+
     enum class sharing_mode : ui32
     {
         exclusive,
         concurrent,
     };
+
+    inline constexpr auto sharing_mode_names = create_name_map<sharing_mode>({
+        NAME_ENTRY(sharing_mode::exclusive),
+        NAME_ENTRY(sharing_mode::concurrent),
+    });
 
     enum class surface_transform_flag : ui32
     {
@@ -567,6 +1087,18 @@ namespace orb::vk
         inherit_khr                      = 1 << 8,
     };
 
+    inline constexpr auto surface_transform_flag_names = create_name_map<surface_transform_flag>({
+        NAME_ENTRY(surface_transform_flag::identity_khr),
+        NAME_ENTRY(surface_transform_flag::rotate_90_khr),
+        NAME_ENTRY(surface_transform_flag::rotate_180_khr),
+        NAME_ENTRY(surface_transform_flag::rotate_270_khr),
+        NAME_ENTRY(surface_transform_flag::horizontal_mirror_khr),
+        NAME_ENTRY(surface_transform_flag::horizontal_mirror_rotate_90_khr),
+        NAME_ENTRY(surface_transform_flag::horizontal_mirror_rotate_180_khr),
+        NAME_ENTRY(surface_transform_flag::horizontal_mirror_rotate_270_khr),
+        NAME_ENTRY(surface_transform_flag::inherit_khr),
+    });
+
     enum class composite_alpha_flag : ui32
     {
         opaque_khr          = 1 << 0,
@@ -575,6 +1107,13 @@ namespace orb::vk
         inherit_khr         = 1 << 3,
     };
 
+    inline constexpr auto composite_alpha_flag_names = create_name_map<composite_alpha_flag>({
+        NAME_ENTRY(composite_alpha_flag::opaque_khr),
+        NAME_ENTRY(composite_alpha_flag::pre_multiplied_khr),
+        NAME_ENTRY(composite_alpha_flag::post_multiplied_khr),
+        NAME_ENTRY(composite_alpha_flag::inherit_khr),
+    });
+
     enum class image_tiling : ui32
     {
         optimal,
@@ -582,12 +1121,24 @@ namespace orb::vk
         drm_format_modifier_ext = 1000158000,
     };
 
+    inline constexpr auto image_tiling_names = create_name_map<image_tiling>({
+        NAME_ENTRY(image_tiling::optimal),
+        NAME_ENTRY(image_tiling::linear),
+        NAME_ENTRY(image_tiling::drm_format_modifier_ext),
+    });
+
     enum class image_type : ui32
     {
         _1d,
         _2d,
         _3d,
     };
+
+    inline constexpr auto image_type_names = create_name_map<image_type>({
+        NAME_ENTRY(image_type::_1d),
+        NAME_ENTRY(image_type::_2d),
+        NAME_ENTRY(image_type::_3d),
+    });
 
     enum class image_view_type : ui32
     {
@@ -600,6 +1151,16 @@ namespace orb::vk
         cube_array,
     };
 
+    inline constexpr auto image_view_type_names = create_name_map<image_view_type>({
+        NAME_ENTRY(image_view_type::_1d),
+        NAME_ENTRY(image_view_type::_2d),
+        NAME_ENTRY(image_view_type::_3d),
+        NAME_ENTRY(image_view_type::cube),
+        NAME_ENTRY(image_view_type::_1d_array),
+        NAME_ENTRY(image_view_type::_2d_array),
+        NAME_ENTRY(image_view_type::cube_array),
+    });
+
     enum class component_swizzle : ui32
     {
         identity,
@@ -610,6 +1171,16 @@ namespace orb::vk
         b,
         a,
     };
+
+    inline constexpr auto component_swizzle_names = create_name_map<component_swizzle>({
+        NAME_ENTRY(component_swizzle::identity),
+        NAME_ENTRY(component_swizzle::zero),
+        NAME_ENTRY(component_swizzle::one),
+        NAME_ENTRY(component_swizzle::r),
+        NAME_ENTRY(component_swizzle::g),
+        NAME_ENTRY(component_swizzle::b),
+        NAME_ENTRY(component_swizzle::a),
+    });
 
     enum class sample_count_flag : ui32
     {
@@ -622,6 +1193,16 @@ namespace orb::vk
         _64 = 1 << 6,
     };
 
+    inline constexpr auto sample_count_flag_names = create_name_map<sample_count_flag>({
+        NAME_ENTRY(sample_count_flag::_1),
+        NAME_ENTRY(sample_count_flag::_2),
+        NAME_ENTRY(sample_count_flag::_4),
+        NAME_ENTRY(sample_count_flag::_8),
+        NAME_ENTRY(sample_count_flag::_16),
+        NAME_ENTRY(sample_count_flag::_32),
+        NAME_ENTRY(sample_count_flag::_64),
+    });
+
     enum class descriptor_pool_create_flag
     {
         free_descriptor_set   = 1 << 0,
@@ -630,6 +1211,14 @@ namespace orb::vk
         host_only_ext         = 1 << 2,
         host_only_valve       = 1 << 2,
     };
+
+    inline constexpr auto descriptor_pool_create_flag_names = create_name_map<descriptor_pool_create_flag>({
+        NAME_ENTRY(descriptor_pool_create_flag::free_descriptor_set),
+        NAME_ENTRY(descriptor_pool_create_flag::update_after_bind),
+        NAME_ENTRY(descriptor_pool_create_flag::update_after_bind_ext),
+        NAME_ENTRY(descriptor_pool_create_flag::host_only_ext),
+        NAME_ENTRY(descriptor_pool_create_flag::host_only_valve),
+    });
 
     enum class image_layout
     {
@@ -672,12 +1261,58 @@ namespace orb::vk
         video_encode_dpb_khr,
     };
 
+    inline constexpr auto image_layout_names = create_name_map<image_layout>({
+        NAME_ENTRY(image_layout::undefined),
+        NAME_ENTRY(image_layout::general),
+        NAME_ENTRY(image_layout::color_attachment_optimal),
+        NAME_ENTRY(image_layout::depth_stencil_attachment_optimal),
+        NAME_ENTRY(image_layout::depth_stencil_read_only_optimal),
+        NAME_ENTRY(image_layout::shader_read_only_optimal),
+        NAME_ENTRY(image_layout::transfer_src_optimal),
+        NAME_ENTRY(image_layout::transfer_dst_optimal),
+        NAME_ENTRY(image_layout::preinitialized),
+        NAME_ENTRY(image_layout::depth_read_only_stencil_attachment_optimal),
+        NAME_ENTRY(image_layout::depth_attachment_stencil_read_only_optimal),
+        NAME_ENTRY(image_layout::depth_attachment_optimal),
+        NAME_ENTRY(image_layout::depth_read_only_optimal),
+        NAME_ENTRY(image_layout::stencil_attachment_optimal),
+        NAME_ENTRY(image_layout::stencil_read_only_optimal),
+        NAME_ENTRY(image_layout::read_only_optimal),
+        NAME_ENTRY(image_layout::attachment_optimal),
+        NAME_ENTRY(image_layout::present_src_khr),
+        NAME_ENTRY(image_layout::video_decode_dst_khr),
+        NAME_ENTRY(image_layout::video_decode_src_khr),
+        NAME_ENTRY(image_layout::video_decode_dpb_khr),
+        NAME_ENTRY(image_layout::shared_present_khr),
+        NAME_ENTRY(image_layout::fragment_density_map_optimal_ext),
+        NAME_ENTRY(image_layout::fragment_shading_rate_attachment_optimal_khr),
+        NAME_ENTRY(image_layout::attachment_feedback_loop_optimal_ext),
+        NAME_ENTRY(image_layout::depth_read_only_stencil_attachment_optimal_khr),
+        NAME_ENTRY(image_layout::depth_attachment_stencil_read_only_optimal_khr),
+        NAME_ENTRY(image_layout::shading_rate_optimal_nv),
+        NAME_ENTRY(image_layout::depth_attachment_optimal_khr),
+        NAME_ENTRY(image_layout::depth_read_only_optimal_khr),
+        NAME_ENTRY(image_layout::stencil_attachment_optimal_khr),
+        NAME_ENTRY(image_layout::stencil_read_only_optimal_khr),
+        NAME_ENTRY(image_layout::read_only_optimal_khr),
+        NAME_ENTRY(image_layout::attachment_optimal_khr),
+        NAME_ENTRY(image_layout::video_encode_dst_khr),
+        NAME_ENTRY(image_layout::video_encode_src_khr),
+        NAME_ENTRY(image_layout::video_encode_dpb_khr),
+    });
+
     enum class command_pool_create_flag : ui32
     {
         transient            = 1 << 0,
         reset_command_buffer = 1 << 1,
         prot                 = 1 << 2,
     };
+
+    inline constexpr auto command_pool_create_flag_names = create_name_map<command_pool_create_flag>({
+        NAME_ENTRY(command_pool_create_flag::transient),
+        NAME_ENTRY(command_pool_create_flag::reset_command_buffer),
+        NAME_ENTRY(command_pool_create_flag::prot),
+    });
 
     enum class memory_property_flag : ui32
     {
@@ -691,6 +1326,18 @@ namespace orb::vk
         device_uncached_amd = 1 << 7,
         rdma_capable_nv     = 1 << 8,
     };
+
+    inline constexpr auto memory_property_flag_names = create_name_map<memory_property_flag>({
+        NAME_ENTRY(memory_property_flag::device_local),
+        NAME_ENTRY(memory_property_flag::host_visible),
+        NAME_ENTRY(memory_property_flag::host_coherent),
+        NAME_ENTRY(memory_property_flag::host_cached),
+        NAME_ENTRY(memory_property_flag::lazily_allocated),
+        NAME_ENTRY(memory_property_flag::prot),
+        NAME_ENTRY(memory_property_flag::device_coherent_amd),
+        NAME_ENTRY(memory_property_flag::device_uncached_amd),
+        NAME_ENTRY(memory_property_flag::rdma_capable_nv),
+    });
 
     enum class memory_usage : ui32
     {
@@ -770,6 +1417,19 @@ namespace orb::vk
         */
         auto_prefer_host,
     };
+
+    inline constexpr auto memory_usage_names = create_name_map<memory_usage>({
+        NAME_ENTRY(memory_usage::unknown),
+        NAME_ENTRY(memory_usage::gpu_only),
+        NAME_ENTRY(memory_usage::cpu_only),
+        NAME_ENTRY(memory_usage::cpu_to_gpu),
+        NAME_ENTRY(memory_usage::gpu_to_cpu),
+        NAME_ENTRY(memory_usage::cpu_copy),
+        NAME_ENTRY(memory_usage::gpu_lazily_allocated),
+        NAME_ENTRY(memory_usage::usage_auto),
+        NAME_ENTRY(memory_usage::auto_prefer_device),
+        NAME_ENTRY(memory_usage::auto_prefer_host),
+    });
 
     enum class memory_flag : ui32
     {
@@ -915,6 +1575,26 @@ namespace orb::vk
         strategy_mask = strategy_min_memory | strategy_min_time | strategy_min_offset,
     };
 
+    inline constexpr auto memory_flag_names = create_name_map<memory_flag>({
+        NAME_ENTRY(memory_flag::dedicated_memory),
+        NAME_ENTRY(memory_flag::never_allocate),
+        NAME_ENTRY(memory_flag::mapped),
+        NAME_ENTRY(memory_flag::user_data_copy_string),
+        NAME_ENTRY(memory_flag::upper_address),
+        NAME_ENTRY(memory_flag::dont_bind),
+        NAME_ENTRY(memory_flag::within_budget),
+        NAME_ENTRY(memory_flag::can_alias),
+        NAME_ENTRY(memory_flag::host_access_sequential_write),
+        NAME_ENTRY(memory_flag::host_access_random),
+        NAME_ENTRY(memory_flag::host_access_allow_transfer_instead),
+        NAME_ENTRY(memory_flag::strategy_min_memory),
+        NAME_ENTRY(memory_flag::strategy_min_time),
+        NAME_ENTRY(memory_flag::strategy_min_offset),
+        NAME_ENTRY(memory_flag::strategy_best_fit),
+        NAME_ENTRY(memory_flag::strategy_first_fit),
+        NAME_ENTRY(memory_flag::strategy_mask),
+    });
+
     enum class filter : ui32
     {
         nearest,
@@ -922,6 +1602,13 @@ namespace orb::vk
         cubic_ext = 1000015000,
         cubic_img = cubic_ext,
     };
+
+    inline constexpr auto filter_names = create_name_map<filter>({
+        NAME_ENTRY(filter::nearest),
+        NAME_ENTRY(filter::linear),
+        NAME_ENTRY(filter::cubic_ext),
+        NAME_ENTRY(filter::cubic_img),
+    });
 
     enum class debug_utils_message_severity_flag : ui32
     {
@@ -931,6 +1618,13 @@ namespace orb::vk
         error   = 1 << 12,
     };
 
+    inline constexpr auto debug_utils_message_severity_flag_names = create_name_map<debug_utils_message_severity_flag>({
+        NAME_ENTRY(debug_utils_message_severity_flag::verbose),
+        NAME_ENTRY(debug_utils_message_severity_flag::info),
+        NAME_ENTRY(debug_utils_message_severity_flag::warning),
+        NAME_ENTRY(debug_utils_message_severity_flag::error),
+    });
+
     enum class debug_utils_message_type_flag : ui32
     {
         general                = 1 << 0,
@@ -939,12 +1633,25 @@ namespace orb::vk
         device_address_binding = 1 << 3,
     };
 
+    inline constexpr auto debug_utils_message_type_flag_names = create_name_map<debug_utils_message_type_flag>({
+        NAME_ENTRY(debug_utils_message_type_flag::general),
+        NAME_ENTRY(debug_utils_message_type_flag::validation),
+        NAME_ENTRY(debug_utils_message_type_flag::performance),
+        NAME_ENTRY(debug_utils_message_type_flag::device_address_binding),
+    });
+
     enum class command_buffer_usage_flag : ui32
     {
         one_time_submit      = 1 << 0,
         render_pass_continue = 1 << 1,
         simultaneous_use     = 1 << 2,
     };
+
+    inline constexpr auto command_buffer_usage_flag_names = create_name_map<command_buffer_usage_flag>({
+        NAME_ENTRY(command_buffer_usage_flag::one_time_submit),
+        NAME_ENTRY(command_buffer_usage_flag::render_pass_continue),
+        NAME_ENTRY(command_buffer_usage_flag::simultaneous_use),
+    });
 
     inline constexpr ui32 subpass_external = UINT32_MAX;
 
@@ -960,178 +1667,16 @@ namespace orb::vk
         enable_legacy_dithering                       = 1 << 7,
     };
 
-    // namespace debug_report_object_type
-    // {
-    //     using enum_t = VkDebugReportObjectTypeEXT;
-
-    //     template <enum_t res>
-    //     inline constexpr std::string_view repr = "unknown type";
-
-    //#def // ine define_repr_objtype(orbvar, vkvar) \
-    // inline constexpr auto orbvar = vkvar;  \
-    // template <>                            \
-    // inline constexpr std::string_view repr<orbvar> = #orbvar;
-
-    //#def // ine define_only_objtype(orbvar, vkvar) \
-    // inline constexpr auto orbvar = vkvar;
-
-    //     define_repr_objtype(unknown, VK_DEBUG_REPORT_OBJECT_TYPE_UNKNOWN_EXT);
-    //     define_repr_objtype(instance, VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT);
-    //     define_repr_objtype(physical_device, VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT);
-    //     define_repr_objtype(device, VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT);
-    //     define_repr_objtype(queue, VK_DEBUG_REPORT_OBJECT_TYPE_QUEUE_EXT);
-    //     define_repr_objtype(semaphore, VK_DEBUG_REPORT_OBJECT_TYPE_SEMAPHORE_EXT);
-    //     define_repr_objtype(command_buffer, VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT);
-    //     define_repr_objtype(fence, VK_DEBUG_REPORT_OBJECT_TYPE_FENCE_EXT);
-    //     define_repr_objtype(device_memory, VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_MEMORY_EXT);
-    //     define_repr_objtype(buffer, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_EXT);
-    //     define_repr_objtype(image, VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT);
-    //     define_repr_objtype(event, VK_DEBUG_REPORT_OBJECT_TYPE_EVENT_EXT);
-    //     define_repr_objtype(query_pool, VK_DEBUG_REPORT_OBJECT_TYPE_QUERY_POOL_EXT);
-    //     define_repr_objtype(buffer_view, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_VIEW_EXT);
-    //     define_repr_objtype(image_view, VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT);
-    //     define_repr_objtype(shader_module, VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT);
-    //     define_repr_objtype(pipeline_cache, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_CACHE_EXT);
-    //     define_repr_objtype(pipeline_layout, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_LAYOUT_EXT);
-    //     define_repr_objtype(render_pass, VK_DEBUG_REPORT_OBJECT_TYPE_RENDER_PASS_EXT);
-    //     define_repr_objtype(pipeline, VK_DEBUG_REPORT_OBJECT_TYPE_PIPELINE_EXT);
-    //     define_repr_objtype(descriptor_set_layout, VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT_EXT);
-    //     define_repr_objtype(sampler, VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_EXT);
-    //     define_repr_objtype(descriptor_pool, VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_POOL_EXT);
-    //     define_repr_objtype(descriptor_set, VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_SET_EXT);
-    //     define_repr_objtype(framebuffer, VK_DEBUG_REPORT_OBJECT_TYPE_FRAMEBUFFER_EXT);
-    //     define_repr_objtype(command_pool, VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_POOL_EXT);
-    //     define_repr_objtype(surface_khr, VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT);
-    //     define_repr_objtype(swapchain_khr, VK_DEBUG_REPORT_OBJECT_TYPE_SWAPCHAIN_KHR_EXT);
-    //     define_repr_objtype(debug_report_callback, VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT_EXT);
-    //     define_repr_objtype(display_khr, VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_KHR_EXT);
-    //     define_repr_objtype(display_mode_khr, VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_MODE_KHR_EXT);
-    //     define_repr_objtype(validation_cache, VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT_EXT);
-    //     define_repr_objtype(sampler_ycbcr_conversion, VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_EXT);
-    //     define_repr_objtype(descriptor_update_template, VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_EXT);
-    //     define_repr_objtype(cu_module_nvx, VK_DEBUG_REPORT_OBJECT_TYPE_CU_MODULE_NVX_EXT);
-    //     define_repr_objtype(cu_function_nvx, VK_DEBUG_REPORT_OBJECT_TYPE_CU_FUNCTION_NVX_EXT);
-    //     define_repr_objtype(acceleration_structure_khr, VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR_EXT);
-    //     define_repr_objtype(acceleration_structure_nv, VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_NV_EXT);
-    //     define_repr_objtype(buffer_collection_fuchsia, VK_DEBUG_REPORT_OBJECT_TYPE_BUFFER_COLLECTION_FUCHSIA_EXT);
-    //     define_only_objtype(debug_report, VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_EXT);
-    //     define_only_objtype(descriptor_update_template_khr, VK_DEBUG_REPORT_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_KHR_EXT);
-    //     define_only_objtype(sampler_ycbcr_conversion_khr, VK_DEBUG_REPORT_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION_KHR_EXT);
-
-    //     inline constexpr auto get_repr(enum_t e) -> std::string_view
-    //     {
-    //         switch (e)
-    //         {
-    //         case unknown: return repr<unknown>;
-    //         case instance: return repr<instance>;
-    //         case physical_device: return repr<physical_device>;
-    //         case device: return repr<device>;
-    //         case queue: return repr<queue>;
-    //         case semaphore: return repr<semaphore>;
-    //         case command_buffer: return repr<command_buffer>;
-    //         case fence: return repr<fence>;
-    //         case device_memory: return repr<device_memory>;
-    //         case buffer: return repr<buffer>;
-    //         case image: return repr<image>;
-    //         case event: return repr<event>;
-    //         case query_pool: return repr<query_pool>;
-    //         case buffer_view: return repr<buffer_view>;
-    //         case image_view: return repr<image_view>;
-    //         case shader_module: return repr<shader_module>;
-    //         case pipeline_cache: return repr<pipeline_cache>;
-    //         case pipeline_layout: return repr<pipeline_layout>;
-    //         case render_pass: return repr<render_pass>;
-    //         case pipeline: return repr<pipeline>;
-    //         case descriptor_set_layout: return repr<descriptor_set_layout>;
-    //         case sampler: return repr<sampler>;
-    //         case descriptor_pool: return repr<descriptor_pool>;
-    //         case descriptor_set: return repr<descriptor_set>;
-    //         case framebuffer: return repr<framebuffer>;
-    //         case command_pool: return repr<command_pool>;
-    //         case surface_khr: return repr<surface_khr>;
-    //         case swapchain_khr: return repr<swapchain_khr>;
-    //         case debug_report_callback: return repr<debug_report_callback>;
-    //         case display_khr: return repr<display_khr>;
-    //         case display_mode_khr: return repr<display_mode_khr>;
-    //         case validation_cache: return repr<validation_cache>;
-    //         case sampler_ycbcr_conversion: return repr<sampler_ycbcr_conversion>;
-    //         case descriptor_update_template: return repr<descriptor_update_template>;
-    //         case cu_module_nvx: return repr<cu_module_nvx>;
-    //         case cu_function_nvx: return repr<cu_function_nvx>;
-    //         case acceleration_structure_khr: return repr<acceleration_structure_khr>;
-    //         case acceleration_structure_nv: return repr<acceleration_structure_nv>;
-    //         case buffer_collection_fuchsia: return repr<buffer_collection_fuchsia>;
-
-    //         default: return repr<VK_DEBUG_REPORT_OBJECT_TYPE_MAX_ENUM_EXT>;
-    //         }
-    //     }
-    // } // namespace debug_report_object_type
-
-    // namespace obj_types
-    // {
-    //     using enum_t = VkObjectType;
-
-    //     inline constexpr auto unknown = VK_OBJECT_TYPE_UNKNOWN;
-    //     template <typename T>
-    //     inline constexpr enum_t obj_type = unknown;
-
-    //#def // ine define_obj_type(name, obj_type_name, vk_type_name) \
-    // inline constexpr auto name = obj_type_name;            \
-    // template <>                                            \
-    // inline constexpr auto obj_type<vk_type_name> = name;
-
-    //     define_obj_type(instance, VK_OBJECT_TYPE_INSTANCE, VkInstance);
-    //     define_obj_type(physical_device, VK_OBJECT_TYPE_PHYSICAL_DEVICE, VkPhysicalDevice);
-    //     define_obj_type(device, VK_OBJECT_TYPE_DEVICE, VkDevice);
-    //     define_obj_type(queue, VK_OBJECT_TYPE_QUEUE, VkQueue);
-    //     define_obj_type(semaphore, VK_OBJECT_TYPE_SEMAPHORE, VkSemaphore);
-    //     define_obj_type(command_buffer, VK_OBJECT_TYPE_COMMAND_BUFFER, VkCommandBuffer);
-    //     define_obj_type(fence, VK_OBJECT_TYPE_FENCE, VkFence);
-    //     define_obj_type(device_memory, VK_OBJECT_TYPE_DEVICE_MEMORY, VkDeviceMemory);
-    //     define_obj_type(buffer, VK_OBJECT_TYPE_BUFFER, VkBuffer);
-    //     define_obj_type(image, VK_OBJECT_TYPE_IMAGE, VkImage);
-    //     define_obj_type(event, VK_OBJECT_TYPE_EVENT, VkEvent);
-    //     define_obj_type(query_pool, VK_OBJECT_TYPE_QUERY_POOL, VkQueryPool);
-    //     define_obj_type(buffer_view, VK_OBJECT_TYPE_BUFFER_VIEW, VkBufferView);
-    //     define_obj_type(image_view, VK_OBJECT_TYPE_IMAGE_VIEW, VkImageView);
-    //     define_obj_type(shader_module, VK_OBJECT_TYPE_SHADER_MODULE, VkShaderModule);
-    //     define_obj_type(pipeline_cache, VK_OBJECT_TYPE_PIPELINE_CACHE, VkPipelineCache);
-    //     define_obj_type(pipeline_layout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, VkPipelineLayout);
-    //     define_obj_type(render_pass, VK_OBJECT_TYPE_RENDER_PASS, VkRenderPass);
-    //     define_obj_type(pipeline, VK_OBJECT_TYPE_PIPELINE, VkPipeline);
-    //     define_obj_type(descriptor_set_layout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, VkDescriptorSetLayout);
-    //     define_obj_type(sampler, VK_OBJECT_TYPE_SAMPLER, VkSampler);
-    //     define_obj_type(descriptor_pool, VK_OBJECT_TYPE_DESCRIPTOR_POOL, VkDescriptorPool);
-    //     define_obj_type(descriptor_set, VK_OBJECT_TYPE_DESCRIPTOR_SET, VkDescriptorSet);
-    //     define_obj_type(framebuffer, VK_OBJECT_TYPE_FRAMEBUFFER, VkFramebuffer);
-    //     define_obj_type(command_pool, VK_OBJECT_TYPE_COMMAND_POOL, VkCommandPool);
-    //     define_obj_type(sampler_ycbcr_conversion, VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION, VkSamplerYcbcrConversion);
-    //     define_obj_type(descriptor_update_template, VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE, VkDescriptorUpdateTemplate);
-    //     define_obj_type(private_data_slot, VK_OBJECT_TYPE_PRIVATE_DATA_SLOT, VkPrivateDataSlot);
-    //     define_obj_type(surface_khr, VK_OBJECT_TYPE_SURFACE_KHR, VkSurfaceKHR);
-    //     define_obj_type(swapchain_khr, VK_OBJECT_TYPE_SWAPCHAIN_KHR, VkSwapchainKHR);
-    //     define_obj_type(display_khr, VK_OBJECT_TYPE_DISPLAY_KHR, VkDisplayKHR);
-    //     define_obj_type(display_mode_khr, VK_OBJECT_TYPE_DISPLAY_MODE_KHR, VkDisplayModeKHR);
-    //     define_obj_type(debug_report_callback_ext, VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT, VkDebugReportCallbackEXT);
-    //     define_obj_type(video_session_khr, VK_OBJECT_TYPE_VIDEO_SESSION_KHR, VkVideoSessionKHR);
-    //     define_obj_type(video_session_parameters_khr, VK_OBJECT_TYPE_VIDEO_SESSION_PARAMETERS_KHR, VkVideoSessionParametersKHR);
-    //     define_obj_type(cu_module_nvx, VK_OBJECT_TYPE_CU_MODULE_NVX, VkCuModuleNVX);
-    //     define_obj_type(cu_function_nvx, VK_OBJECT_TYPE_CU_FUNCTION_NVX, VkCuFunctionNVX);
-    //     define_obj_type(debug_utils_messenger_ext, VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT, VkDebugUtilsMessengerEXT);
-    //     define_obj_type(acceleration_structure_khr, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR, VkAccelerationStructureKHR);
-    //     define_obj_type(validation_cache_ext, VK_OBJECT_TYPE_VALIDATION_CACHE_EXT, VkValidationCacheEXT);
-    //     define_obj_type(performance_configuration_intel, VK_OBJECT_TYPE_PERFORMANCE_CONFIGURATION_INTEL, VkPerformanceConfigurationINTEL);
-    //     define_obj_type(deferred_operation_khr, VK_OBJECT_TYPE_DEFERRED_OPERATION_KHR, VkDeferredOperationKHR);
-    //     define_obj_type(indirect_commands_layout_nv, VK_OBJECT_TYPE_INDIRECT_COMMANDS_LAYOUT_NV, VkIndirectCommandsLayoutNV);
-    //     define_obj_type(micromap_ext, VK_OBJECT_TYPE_MICROMAP_EXT, VkMicromapEXT);
-    //     define_obj_type(optical_flow_session_nv, VK_OBJECT_TYPE_OPTICAL_FLOW_SESSION_NV, VkOpticalFlowSessionNV);
-
-    //     template <typename T>
-    //     concept vk_type = obj_type<T> != unknown;
-    // } // namespace obj_types
-
-    // template <typename T>
-    // concept vk_type = obj_types::vk_type<T>;
+    inline constexpr auto subpass_description_flag_names = create_name_map<subpass_description_flag>({
+        NAME_ENTRY(subpass_description_flag::per_view_attributes),
+        NAME_ENTRY(subpass_description_flag::per_view_position_x_only),
+        NAME_ENTRY(subpass_description_flag::fragment_region),
+        NAME_ENTRY(subpass_description_flag::shader_resolve),
+        NAME_ENTRY(subpass_description_flag::rasterization_order_attachment_color_access),
+        NAME_ENTRY(subpass_description_flag::rasterization_order_attachment_depth_access),
+        NAME_ENTRY(subpass_description_flag::rasterization_order_attachment_stencil_access),
+        NAME_ENTRY(subpass_description_flag::enable_legacy_dithering),
+    });
 
     enum class shader_stage_flag : ui32
     {
@@ -1162,6 +1707,35 @@ namespace orb::vk
         task_nv                = task,
         mesh_nv                = mesh,
     };
+
+    inline constexpr auto shader_stage_flag_names = create_name_map<shader_stage_flag>({
+        NAME_ENTRY(shader_stage_flag::vertex),
+        NAME_ENTRY(shader_stage_flag::tesselation_control),
+        NAME_ENTRY(shader_stage_flag::tesselation_evaluation),
+        NAME_ENTRY(shader_stage_flag::geometry),
+        NAME_ENTRY(shader_stage_flag::fragment),
+        NAME_ENTRY(shader_stage_flag::compute),
+        NAME_ENTRY(shader_stage_flag::all_graphics),
+        NAME_ENTRY(shader_stage_flag::all),
+        NAME_ENTRY(shader_stage_flag::raygen),
+        NAME_ENTRY(shader_stage_flag::any_hit),
+        NAME_ENTRY(shader_stage_flag::closest_hit),
+        NAME_ENTRY(shader_stage_flag::miss),
+        NAME_ENTRY(shader_stage_flag::intersection),
+        NAME_ENTRY(shader_stage_flag::callable),
+        NAME_ENTRY(shader_stage_flag::task),
+        NAME_ENTRY(shader_stage_flag::mesh),
+        NAME_ENTRY(shader_stage_flag::subpass_shading_huawei),
+        NAME_ENTRY(shader_stage_flag::cluster_culling_huawei),
+        NAME_ENTRY(shader_stage_flag::raygen_nv),
+        NAME_ENTRY(shader_stage_flag::any_hit_nv),
+        NAME_ENTRY(shader_stage_flag::closest_hit_nv),
+        NAME_ENTRY(shader_stage_flag::miss_nv),
+        NAME_ENTRY(shader_stage_flag::intersection_nv),
+        NAME_ENTRY(shader_stage_flag::callable_nv),
+        NAME_ENTRY(shader_stage_flag::task_nv),
+        NAME_ENTRY(shader_stage_flag::mesh_nv),
+    });
 
     enum class dynamic_state : ui32
     {
@@ -1250,6 +1824,92 @@ namespace orb::vk
         primitive_restart_enable_ext    = primitive_restart_enable,
     };
 
+    inline constexpr auto dynamic_state_names = create_name_map<dynamic_state>({
+        NAME_ENTRY(dynamic_state::viewport),
+        NAME_ENTRY(dynamic_state::scissor),
+        NAME_ENTRY(dynamic_state::line_width),
+        NAME_ENTRY(dynamic_state::depth_bias),
+        NAME_ENTRY(dynamic_state::blend_constants),
+        NAME_ENTRY(dynamic_state::depth_bounds),
+        NAME_ENTRY(dynamic_state::stencil_compare_mask),
+        NAME_ENTRY(dynamic_state::stencil_write_mask),
+        NAME_ENTRY(dynamic_state::stencil_reference),
+        NAME_ENTRY(dynamic_state::cull_mode),
+        NAME_ENTRY(dynamic_state::front_face),
+        NAME_ENTRY(dynamic_state::primitive_topology),
+        NAME_ENTRY(dynamic_state::viewport_with_count),
+        NAME_ENTRY(dynamic_state::scissor_with_count),
+        NAME_ENTRY(dynamic_state::vertex_input_binding_stride),
+        NAME_ENTRY(dynamic_state::depth_test_enable),
+        NAME_ENTRY(dynamic_state::depth_write_enable),
+        NAME_ENTRY(dynamic_state::depth_compare_op),
+        NAME_ENTRY(dynamic_state::depth_bounds_test_enable),
+        NAME_ENTRY(dynamic_state::stencil_test_enable),
+        NAME_ENTRY(dynamic_state::stencil_op),
+        NAME_ENTRY(dynamic_state::rasterizer_discard_enable),
+        NAME_ENTRY(dynamic_state::depth_bias_enable),
+        NAME_ENTRY(dynamic_state::primitive_restart_enable),
+        NAME_ENTRY(dynamic_state::viewport_w_scaling_nv),
+        NAME_ENTRY(dynamic_state::discard_rectangle_ext),
+        NAME_ENTRY(dynamic_state::sample_locations_ext),
+        NAME_ENTRY(dynamic_state::ray_tracing_pipeline_stack_size_khr),
+        NAME_ENTRY(dynamic_state::viewport_shading_rate_palette_nv),
+        NAME_ENTRY(dynamic_state::viewport_coarse_sample_order_nv),
+        NAME_ENTRY(dynamic_state::exclusive_scissor_nv),
+        NAME_ENTRY(dynamic_state::fragment_shading_rate_khr),
+        NAME_ENTRY(dynamic_state::line_stipple_ext),
+        NAME_ENTRY(dynamic_state::vertex_input_ext),
+        NAME_ENTRY(dynamic_state::patch_control_points_ext),
+        NAME_ENTRY(dynamic_state::logic_op_ext),
+        NAME_ENTRY(dynamic_state::color_write_enable_ext),
+        NAME_ENTRY(dynamic_state::tessellation_domain_origin_ext),
+        NAME_ENTRY(dynamic_state::depth_clamp_enable_ext),
+        NAME_ENTRY(dynamic_state::polygon_mode_ext),
+        NAME_ENTRY(dynamic_state::rasterization_samples_ext),
+        NAME_ENTRY(dynamic_state::sample_mask_ext),
+        NAME_ENTRY(dynamic_state::alpha_to_coverage_enable_ext),
+        NAME_ENTRY(dynamic_state::alpha_to_one_enable_ext),
+        NAME_ENTRY(dynamic_state::logic_op_enable_ext),
+        NAME_ENTRY(dynamic_state::color_blend_enable_ext),
+        NAME_ENTRY(dynamic_state::color_blend_equation_ext),
+        NAME_ENTRY(dynamic_state::color_write_mask_ext),
+        NAME_ENTRY(dynamic_state::rasterization_stream_ext),
+        NAME_ENTRY(dynamic_state::conservative_rasterization_mode_ext),
+        NAME_ENTRY(dynamic_state::extra_primitive_overestimation_size_ext),
+        NAME_ENTRY(dynamic_state::depth_clip_enable_ext),
+        NAME_ENTRY(dynamic_state::sample_locations_enable_ext),
+        NAME_ENTRY(dynamic_state::color_blend_advanced_ext),
+        NAME_ENTRY(dynamic_state::provoking_vertex_mode_ext),
+        NAME_ENTRY(dynamic_state::line_rasterization_mode_ext),
+        NAME_ENTRY(dynamic_state::line_stipple_enable_ext),
+        NAME_ENTRY(dynamic_state::depth_clip_negative_one_to_one_ext),
+        NAME_ENTRY(dynamic_state::viewport_w_scaling_enable_nv),
+        NAME_ENTRY(dynamic_state::viewport_swizzle_nv),
+        NAME_ENTRY(dynamic_state::coverage_to_color_enable_nv),
+        NAME_ENTRY(dynamic_state::coverage_to_color_location_nv),
+        NAME_ENTRY(dynamic_state::coverage_modulation_mode_nv),
+        NAME_ENTRY(dynamic_state::coverage_modulation_table_enable_nv),
+        NAME_ENTRY(dynamic_state::coverage_modulation_table_nv),
+        NAME_ENTRY(dynamic_state::shading_rate_image_enable_nv),
+        NAME_ENTRY(dynamic_state::representative_fragment_test_enable_nv),
+        NAME_ENTRY(dynamic_state::coverage_reduction_mode_nv),
+        NAME_ENTRY(dynamic_state::cull_mode_ext),
+        NAME_ENTRY(dynamic_state::front_face_ext),
+        NAME_ENTRY(dynamic_state::primitive_topology_ext),
+        NAME_ENTRY(dynamic_state::viewport_with_count_ext),
+        NAME_ENTRY(dynamic_state::scissor_with_count_ext),
+        NAME_ENTRY(dynamic_state::vertex_input_binding_stride_ext),
+        NAME_ENTRY(dynamic_state::depth_test_enable_ext),
+        NAME_ENTRY(dynamic_state::depth_write_enable_ext),
+        NAME_ENTRY(dynamic_state::depth_compare_op_ext),
+        NAME_ENTRY(dynamic_state::depth_bounds_test_enable_ext),
+        NAME_ENTRY(dynamic_state::stencil_test_enable_ext),
+        NAME_ENTRY(dynamic_state::stencil_op_ext),
+        NAME_ENTRY(dynamic_state::rasterizer_discard_enable_ext),
+        NAME_ENTRY(dynamic_state::depth_bias_enable_ext),
+        NAME_ENTRY(dynamic_state::primitive_restart_enable_ext),
+    });
+
     enum class primitive_topology : ui32
     {
         point_list,
@@ -1265,6 +1925,20 @@ namespace orb::vk
         patch_list,
     };
 
+    inline constexpr auto priitive_topology_names = create_name_map<primitive_topology>({
+        NAME_ENTRY(primitive_topology::point_list),
+        NAME_ENTRY(primitive_topology::line_list),
+        NAME_ENTRY(primitive_topology::line_strip),
+        NAME_ENTRY(primitive_topology::triangle_list),
+        NAME_ENTRY(primitive_topology::triangle_strip),
+        NAME_ENTRY(primitive_topology::triangle_fan),
+        NAME_ENTRY(primitive_topology::line_list_with_adjacency),
+        NAME_ENTRY(primitive_topology::line_strip_with_adjacency),
+        NAME_ENTRY(primitive_topology::triangle_list_with_adjacency),
+        NAME_ENTRY(primitive_topology::triangle_strip_with_adjacency),
+        NAME_ENTRY(primitive_topology::patch_list),
+    });
+
     enum class polygon_mode : ui32
     {
         fill,
@@ -1272,6 +1946,13 @@ namespace orb::vk
         point,
         fill_rectangle_nv = 1000153000,
     };
+
+    inline constexpr auto polygon_mode_names = create_name_map<polygon_mode>({
+        NAME_ENTRY(polygon_mode::fill),
+        NAME_ENTRY(polygon_mode::line),
+        NAME_ENTRY(polygon_mode::point),
+        NAME_ENTRY(polygon_mode::fill_rectangle_nv),
+    });
 
     enum class cull_mode : ui32
     {
@@ -1281,11 +1962,23 @@ namespace orb::vk
         front_and_back,
     };
 
+    inline constexpr auto cull_mode_names = create_name_map<cull_mode>({
+        NAME_ENTRY(cull_mode::none),
+        NAME_ENTRY(cull_mode::front),
+        NAME_ENTRY(cull_mode::back),
+        NAME_ENTRY(cull_mode::front_and_back),
+    });
+
     enum class front_face : ui32
     {
         counter_clockwise,
         clockwise,
     };
+
+    inline constexpr auto front_face_names = create_name_map<front_face>({
+        NAME_ENTRY(front_face::counter_clockwise),
+        NAME_ENTRY(front_face::clockwise),
+    });
 
     enum class color_component : ui32
     {
@@ -1294,6 +1987,13 @@ namespace orb::vk
         b = 1 << 2,
         a = 1 << 3,
     };
+
+    inline constexpr auto color_component_names = create_name_map<color_component>({
+        NAME_ENTRY(color_component::r),
+        NAME_ENTRY(color_component::g),
+        NAME_ENTRY(color_component::b),
+        NAME_ENTRY(color_component::a),
+    });
 
     enum class blend_factor : ui32
     {
@@ -1317,6 +2017,28 @@ namespace orb::vk
         src1_alpha,
         one_minus_src1_alpha,
     };
+
+    inline constexpr auto blend_factor_names = create_name_map<blend_factor>({
+        NAME_ENTRY(blend_factor::zero),
+        NAME_ENTRY(blend_factor::one),
+        NAME_ENTRY(blend_factor::src_color),
+        NAME_ENTRY(blend_factor::one_minus_src_color),
+        NAME_ENTRY(blend_factor::dst_color),
+        NAME_ENTRY(blend_factor::one_minus_dst_color),
+        NAME_ENTRY(blend_factor::src_alpha),
+        NAME_ENTRY(blend_factor::one_minus_src_alpha),
+        NAME_ENTRY(blend_factor::dst_alpha),
+        NAME_ENTRY(blend_factor::one_minus_dst_alpha),
+        NAME_ENTRY(blend_factor::constant_color),
+        NAME_ENTRY(blend_factor::one_minus_constant_color),
+        NAME_ENTRY(blend_factor::constant_alpha),
+        NAME_ENTRY(blend_factor::one_minus_constant_alpha),
+        NAME_ENTRY(blend_factor::src_alpha_saturate),
+        NAME_ENTRY(blend_factor::src1_color),
+        NAME_ENTRY(blend_factor::one_minus_src1_color),
+        NAME_ENTRY(blend_factor::src1_alpha),
+        NAME_ENTRY(blend_factor::one_minus_src1_alpha),
+    });
 
     enum class blend_op : ui32
     {
@@ -1373,6 +2095,60 @@ namespace orb::vk
         blue_ext,
     };
 
+    inline constexpr auto blend_op_names = create_name_map<blend_op>({
+        NAME_ENTRY(blend_op::add),
+        NAME_ENTRY(blend_op::subtract),
+        NAME_ENTRY(blend_op::reverse_subtract),
+        NAME_ENTRY(blend_op::min),
+        NAME_ENTRY(blend_op::max),
+        NAME_ENTRY(blend_op::zero_ext),
+        NAME_ENTRY(blend_op::src_ext),
+        NAME_ENTRY(blend_op::dst_ext),
+        NAME_ENTRY(blend_op::src_over_ext),
+        NAME_ENTRY(blend_op::dst_over_ext),
+        NAME_ENTRY(blend_op::src_in_ext),
+        NAME_ENTRY(blend_op::dst_in_ext),
+        NAME_ENTRY(blend_op::src_out_ext),
+        NAME_ENTRY(blend_op::dst_out_ext),
+        NAME_ENTRY(blend_op::src_atop_ext),
+        NAME_ENTRY(blend_op::dst_atop_ext),
+        NAME_ENTRY(blend_op::xor_ext),
+        NAME_ENTRY(blend_op::multiply_ext),
+        NAME_ENTRY(blend_op::screen_ext),
+        NAME_ENTRY(blend_op::overlay_ext),
+        NAME_ENTRY(blend_op::darken_ext),
+        NAME_ENTRY(blend_op::lighten_ext),
+        NAME_ENTRY(blend_op::colordodge_ext),
+        NAME_ENTRY(blend_op::colorburn_ext),
+        NAME_ENTRY(blend_op::hardlight_ext),
+        NAME_ENTRY(blend_op::softlight_ext),
+        NAME_ENTRY(blend_op::difference_ext),
+        NAME_ENTRY(blend_op::exclusion_ext),
+        NAME_ENTRY(blend_op::invert_ext),
+        NAME_ENTRY(blend_op::invert_rgb_ext),
+        NAME_ENTRY(blend_op::lineardodge_ext),
+        NAME_ENTRY(blend_op::linearburn_ext),
+        NAME_ENTRY(blend_op::vividlight_ext),
+        NAME_ENTRY(blend_op::linearlight_ext),
+        NAME_ENTRY(blend_op::pinlight_ext),
+        NAME_ENTRY(blend_op::hardmix_ext),
+        NAME_ENTRY(blend_op::hsl_hue_ext),
+        NAME_ENTRY(blend_op::hsl_saturation_ext),
+        NAME_ENTRY(blend_op::hsl_color_ext),
+        NAME_ENTRY(blend_op::hsl_luminosity_ext),
+        NAME_ENTRY(blend_op::plus_ext),
+        NAME_ENTRY(blend_op::plus_clamped_ext),
+        NAME_ENTRY(blend_op::plus_clamped_alpha_ext),
+        NAME_ENTRY(blend_op::plus_darker_ext),
+        NAME_ENTRY(blend_op::minus_ext),
+        NAME_ENTRY(blend_op::minus_clamped_ext),
+        NAME_ENTRY(blend_op::contrast_ext),
+        NAME_ENTRY(blend_op::invert_ovg_ext),
+        NAME_ENTRY(blend_op::red_ext),
+        NAME_ENTRY(blend_op::green_ext),
+        NAME_ENTRY(blend_op::blue_ext),
+    });
+
     enum class shader_kind : ui32
     {
         vertex,
@@ -1406,11 +2182,48 @@ namespace orb::vk
         glsl_infer = 6,
     };
 
+    inline constexpr auto shader_kind_names = create_name_map<shader_kind>({
+        NAME_ENTRY(shader_kind::vertex),
+        NAME_ENTRY(shader_kind::fragment),
+        NAME_ENTRY(shader_kind::compute),
+        NAME_ENTRY(shader_kind::geometry),
+        NAME_ENTRY(shader_kind::tess_control),
+        NAME_ENTRY(shader_kind::tess_evaluation),
+        NAME_ENTRY(shader_kind::raygen),
+        NAME_ENTRY(shader_kind::anyhit),
+        NAME_ENTRY(shader_kind::closesthit),
+        NAME_ENTRY(shader_kind::miss),
+        NAME_ENTRY(shader_kind::intersection),
+        NAME_ENTRY(shader_kind::callable),
+        NAME_ENTRY(shader_kind::task),
+        NAME_ENTRY(shader_kind::mesh),
+        NAME_ENTRY(shader_kind::glsl_vertex),
+        NAME_ENTRY(shader_kind::glsl_fragment),
+        NAME_ENTRY(shader_kind::glsl_compute),
+        NAME_ENTRY(shader_kind::glsl_geometry),
+        NAME_ENTRY(shader_kind::glsl_tess_control),
+        NAME_ENTRY(shader_kind::glsl_tess_evaluation),
+        NAME_ENTRY(shader_kind::glsl_raygen),
+        NAME_ENTRY(shader_kind::glsl_anyhit),
+        NAME_ENTRY(shader_kind::glsl_closesthit),
+        NAME_ENTRY(shader_kind::glsl_miss),
+        NAME_ENTRY(shader_kind::glsl_intersection),
+        NAME_ENTRY(shader_kind::glsl_callable),
+        NAME_ENTRY(shader_kind::glsl_task),
+        NAME_ENTRY(shader_kind::glsl_mesh),
+        NAME_ENTRY(shader_kind::glsl_infer),
+    });
+
     enum class vertex_input_rate : ui32
     {
         vertex,
         instance,
     };
+
+    inline constexpr auto vertex_input_rate_names = create_name_map<vertex_input_rate>({
+        NAME_ENTRY(vertex_input_rate::vertex),
+        NAME_ENTRY(vertex_input_rate::instance),
+    });
 
     enum class vertex_format : ui32
     {
@@ -1448,6 +2261,41 @@ namespace orb::vk
         dvec4_t  = 121,
     };
 
+    inline constexpr auto vertex_format_names = create_name_map<vertex_format>({
+        NAME_ENTRY(vertex_format::float_t),
+        NAME_ENTRY(vertex_format::vec2_t),
+        NAME_ENTRY(vertex_format::vec3_t),
+        NAME_ENTRY(vertex_format::vec4_t),
+        NAME_ENTRY(vertex_format::int_t),
+        NAME_ENTRY(vertex_format::ivec2_t),
+        NAME_ENTRY(vertex_format::ivec3_t),
+        NAME_ENTRY(vertex_format::ivec4_t),
+        NAME_ENTRY(vertex_format::uint_t),
+        NAME_ENTRY(vertex_format::uvec2_t),
+        NAME_ENTRY(vertex_format::uvec3_t),
+        NAME_ENTRY(vertex_format::uvec4_t),
+        NAME_ENTRY(vertex_format::short_t),
+        NAME_ENTRY(vertex_format::svec2_t),
+        NAME_ENTRY(vertex_format::svec3_t),
+        NAME_ENTRY(vertex_format::svec4_t),
+        NAME_ENTRY(vertex_format::ushort_t),
+        NAME_ENTRY(vertex_format::usvec2_t),
+        NAME_ENTRY(vertex_format::usvec3_t),
+        NAME_ENTRY(vertex_format::usvec4_t),
+        NAME_ENTRY(vertex_format::byte_t),
+        NAME_ENTRY(vertex_format::bvec2_t),
+        NAME_ENTRY(vertex_format::bvec3_t),
+        NAME_ENTRY(vertex_format::bvec4_t),
+        NAME_ENTRY(vertex_format::ubyte_t),
+        NAME_ENTRY(vertex_format::ubvec2_t),
+        NAME_ENTRY(vertex_format::ubvec3_t),
+        NAME_ENTRY(vertex_format::ubvec4_t),
+        NAME_ENTRY(vertex_format::double_t),
+        NAME_ENTRY(vertex_format::dvec2_t),
+        NAME_ENTRY(vertex_format::dvec3_t),
+        NAME_ENTRY(vertex_format::dvec4_t),
+    });
+
     enum class buffer_usage_flag : ui32
     {
         transfer_source      = 1 << 0,
@@ -1460,6 +2308,18 @@ namespace orb::vk
         vertex_buffer        = 1 << 7,
         indirect_buffer      = 1 << 8,
     };
+
+    inline constexpr auto buffer_usage_flag_names = create_name_map<buffer_usage_flag>({
+        NAME_ENTRY(buffer_usage_flag::transfer_source),
+        NAME_ENTRY(buffer_usage_flag::transfer_destination),
+        NAME_ENTRY(buffer_usage_flag::uniform_texel_buffer),
+        NAME_ENTRY(buffer_usage_flag::storage_texel_buffer),
+        NAME_ENTRY(buffer_usage_flag::uniform_buffer),
+        NAME_ENTRY(buffer_usage_flag::storage_buffer),
+        NAME_ENTRY(buffer_usage_flag::index_buffer),
+        NAME_ENTRY(buffer_usage_flag::vertex_buffer),
+        NAME_ENTRY(buffer_usage_flag::indirect_buffer),
+    });
 
     template <typename T>
     concept is_vkflag = std::is_same_v<T, access_flag>
