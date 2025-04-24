@@ -32,239 +32,121 @@ namespace orb::vk
         inline constexpr const char* validation = "VK_LAYER_KHRONOS_validation";
     } // namespace validation_layers
 
-    inline constexpr auto vkenum(gpu_type e)
-    {
-        return static_cast<VkPhysicalDeviceType>(std::to_underlying(e));
+    template <typename T>
+    concept is_vk_native_flag = std::is_same_v<T, VkAccessFlags>
+                             || std::is_same_v<T, VkQueueFlags>
+                             || std::is_same_v<T, VkInstanceCreateFlags>
+                             || std::is_same_v<T, VkImageAspectFlags>
+                             || std::is_same_v<T, VkPipelineStageFlags>
+                             || std::is_same_v<T, VkImageUsageFlags>
+                             || std::is_same_v<T, VkSurfaceTransformFlagsKHR>
+                             || std::is_same_v<T, VkCompositeAlphaFlagsKHR>
+                             || std::is_same_v<T, VkSampleCountFlags>
+                             || std::is_same_v<T, VkDescriptorPoolCreateFlags>
+                             || std::is_same_v<T, VkCommandPoolCreateFlags>
+                             || std::is_same_v<T, VkMemoryPropertyFlags>
+                             || std::is_same_v<T, VmaAllocationCreateFlags>
+                             || std::is_same_v<T, VkDebugUtilsMessageSeverityFlagsEXT>
+                             || std::is_same_v<T, VkDebugUtilsMessageTypeFlagsEXT>
+                             || std::is_same_v<T, VkCommandBufferUsageFlags>
+                             || std::is_same_v<T, VkSubpassDescriptionFlags>
+                             || std::is_same_v<T, VkShaderStageFlags>
+                             || std::is_same_v<T, VkColorComponentFlags>
+                             || std::is_same_v<T, VkBufferUsageFlags>;
+
+    template <typename T>
+    concept is_vk_native_enum = std::is_same_v<T, VkPhysicalDeviceType>
+                             || std::is_same_v<T, VkDescriptorType>
+                             || std::is_same_v<T, VkAttachmentLoadOp>
+                             || std::is_same_v<T, VkAttachmentStoreOp>
+                             || std::is_same_v<T, VkPipelineBindPoint>
+                             || std::is_same_v<T, VkCommandBufferLevel>
+                             || std::is_same_v<T, VkFormat>
+                             || std::is_same_v<T, VkPresentModeKHR>
+                             || std::is_same_v<T, VkColorSpaceKHR>
+                             || std::is_same_v<T, VkSharingMode>
+                             || std::is_same_v<T, VkImageTiling>
+                             || std::is_same_v<T, VkImageType>
+                             || std::is_same_v<T, VkImageViewType>
+                             || std::is_same_v<T, VkComponentSwizzle>
+                             || std::is_same_v<T, VkImageLayout>
+                             || std::is_same_v<T, VmaMemoryUsage>
+                             || std::is_same_v<T, VkFilter>
+                             || std::is_same_v<T, VkDynamicState>
+                             || std::is_same_v<T, VkPrimitiveTopology>
+                             || std::is_same_v<T, VkPolygonMode>
+                             || std::is_same_v<T, VkCullModeFlags>
+                             || std::is_same_v<T, VkFrontFace>
+                             || std::is_same_v<T, VkBlendFactor>
+                             || std::is_same_v<T, VkBlendOp>
+                             || std::is_same_v<T, shaderc_shader_kind>
+                             || std::is_same_v<T, VkVertexInputRate>;
+
+    template <typename T>
+    concept is_vk_native_type = is_vk_native_flag<T> || is_vk_native_enum<T>;
+
+    template <is_vktype T>
+    struct orb_to_vk;
+
+#define ORB_TO_VK(OrbT, VkT) \
+    template <>              \
+    struct orb_to_vk<OrbT>   \
+    {                        \
+        using type = VkT;    \
     }
 
-    inline constexpr auto vkenum(queue_family e)
-    {
-        return static_cast<VkQueueFlagBits>(std::to_underlying(e));
-    }
+    ORB_TO_VK(access_flag, VkAccessFlagBits);
+    ORB_TO_VK(queue_family, VkQueueFlagBits);
+    ORB_TO_VK(instance_create, VkInstanceCreateFlagBits);
+    ORB_TO_VK(image_aspect_flag, VkImageAspectFlagBits);
+    ORB_TO_VK(pipeline_stage_flag, VkPipelineStageFlagBits);
+    ORB_TO_VK(image_usage_flag, VkImageUsageFlagBits);
+    ORB_TO_VK(surface_transform_flag, VkSurfaceTransformFlagBitsKHR);
+    ORB_TO_VK(composite_alpha_flag, VkCompositeAlphaFlagBitsKHR);
+    ORB_TO_VK(sample_count_flag, VkSampleCountFlagBits);
+    ORB_TO_VK(descriptor_pool_create_flag, VkDescriptorPoolCreateFlagBits);
+    ORB_TO_VK(command_pool_create_flag, VkCommandPoolCreateFlagBits);
+    ORB_TO_VK(memory_property_flag, VkMemoryPropertyFlagBits);
+    ORB_TO_VK(memory_flag, VmaAllocationCreateFlagBits);
+    ORB_TO_VK(debug_utils_message_severity_flag, VkDebugUtilsMessageSeverityFlagBitsEXT);
+    ORB_TO_VK(debug_utils_message_type_flag, VkDebugUtilsMessageTypeFlagBitsEXT);
+    ORB_TO_VK(command_buffer_usage_flag, VkCommandBufferUsageFlagBits);
+    ORB_TO_VK(subpass_description_flag, VkSubpassDescriptionFlagBits);
+    ORB_TO_VK(shader_stage_flag, VkShaderStageFlagBits);
+    ORB_TO_VK(color_component, VkColorComponentFlagBits);
+    ORB_TO_VK(buffer_usage_flag, VkBufferUsageFlagBits);
+    ORB_TO_VK(gpu_type, VkPhysicalDeviceType);
+    ORB_TO_VK(descriptor_type, VkDescriptorType);
+    ORB_TO_VK(attachment_load_op, VkAttachmentLoadOp);
+    ORB_TO_VK(attachment_store_op, VkAttachmentStoreOp);
+    ORB_TO_VK(pipeline_bind_point, VkPipelineBindPoint);
+    ORB_TO_VK(cmd_buffer_level, VkCommandBufferLevel);
+    ORB_TO_VK(format, VkFormat);
+    ORB_TO_VK(present_mode, VkPresentModeKHR);
+    ORB_TO_VK(color_space, VkColorSpaceKHR);
+    ORB_TO_VK(sharing_mode, VkSharingMode);
+    ORB_TO_VK(image_tiling, VkImageTiling);
+    ORB_TO_VK(image_type, VkImageType);
+    ORB_TO_VK(image_view_type, VkImageViewType);
+    ORB_TO_VK(component_swizzle, VkComponentSwizzle);
+    ORB_TO_VK(image_layout, VkImageLayout);
+    ORB_TO_VK(memory_usage, VmaMemoryUsage);
+    ORB_TO_VK(filter, VkFilter);
+    ORB_TO_VK(dynamic_state, VkDynamicState);
+    ORB_TO_VK(primitive_topology, VkPrimitiveTopology);
+    ORB_TO_VK(polygon_mode, VkPolygonMode);
+    ORB_TO_VK(cull_mode, VkCullModeFlagBits);
+    ORB_TO_VK(front_face, VkFrontFace);
+    ORB_TO_VK(blend_factor, VkBlendFactor);
+    ORB_TO_VK(blend_op, VkBlendOp);
+    ORB_TO_VK(shader_kind, shaderc_shader_kind);
+    ORB_TO_VK(vertex_input_rate, VkVertexInputRate);
+    ORB_TO_VK(vertex_format, VkFormat);
 
-    inline constexpr auto vkenum(instance_create e)
+    template <is_vktype T>
+    inline constexpr auto vkenum(T e)
     {
-        return static_cast<VkInstanceCreateFlagBits>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(descriptor_type e)
-    {
-        return static_cast<VkDescriptorType>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(attachment_load_op e)
-    {
-        return static_cast<VkAttachmentLoadOp>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(attachment_store_op e)
-    {
-        return static_cast<VkAttachmentStoreOp>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(pipeline_bind_point e)
-    {
-        return static_cast<VkPipelineBindPoint>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(cmd_buffer_level e)
-    {
-        return static_cast<VkCommandBufferLevel>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(access_flag e)
-    {
-        return static_cast<VkAccessFlagBits>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(image_aspect_flag e)
-    {
-        return static_cast<VkImageAspectFlagBits>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(pipeline_stage_flag e)
-    {
-        return static_cast<VkPipelineStageFlagBits>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(format e)
-    {
-        return static_cast<VkFormat>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(present_mode e)
-    {
-        return static_cast<VkPresentModeKHR>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(color_space e)
-    {
-        return static_cast<VkColorSpaceKHR>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(image_usage_flag e)
-    {
-        return static_cast<VkImageUsageFlagBits>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(sharing_mode e)
-    {
-        return static_cast<VkSharingMode>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(surface_transform_flag e)
-    {
-        return static_cast<VkSurfaceTransformFlagBitsKHR>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(composite_alpha_flag e)
-    {
-        return static_cast<VkCompositeAlphaFlagBitsKHR>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(image_tiling e)
-    {
-        return static_cast<VkImageTiling>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(image_type e)
-    {
-        return static_cast<VkImageType>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(image_view_type e)
-    {
-        return static_cast<VkImageViewType>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(component_swizzle e)
-    {
-        return static_cast<VkComponentSwizzle>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(sample_count_flag e)
-    {
-        return static_cast<VkSampleCountFlagBits>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(descriptor_pool_create_flag e)
-    {
-        return static_cast<VkDescriptorPoolCreateFlagBits>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(image_layout e)
-    {
-        return static_cast<VkImageLayout>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(command_pool_create_flag e)
-    {
-        return static_cast<VkCommandPoolCreateFlagBits>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(memory_property_flag e)
-    {
-        return static_cast<VkMemoryPropertyFlagBits>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(memory_usage e)
-    {
-        return static_cast<VmaMemoryUsage>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(memory_flag e)
-    {
-        return static_cast<VmaAllocationCreateFlagBits>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(filter e)
-    {
-        return static_cast<VkFilter>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(debug_utils_message_severity_flag e)
-    {
-        return static_cast<VkDebugUtilsMessageSeverityFlagBitsEXT>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(debug_utils_message_type_flag e)
-    {
-        return static_cast<VkDebugUtilsMessageTypeFlagBitsEXT>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(command_buffer_usage_flag e)
-    {
-        return static_cast<VkCommandBufferUsageFlags>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(subpass_description_flag e)
-    {
-        return static_cast<VkSubpassDescriptionFlags>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(shader_stage_flag e)
-    {
-        return static_cast<VkShaderStageFlagBits>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(dynamic_state e)
-    {
-        return static_cast<VkDynamicState>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(primitive_topology e)
-    {
-        return static_cast<VkPrimitiveTopology>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(polygon_mode e)
-    {
-        return static_cast<VkPolygonMode>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(cull_mode e)
-    {
-        return static_cast<VkCullModeFlags>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(front_face e)
-    {
-        return static_cast<VkFrontFace>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(color_component e)
-    {
-        return static_cast<VkColorComponentFlags>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(blend_factor e)
-    {
-        return static_cast<VkBlendFactor>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(blend_op e)
-    {
-        return static_cast<VkBlendOp>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(shader_kind e)
-    {
-        return static_cast<shaderc_shader_kind>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(vertex_input_rate e)
-    {
-        return static_cast<VkVertexInputRate>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(vertex_format e)
-    {
-        return static_cast<VkFormat>(std::to_underlying(e));
-    }
-
-    inline constexpr auto vkenum(buffer_usage_flag e)
-    {
-        return static_cast<VkBufferUsageFlagBits>(std::to_underlying(e));
+        return static_cast<orb_to_vk<T>::type>(std::to_underlying(e));
     }
 
     template <is_vkflag T>

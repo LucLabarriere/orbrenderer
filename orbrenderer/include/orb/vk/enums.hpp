@@ -1462,24 +1462,58 @@ namespace orb::vk
     };
 
     template <typename T>
-        concept is_vkflag = std::is_same_v<T, access_flag>
-        || std::is_same_v<T, image_aspect_flag>
-        || std::is_same_v<T, pipeline_stage_flag>
-        || std::is_same_v<T, image_usage_flag>
-        || std::is_same_v<T, surface_transform_flag>
-        || std::is_same_v<T, composite_alpha_flag>
-        || std::is_same_v<T, sample_count_flag>
-        || std::is_same_v<T, descriptor_pool_create_flag>
-        || std::is_same_v<T, command_pool_create_flag>
-        || std::is_same_v<T, memory_property_flag>
-        || std::is_same_v<T, memory_flag>
-        || std::is_same_v<T, debug_utils_message_severity_flag>
-        || std::is_same_v<T, debug_utils_message_type_flag>
-        || std::is_same_v<T, command_buffer_usage_flag>
-        || std::is_same_v<T, subpass_description_flag>
-        || std::is_same_v<T, shader_stage_flag>
-        || std::is_same_v<T, color_component>
-        || std::is_same_v<T, buffer_usage_flag>;
+    concept is_vkflag = std::is_same_v<T, access_flag>
+                     || std::is_same_v<T, queue_family>
+                     || std::is_same_v<T, instance_create>
+                     || std::is_same_v<T, image_aspect_flag>
+                     || std::is_same_v<T, pipeline_stage_flag>
+                     || std::is_same_v<T, image_usage_flag>
+                     || std::is_same_v<T, surface_transform_flag>
+                     || std::is_same_v<T, composite_alpha_flag>
+                     || std::is_same_v<T, sample_count_flag>
+                     || std::is_same_v<T, descriptor_pool_create_flag>
+                     || std::is_same_v<T, command_pool_create_flag>
+                     || std::is_same_v<T, memory_property_flag>
+                     || std::is_same_v<T, memory_flag>
+                     || std::is_same_v<T, debug_utils_message_severity_flag>
+                     || std::is_same_v<T, debug_utils_message_type_flag>
+                     || std::is_same_v<T, command_buffer_usage_flag>
+                     || std::is_same_v<T, subpass_description_flag>
+                     || std::is_same_v<T, shader_stage_flag>
+                     || std::is_same_v<T, color_component>
+                     || std::is_same_v<T, buffer_usage_flag>;
+
+    template <typename T>
+    concept is_vkenum = std::is_same_v<T, gpu_type>
+                     || std::is_same_v<T, descriptor_type>
+                     || std::is_same_v<T, attachment_load_op>
+                     || std::is_same_v<T, attachment_store_op>
+                     || std::is_same_v<T, pipeline_bind_point>
+                     || std::is_same_v<T, cmd_buffer_level>
+                     || std::is_same_v<T, format>
+                     || std::is_same_v<T, present_mode>
+                     || std::is_same_v<T, color_space>
+                     || std::is_same_v<T, sharing_mode>
+                     || std::is_same_v<T, image_tiling>
+                     || std::is_same_v<T, image_type>
+                     || std::is_same_v<T, image_view_type>
+                     || std::is_same_v<T, component_swizzle>
+                     || std::is_same_v<T, image_layout>
+                     || std::is_same_v<T, memory_usage>
+                     || std::is_same_v<T, filter>
+                     || std::is_same_v<T, dynamic_state>
+                     || std::is_same_v<T, primitive_topology>
+                     || std::is_same_v<T, polygon_mode>
+                     || std::is_same_v<T, cull_mode>
+                     || std::is_same_v<T, front_face>
+                     || std::is_same_v<T, blend_factor>
+                     || std::is_same_v<T, blend_op>
+                     || std::is_same_v<T, shader_kind>
+                     || std::is_same_v<T, vertex_input_rate>
+                     || std::is_same_v<T, vertex_format>;
+
+    template <typename T>
+    concept is_vktype = is_vkflag<T> || is_vkenum<T>;
 
     template <is_vkflag T>
     static auto operator|(T lhs, T rhs) -> T
@@ -1492,5 +1526,4 @@ namespace orb::vk
     {
         return static_cast<T>(static_cast<ui32>(lhs) & static_cast<ui32>(rhs));
     }
-
 } // namespace orb::vk
