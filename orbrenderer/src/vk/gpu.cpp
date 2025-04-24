@@ -13,24 +13,24 @@ namespace orb::vk
 
         for (auto [i, qf] : flux::enumerate_mut(queues))
         {
-            if (qf->properties.queueFlags & vk::queue_families::graphics)
+            if (qf->properties.queueFlags & vkenum(queue_family::graphics))
             {
-                constexpr size_t index = queue_family_map_t::get_index(queue_families::graphics);
+                constexpr size_t index = queue_family_map_t::get_index(queue_family::graphics);
                 family_map->m_families[index].push_back(qf.getmut());
             }
-            if (qf->properties.queueFlags & vk::queue_families::transfer)
+            if (qf->properties.queueFlags & vkenum(queue_family::transfer))
             {
-                constexpr size_t index = queue_family_map_t::get_index(queue_families::transfer);
+                constexpr size_t index = queue_family_map_t::get_index(queue_family::transfer);
                 family_map->m_families[index].push_back(qf.getmut());
             }
-            if (qf->properties.queueFlags & vk::queue_families::compute)
+            if (qf->properties.queueFlags & vkenum(queue_family::compute))
             {
-                constexpr size_t index = queue_family_map_t::get_index(queue_families::compute);
+                constexpr size_t index = queue_family_map_t::get_index(queue_family::compute);
                 family_map->m_families[index].push_back(qf.getmut());
             }
-            if (qf->properties.queueFlags & vk::queue_families::sparse)
+            if (qf->properties.queueFlags & vkenum(queue_family::sparse))
             {
-                constexpr size_t index = queue_family_map_t::get_index(queue_families::sparse);
+                constexpr size_t index = queue_family_map_t::get_index(queue_family::sparse);
                 family_map->m_families[index].push_back(qf.getmut());
             }
         }
@@ -65,7 +65,7 @@ namespace orb::vk
                 .driver_version    = properties.driverVersion,
                 .vendor_id         = properties.vendorID,
                 .device_id         = properties.deviceID,
-                .device_type       = properties.deviceType,
+                .device_type       = gpu_type { (ui32)properties.deviceType },
                 .name              = properties.deviceName,
                 .limits            = properties.limits,
                 .sparse_properties = properties.sparseProperties,
@@ -106,20 +106,20 @@ namespace orb::vk
                      VK_VERSION_MAJOR(driver_version),
                      VK_VERSION_MINOR(driver_version),
                      VK_VERSION_PATCH(driver_version));
-        fmt::println("  * Vulkan handle: {}", fmt::ptr(handle));
-        fmt::println("  * GPU type: {}", gpu_types::strings[(size_t)device_type]);
         fmt::println("  * Vulkan version: {}.{}.{}",
                      VK_VERSION_MAJOR(api_version),
                      VK_VERSION_MINOR(api_version),
                      VK_VERSION_PATCH(api_version));
+        fmt::println("  * Vulkan handle: {}", fmt::ptr(handle));
+        fmt::println("  * GPU type: {}", gpu_type_names[(size_t)device_type]);
         fmt::println("  * Available queue families");
 
         for (const auto& [i, qf] : flux::enumerate(queue_families))
         {
             fmt::print("    - Queue family {}:", i);
-            if (qf->properties.queueFlags & vk::queue_families::graphics) { fmt::print(" Graphics"); }
-            if (qf->properties.queueFlags & vk::queue_families::transfer) { fmt::print(" Transfer"); }
-            if (qf->properties.queueFlags & vk::queue_families::compute) { fmt::print(" Compute"); }
+            if (qf->properties.queueFlags & vkenum(queue_family::graphics)) { fmt::print(" Graphics"); }
+            if (qf->properties.queueFlags & vkenum(queue_family::transfer)) { fmt::print(" Transfer"); }
+            if (qf->properties.queueFlags & vkenum(queue_family::compute)) { fmt::print(" Compute"); }
 
             fmt::println("");
             fmt::println("       Count: {}", qf->properties.queueCount);

@@ -216,7 +216,7 @@ namespace orb::vk
             return builder;
         }
 
-        auto kind(shader_kinds::enum_t kind) -> shader_module_builder_t&
+        auto kind(shader_kind kind) -> shader_module_builder_t&
         {
             m_kind = kind;
             return *this;
@@ -237,7 +237,7 @@ namespace orb::vk
         [[nodiscard]] auto build() -> result<shader_module_t>
         {
             auto preprocess_res = m_compiler->preprocess_glsl(m_content,
-                                                              m_kind,
+                                                              vkenum(m_kind),
                                                               m_entry_point);
 
             if (preprocess_res.GetCompilationStatus() != shaderc_compilation_status_success)
@@ -246,7 +246,7 @@ namespace orb::vk
             }
 
             auto compile_res = m_compiler->compile(preprocess_res,
-                                                   m_kind,
+                                                   vkenum(m_kind),
                                                    m_entry_point);
 
             if (compile_res.GetCompilationStatus() != shaderc_compilation_status_success)
@@ -273,7 +273,7 @@ namespace orb::vk
         weak<device_t>         m_device   = nullptr;
         weak<spirv_compiler_t> m_compiler = nullptr;
 
-        shader_kinds::enum_t m_kind { shader_kinds::glsl_infer };
+        shader_kind m_kind { shader_kind::glsl_infer };
         std::string          m_content;
         const char*          m_entry_point = "main";
     };

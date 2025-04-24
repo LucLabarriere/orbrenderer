@@ -76,28 +76,28 @@ namespace orb::vk
                 return error_t { "Could not create descriptor pool: no pool size given" };
             }
 
-            auto pool_info          = vk::structs::create::descriptor_pool();
-            pool_info.flags         = vk::descriptor_pool_create_flags::free_descriptor_set_bit;
+            auto pool_info          = structs::create::descriptor_pool();
+            pool_info.flags         = vkenum(descriptor_pool_create_flag::free_descriptor_set);
             pool_info.maxSets       = m_max_sets;
             pool_info.poolSizeCount = m_pool_sizes.size();
             pool_info.pPoolSizes    = m_pool_sizes.data();
 
             if (auto r = vkCreateDescriptorPool(m_device->handle, &pool_info, nullptr, &pool.handle);
-                r != vk::vkres::ok)
+                r != vkres::ok)
             {
-                return error_t { "Could not create descriptor pool: {}", vk::vkres::get_repr(r) };
+                return error_t { "Could not create descriptor pool: {}", vkres::get_repr(r) };
             }
 
             return pool;
         }
 
-        auto pool(VkDescriptorType type, ui32 count) -> desc_pool_builder_t&
+        auto pool(descriptor_type type, ui32 count) -> desc_pool_builder_t&
         {
-            m_pool_sizes.push_back({ .type = type, .descriptorCount = count });
+            m_pool_sizes.push_back({ .type = vkenum(type), .descriptorCount = count });
             return *this;
         }
 
-        auto flag(descriptor_pool_create_flags::enum_t flag) -> desc_pool_builder_t&
+        auto flag(descriptor_pool_create_flag flag) -> desc_pool_builder_t&
         {
             m_flags |= static_cast<ui32>(flag);
             return *this;

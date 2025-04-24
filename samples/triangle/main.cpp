@@ -32,8 +32,8 @@ auto main() -> int
 
         box<vk::gpu_t> gpu = vk::gpu_selector_t::prepare(instance->handle)
                                  .unwrap()
-                                 .prefer_type(vk::gpu_types::discrete)
-                                 .prefer_type(vk::gpu_types::integrated)
+                                 .prefer_type(vk::gpu_type::discrete)
+                                 .prefer_type(vk::gpu_type::integrated)
                                  .select()
                                  .unwrap();
 
@@ -85,16 +85,16 @@ auto main() -> int
                                              .fb_dimensions_from_window()
                                              .present_queue_family_index(graphics_qf->index)
 
-                                             .usage(vk::image_usage_flags::color_attachment)
-                                             .color_space(vk::color_spaces::srgb_nonlinear_khr)
-                                             .format(vk::formats::b8g8r8a8_srgb)
-                                             .format(vk::formats::r8g8b8a8_srgb)
-                                             .format(vk::formats::b8g8r8_srgb)
-                                             .format(vk::formats::r8g8b8_srgb)
+                                             .usage(vk::image_usage_flag::color_attachment)
+                                             .color_space(vk::color_space::srgb_nonlinear_khr)
+                                             .format(vk::format::b8g8r8a8_srgb)
+                                             .format(vk::format::r8g8b8a8_srgb)
+                                             .format(vk::format::b8g8r8_srgb)
+                                             .format(vk::format::r8g8b8_srgb)
 
-                                             .present_mode(vk::present_modes::mailbox_khr)
-                                             .present_mode(vk::present_modes::immediate_khr)
-                                             .present_mode(vk::present_modes::fifo_khr)
+                                             .present_mode(vk::present_mode::mailbox_khr)
+                                             .present_mode(vk::present_mode::immediate_khr)
+                                             .present_mode(vk::present_mode::fifo_khr)
 
                                              .build()
                                              .unwrap();
@@ -104,30 +104,30 @@ auto main() -> int
 
         attachments.add({
             .img_format        = swapchain->format.format,
-            .samples           = vk::sample_count_flags::_1,
-            .load_ops          = vk::attachment_load_ops::clear,
-            .store_ops         = vk::attachment_store_ops::store,
-            .stencil_load_ops  = vk::attachment_load_ops::dont_care,
-            .stencil_store_ops = vk::attachment_store_ops::dont_care,
-            .initial_layout    = vk::image_layouts::undefined,
-            .final_layout      = vk::image_layouts::present_src_khr,
-            .attachment_layout = vk::image_layouts::color_attachment_optimal,
+            .samples           = vk::sample_count_flag::_1,
+            .load_ops          = vk::attachment_load_op::clear,
+            .store_ops         = vk::attachment_store_op::store,
+            .stencil_load_ops  = vk::attachment_load_op::dont_care,
+            .stencil_store_ops = vk::attachment_store_op::dont_care,
+            .initial_layout    = vk::image_layout::undefined,
+            .final_layout      = vk::image_layout::present_src_khr,
+            .attachment_layout = vk::image_layout::color_attachment_optimal,
         });
 
         const auto [color_descs, color_refs] = attachments.spans(0, 1);
 
         subpasses.add_subpass({
-            .bind_point = vk::pipeline_bind_points::graphics,
+            .bind_point = vk::pipeline_bind_point::graphics,
             .color_refs = color_refs,
         });
 
         subpasses.add_dependency({
             .src        = vk::subpass_external,
             .dst        = 0,
-            .src_stage  = vk::pipeline_stage_flags::color_attachment_output,
-            .dst_stage  = vk::pipeline_stage_flags::color_attachment_output,
+            .src_stage  = vk::pipeline_stage_flag::color_attachment_output,
+            .dst_stage  = vk::pipeline_stage_flag::color_attachment_output,
             .src_access = 0,
-            .dst_access = vk::access_flags::color_attachment_write,
+            .dst_access = vk::access_flag::color_attachment_write,
         });
 
         auto render_pass = vk::render_pass_builder_t::prepare(device->handle)
@@ -140,8 +140,8 @@ auto main() -> int
             return vk::views_builder_t::prepare(device->handle)
                 .unwrap()
                 .images(swapchain->images)
-                .aspect_mask(vk::image_aspect_flags::color)
-                .format(vk::formats::b8g8r8a8_srgb)
+                .aspect_mask(vk::image_aspect_flag::color)
+                .format(vk::format::b8g8r8a8_srgb)
                 .build()
                 .unwrap();
         };
@@ -177,7 +177,7 @@ auto main() -> int
         fmt::println("- Creating shader modules");
         auto vs_shader_module = vk::shader_module_builder_t::prepare(device.getmut(), &compiler)
                                     .unwrap()
-                                    .kind(vk::shader_kinds::glsl_vertex)
+                                    .kind(vk::shader_kind::glsl_vertex)
                                     .entry_point("main")
                                     .content(std::move(vs_content))
                                     .build()
@@ -185,7 +185,7 @@ auto main() -> int
 
         auto fs_shader_module = vk::shader_module_builder_t::prepare(device.getmut(), &compiler)
                                     .unwrap()
-                                    .kind(vk::shader_kinds::glsl_fragment)
+                                    .kind(vk::shader_kind::glsl_fragment)
                                     .entry_point("main")
                                     .content(std::move(fs_content))
                                     .build()
@@ -201,15 +201,15 @@ auto main() -> int
         auto pipeline = vk::pipeline_builder_t ::prepare(device.getmut())
                             .unwrap()
                             ->shader_stages()
-                            .stage(vs_shader_module, vk::shader_stage_flags::vertex, "main")
-                            .stage(fs_shader_module, vk::shader_stage_flags::fragment, "main")
+                            .stage(vs_shader_module, vk::shader_stage_flag::vertex, "main")
+                            .stage(fs_shader_module, vk::shader_stage_flag::fragment, "main")
                             .dynamic_states()
-                            .dynamic_state(vk::dynamic_states::viewport)
-                            .dynamic_state(vk::dynamic_states::scissor)
+                            .dynamic_state(vk::dynamic_state::viewport)
+                            .dynamic_state(vk::dynamic_state::scissor)
                             .vertex_input()
-                            .binding<vertex_t>(0, vk::vertex_input_rates::vertex)
-                            .attribute(0, offsetof(vertex_t, pos), vk::vertex_formats::vec2_t)
-                            .attribute(1, offsetof(vertex_t, col), vk::vertex_formats::vec3_t)
+                            .binding<vertex_t>(0, vk::vertex_input_rate::vertex)
+                            .attribute(0, offsetof(vertex_t, pos), vk::vertex_format::vec2_t)
+                            .attribute(1, offsetof(vertex_t, col), vk::vertex_format::vec3_t)
                             .input_assembly()
                             .viewport_states()
                             .viewport(0.0f, 0.0f, (f32)swapchain->width, (f32)swapchain->height, 0.0f, 1.0f)
@@ -239,13 +239,13 @@ auto main() -> int
         fmt::println("- Creating command pool and command buffers");
         auto graphics_cmd_pool = vk::cmd_pool_builder_t::prepare(device.getmut(), graphics_qf->index)
                                      .unwrap()
-                                     .flag(vk::command_pool_create_flags::reset_command_buffer_bit)
+                                     .flag(vk::command_pool_create_flag::reset_command_buffer)
                                      .build()
                                      .unwrap();
 
         auto transfer_cmd_pool = vk::cmd_pool_builder_t::prepare(device.getmut(), transfer_qf->index)
                                      .unwrap()
-                                     .flag(vk::command_pool_create_flags::reset_command_buffer_bit)
+                                     .flag(vk::command_pool_create_flag::reset_command_buffer)
                                      .build()
                                      .unwrap();
 
@@ -262,8 +262,8 @@ auto main() -> int
         auto vertex_buffer = vk::vertex_buffer_builder_t::prepare(device.getmut())
                                  .unwrap()
                                  .vertices<vertex_t>(vertices)
-                                 .buffer_usage_flag(vk::buffer_usage_flags::transfer_destination)
-                                 .memory_flags(vk::vma_alloc_flags::dedicated_memory)
+                                 .buffer_usage_flag(vk::buffer_usage_flag::transfer_destination)
+                                 .memory_flags(vk::memory_flag::dedicated_memory)
                                  .build()
                                  .unwrap();
 
@@ -286,7 +286,7 @@ auto main() -> int
         fmt::println("- Submitting copy command buffer");
         vk::submit_helper_t::prepare()
             .cmd_buffer(&cpy_cmd.handle)
-            .wait_stage(vk::pipeline_stage_flags::transfer)
+            .wait_stage(vk::pipeline_stage_flag::transfer)
             .submit(transfer_qf->queues.front())
             .unwrap();
 
@@ -377,7 +377,7 @@ auto main() -> int
                 .wait_semaphores(img_avail_sems.handles)
                 .signal_semaphores(render_finished_sems.handles)
                 .cmd_buffer(&cmd.handle)
-                .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
+                .wait_stage(vk::pipeline_stage_flag::color_attachment_output)
                 .submit(graphics_qf->queues.front(), fences.handles.back())
                 .unwrap();
 

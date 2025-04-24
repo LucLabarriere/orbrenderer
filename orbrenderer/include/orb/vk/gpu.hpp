@@ -26,7 +26,7 @@ namespace orb::vk
         [[nodiscard]] static auto create(std::span<box<queue_family_t>>)
             -> box<queue_family_map_t>;
 
-        [[nodiscard]] auto get_queues(queue_families::enum_t type) const
+        [[nodiscard]] auto get_queues(queue_family type) const
             -> result<queue_family_span_t>
         {
             const size_t index = get_index(type);
@@ -39,22 +39,22 @@ namespace orb::vk
             return queue_family_span_t { m_families[index] };
         }
 
-        [[nodiscard]] auto graphics() const { return get_queues(queue_families::graphics); }
-        [[nodiscard]] auto transfer() const { return get_queues(queue_families::transfer); }
-        [[nodiscard]] auto compute() const { return get_queues(queue_families::compute); }
-        [[nodiscard]] auto sparse() const { return get_queues(queue_families::sparse); }
+        [[nodiscard]] auto graphics() const { return get_queues(queue_family::graphics); }
+        [[nodiscard]] auto transfer() const { return get_queues(queue_family::transfer); }
+        [[nodiscard]] auto compute() const { return get_queues(queue_family::compute); }
+        [[nodiscard]] auto sparse() const { return get_queues(queue_family::sparse); }
 
     private:
         std::array<std::vector<queue_family_ref_t>, 4> m_families {};
 
-        [[nodiscard]] static constexpr auto get_index(queue_families::enum_t type) -> size_t
+        [[nodiscard]] static constexpr auto get_index(queue_family type) -> size_t
         {
             switch (type)
             {
-            case queue_families::graphics: return 0;
-            case queue_families::transfer: return 1;
-            case queue_families::compute: return 2;
-            case queue_families::sparse: return 3;
+            case queue_family::graphics: return 0;
+            case queue_family::transfer: return 1;
+            case queue_family::compute: return 2;
+            case queue_family::sparse: return 3;
             default: return 4;
             }
         }
@@ -67,7 +67,7 @@ namespace orb::vk
         ui32                             driver_version {};
         ui32                             vendor_id {};
         ui32                             device_id {};
-        gpu_types::enum_t                device_type {};
+        gpu_type                device_type {};
         std::string                      name {};
         VkPhysicalDeviceLimits           limits {};
         VkPhysicalDeviceSparseProperties sparse_properties {};
@@ -87,7 +87,7 @@ namespace orb::vk
         [[nodiscard]] auto begin() { return m_gpus.begin(); }
         [[nodiscard]] auto end() { return m_gpus.end(); }
 
-        [[nodiscard]] auto prefer_type(gpu_types::enum_t type) -> gpu_selector_t&
+        [[nodiscard]] auto prefer_type(gpu_type type) -> gpu_selector_t&
         {
             m_prefered_types.push_back(type);
             return *this;
@@ -128,7 +128,7 @@ namespace orb::vk
     private:
         gpu_selector_t() = default;
 
-        std::vector<gpu_types::enum_t> m_prefered_types;
+        std::vector<gpu_type> m_prefered_types;
         std::vector<box<gpu_t>>        m_gpus;
     };
 } // namespace orb::vk

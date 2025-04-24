@@ -8,6 +8,7 @@ add_library(orbrenderer
           src/vk/swapchain.cpp
           src/vk/surface.cpp
           src/vk/vma.cpp
+          src/vk/enums.cpp
           src/glfw/driver.cpp
           src/glfw/window.cpp)
 

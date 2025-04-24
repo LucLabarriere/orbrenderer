@@ -30,18 +30,18 @@ namespace orb::vk
     class desc_set_layout_builder_t
     {
     public:
-        auto binding(ui32                           binding,
-                     vk::desc_types::enum_t         type,
-                     ui32                           count,
-                     vk::shader_stage_flags::enum_t stage_flags)
+        auto binding(ui32              binding,
+                     descriptor_type   type,
+                     ui32              count,
+                     shader_stage_flag stage_flags)
             -> desc_set_layout_builder_t&
         {
             auto& binding_desc = m_bindings.emplace_back();
 
             binding_desc.binding         = binding;
-            binding_desc.descriptorType  = type;
+            binding_desc.descriptorType  = vkenum(type);
             binding_desc.descriptorCount = count;
-            binding_desc.stageFlags      = stage_flags;
+            binding_desc.stageFlags      = vkenum(stage_flags);
 
             return *this;
         }
@@ -54,7 +54,7 @@ namespace orb::vk
     private:
         friend pipeline_builder_t;
 
-        VkDescriptorSetLayoutCreateInfo m_create_info = vk::structs::create::desc_set_layout();
+        VkDescriptorSetLayoutCreateInfo m_create_info = structs::create::desc_set_layout();
 
         std::vector<VkDescriptorSetLayoutBinding> m_bindings;
 
@@ -65,10 +65,10 @@ namespace orb::vk
     class color_blend_attachment_builder_t
     {
     public:
-        auto color_write_mask(vk::color_components::enum_t component)
+        auto color_write_mask(color_component component)
             -> color_blend_attachment_builder_t&
         {
-            m_attachment_state->colorWriteMask |= component;
+            m_attachment_state->colorWriteMask |= vkenum(component);
             return *this;
         }
 
@@ -79,45 +79,45 @@ namespace orb::vk
             return *this;
         }
 
-        auto src_color_blend_factor(vk::blend_factors::enum_t factor)
+        auto src_color_blend_factor(blend_factor factor)
             -> color_blend_attachment_builder_t&
         {
-            m_attachment_state->srcColorBlendFactor = factor;
+            m_attachment_state->srcColorBlendFactor = vkenum(factor);
             return *this;
         }
 
-        auto dst_color_blend_factor(vk::blend_factors::enum_t factor)
+        auto dst_color_blend_factor(blend_factor factor)
             -> color_blend_attachment_builder_t&
         {
-            m_attachment_state->dstColorBlendFactor = factor;
+            m_attachment_state->dstColorBlendFactor = vkenum(factor);
             return *this;
         }
 
-        auto color_blend_op(vk::blend_ops::enum_t op)
+        auto color_blend_op(blend_op op)
             -> color_blend_attachment_builder_t&
         {
-            m_attachment_state->colorBlendOp = op;
+            m_attachment_state->colorBlendOp = vkenum(op);
             return *this;
         }
 
-        auto src_alpha_blend_factor(vk::blend_factors::enum_t factor)
+        auto src_alpha_blend_factor(blend_factor factor)
             -> color_blend_attachment_builder_t&
         {
-            m_attachment_state->srcAlphaBlendFactor = factor;
+            m_attachment_state->srcAlphaBlendFactor = vkenum(factor);
             return *this;
         }
 
-        auto dst_alpha_blend_factor(vk::blend_factors::enum_t factor)
+        auto dst_alpha_blend_factor(blend_factor factor)
             -> color_blend_attachment_builder_t&
         {
-            m_attachment_state->dstAlphaBlendFactor = factor;
+            m_attachment_state->dstAlphaBlendFactor = vkenum(factor);
             return *this;
         }
 
-        auto alpha_blend_op(vk::blend_ops::enum_t op)
+        auto alpha_blend_op(blend_op op)
             -> color_blend_attachment_builder_t&
         {
-            m_attachment_state->alphaBlendOp = op;
+            m_attachment_state->alphaBlendOp = vkenum(op);
             return *this;
         }
 
@@ -143,18 +143,18 @@ namespace orb::vk
             m_attachment_builder.m_attachment_state       = &next_attachment;
             m_attachment_builder.m_color_blending_builder = this;
 
-            next_attachment.colorWriteMask = color_components::r
-                                           | color_components::g
-                                           | color_components::b
-                                           | color_components::a;
+            next_attachment.colorWriteMask = vkenum(color_component::r)
+                                           | vkenum(color_component::g)
+                                           | vkenum(color_component::b)
+                                           | vkenum(color_component::a);
 
             next_attachment.blendEnable         = false;
-            next_attachment.srcColorBlendFactor = blend_factors::one;
-            next_attachment.dstColorBlendFactor = blend_factors::zero;
-            next_attachment.colorBlendOp        = blend_ops::add;
-            next_attachment.srcAlphaBlendFactor = blend_factors::one;
-            next_attachment.dstAlphaBlendFactor = blend_factors::zero;
-            next_attachment.alphaBlendOp        = blend_ops::add;
+            next_attachment.srcColorBlendFactor = vkenum(blend_factor::one);
+            next_attachment.dstColorBlendFactor = vkenum(blend_factor::zero);
+            next_attachment.colorBlendOp        = vkenum(blend_op::add);
+            next_attachment.srcAlphaBlendFactor = vkenum(blend_factor::one);
+            next_attachment.dstAlphaBlendFactor = vkenum(blend_factor::zero);
+            next_attachment.alphaBlendOp        = vkenum(blend_op::add);
 
             return m_attachment_builder;
         }
@@ -183,9 +183,9 @@ namespace orb::vk
             return *this;
         }
 
-        auto rasterization_samples(vk::sample_count_flags::enum_t counts) -> multisample_builder_t&
+        auto rasterization_samples(sample_count_flag counts) -> multisample_builder_t&
         {
-            m_create_info.rasterizationSamples = counts;
+            m_create_info.rasterizationSamples = vkenum(counts);
             return *this;
         }
 
@@ -241,9 +241,9 @@ namespace orb::vk
             return *this;
         }
 
-        auto polygon_mode(vk::polygon_modes::enum_t mode) -> rasterizer_builder_t&
+        auto polygon_mode(polygon_mode mode) -> rasterizer_builder_t&
         {
-            m_create_info.polygonMode = mode;
+            m_create_info.polygonMode = vkenum(mode);
             return *this;
         }
 
@@ -253,14 +253,14 @@ namespace orb::vk
             return *this;
         }
 
-        auto cull_mode(vk::cull_modes::enum_t mode) -> rasterizer_builder_t&
+        auto cull_mode(cull_mode mode) -> rasterizer_builder_t&
         {
-            m_create_info.cullMode = mode;
+            m_create_info.cullMode = vkenum(mode);
             return *this;
         }
-        auto front_face(vk::front_faces::enum_t face) -> rasterizer_builder_t&
+        auto front_face(front_face face) -> rasterizer_builder_t&
         {
-            m_create_info.frontFace = face;
+            m_create_info.frontFace = vkenum(face);
             return *this;
         }
 
@@ -353,9 +353,9 @@ namespace orb::vk
             return *this;
         }
 
-        auto topology(primitive_topologies::enum_t topology) -> input_assembly_builder_t&
+        auto topology(primitive_topology topology) -> input_assembly_builder_t&
         {
-            m_create_info.topology = topology;
+            m_create_info.topology = vkenum(topology);
             return *this;
         }
 
@@ -376,26 +376,26 @@ namespace orb::vk
     {
     public:
         template <typename TVertexStruct>
-        auto binding(ui32 binding, vertex_input_rates::enum_t rate)
+        auto binding(ui32 binding, vertex_input_rate rate)
             -> vertex_input_builder_t&
         {
             auto& binding_desc = m_bindings.emplace_back();
 
             binding_desc.binding   = binding;
             binding_desc.stride    = sizeof(TVertexStruct);
-            binding_desc.inputRate = rate;
+            binding_desc.inputRate = vkenum(rate);
 
             return *this;
         }
 
-        auto attribute(ui32 location, ui32 offset, vk::vertex_formats::enum_t format)
+        auto attribute(ui32 location, ui32 offset, vertex_format format)
             -> vertex_input_builder_t&
         {
             auto& attribute_desc = m_attributes.emplace_back();
 
             attribute_desc.location = location;
             attribute_desc.binding  = m_bindings.size() - 1;
-            attribute_desc.format   = format;
+            attribute_desc.format   = vkenum(format);
             attribute_desc.offset   = offset;
 
             return *this;
@@ -420,9 +420,9 @@ namespace orb::vk
     class dynamic_states_builder_t
     {
     public:
-        auto dynamic_state(dynamic_states::enum_t state) -> dynamic_states_builder_t&
+        auto dynamic_state(dynamic_state state) -> dynamic_states_builder_t&
         {
-            m_states.push_back(state);
+            m_states.push_back(vkenum(state));
             return *this;
         }
 
@@ -443,14 +443,14 @@ namespace orb::vk
     class shader_stages_builder_t
     {
     public:
-        auto stage(shader_module_t&               module,
-                   vk::shader_stage_flags::enum_t stage_flags,
-                   const char*                    name) -> shader_stages_builder_t&
+        auto stage(shader_module_t&  module,
+                   shader_stage_flag stage_flags,
+                   const char*       name) -> shader_stages_builder_t&
         {
             auto& stage  = m_stages.emplace_back();
             stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             stage.module = module.handle;
-            stage.stage  = stage_flags;
+            stage.stage  = vkenum(stage_flags);
             stage.pName  = name;
 
             return *this;
@@ -570,7 +570,7 @@ namespace orb::vk
             {
                 auto& input_assembly                  = builder->m_input_assembly.m_create_info;
                 input_assembly.sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-                input_assembly.topology               = primitive_topologies::triangle_list;
+                input_assembly.topology               = vkenum(primitive_topology::triangle_list);
                 input_assembly.primitiveRestartEnable = false;
             }
 
@@ -588,10 +588,10 @@ namespace orb::vk
                 rasterizer.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
                 rasterizer.depthClampEnable        = false;
                 rasterizer.rasterizerDiscardEnable = false;
-                rasterizer.polygonMode             = polygon_modes::fill;
+                rasterizer.polygonMode             = vkenum(polygon_mode::fill);
                 rasterizer.lineWidth               = 1.0f;
-                rasterizer.cullMode                = cull_modes::back;
-                rasterizer.frontFace               = front_faces::clockwise;
+                rasterizer.cullMode                = vkenum(cull_mode::back);
+                rasterizer.frontFace               = vkenum(front_face::clockwise);
                 rasterizer.depthBiasEnable         = false;
             }
 
@@ -599,7 +599,7 @@ namespace orb::vk
                 auto& multisample                 = builder->m_multisample.m_create_info;
                 multisample.sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
                 multisample.sampleShadingEnable   = false;
-                multisample.rasterizationSamples  = sample_count_flags::_1;
+                multisample.rasterizationSamples  = vkenum(sample_count_flag::_1);
                 multisample.minSampleShading      = 1.0f;
                 multisample.pSampleMask           = nullptr;
                 multisample.alphaToCoverageEnable = false;

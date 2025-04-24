@@ -85,7 +85,7 @@ namespace orb::vk
 
             if (count == 1)
             {
-                if (avail_formats.back().format == formats::undefined) { return formats.front(); }
+                if (avail_formats.back().format == vkenum(format::undefined)) { return vkenum(formats.front()); }
                 else
                 {
                     const auto& ret       = avail_formats.back();
@@ -99,7 +99,7 @@ namespace orb::vk
                 {
                     for (const auto avail : avail_formats)
                     {
-                        if (request == avail.format && sc->format.colorSpace == avail.colorSpace)
+                        if (vkenum(request) == avail.format && sc->format.colorSpace == avail.colorSpace)
                         {
                             return avail.format;
                         }
@@ -124,11 +124,11 @@ namespace orb::vk
             {
                 for (const auto& avail : avail_modes)
                 {
-                    if (request == avail) { return request; }
+                    if (vkenum(request) == avail) { return vkenum(request); }
                 }
             }
 
-            return present_modes::fifo_khr; // Always available
+            return vkenum(present_mode::fifo_khr); // Always available
         };
 
         if (sc->info.minImageCount == 0)
@@ -136,10 +136,10 @@ namespace orb::vk
             sc->info.minImageCount = orb::eval | [&] {
                 switch (sc->present_mode)
                 {
-                case vk::present_modes::mailbox_khr: return 3;
-                case vk::present_modes::fifo_khr:
-                case vk::present_modes::fifo_relaxed_khr: return 2;
-                case vk::present_modes::immediate_khr: return 1;
+                case vkenum(present_mode::mailbox_khr): return 3;
+                case vkenum(present_mode::fifo_khr):
+                case vkenum(present_mode::fifo_relaxed_khr): return 2;
+                case vkenum(present_mode::immediate_khr): return 1;
 
                 default:
                     panic("Unknown present mode: {}. Something went wrong during the vulkan setup",
@@ -152,9 +152,9 @@ namespace orb::vk
         sc->info.imageFormat      = sc->format.format;
         sc->info.imageColorSpace  = sc->format.colorSpace;
         sc->info.imageArrayLayers = 1;
-        sc->info.imageSharingMode = sharing_modes::exclusive; // Assume that graphics family == present family
-        sc->info.preTransform     = surface_transform_flag::identity_khr;
-        sc->info.compositeAlpha   = composite_alpha_flag::opaque_khr;
+        sc->info.imageSharingMode = vkenum(sharing_mode::exclusive);
+        sc->info.preTransform     = vkenum(surface_transform_flag::identity_khr);
+        sc->info.compositeAlpha   = vkenum(composite_alpha_flag::opaque_khr);
         sc->info.presentMode      = sc->present_mode;
         sc->info.clipped          = VK_TRUE;
 

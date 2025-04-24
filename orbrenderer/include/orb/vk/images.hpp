@@ -99,45 +99,45 @@ namespace orb::vk
             return *this;
         }
 
-        auto tiling(vk::image_tilings::enum_t tiling) -> images_builder_t&
+        auto tiling(image_tiling tiling) -> images_builder_t&
         {
-            m_info.tiling = tiling;
+            m_info.tiling = vkenum(tiling);
             return *this;
         }
 
-        auto samples(vk::sample_count_flags::enum_t count) -> images_builder_t&
+        auto samples(sample_count_flag count) -> images_builder_t&
         {
-            m_info.samples = count;
+            m_info.samples = vkenum(count);
             return *this;
         }
 
-        auto sharing_mode(vk::sharing_modes::enum_t mode) -> images_builder_t&
+        auto sharing_mode(sharing_mode mode) -> images_builder_t&
         {
-            m_info.sharingMode = mode;
+            m_info.sharingMode = vkenum(mode);
             return *this;
         }
 
-        auto format(vk::formats::enum_t format) -> images_builder_t&
+        auto format(format format) -> images_builder_t&
         {
-            m_info.format = format;
+            m_info.format = vkenum(format);
             return *this;
         }
 
-        auto usage(vk::image_usage_flags::enum_t flag) -> images_builder_t&
+        auto usage(image_usage_flag flag) -> images_builder_t&
         {
-            m_info.usage |= flag;
+            m_info.usage |= vkflag(flag);
             return *this;
         }
 
-        auto mem_usage(vk::memory_usages::enum_t usage) -> images_builder_t&
+        auto mem_usage(memory_usage usage) -> images_builder_t&
         {
-            m_alloc_info.usage = usage;
+            m_alloc_info.usage = vkenum(usage);
             return *this;
         }
 
-        auto mem_flags(vk::memory_flags::enum_t flag) -> images_builder_t&
+        auto mem_flags(memory_flag flag) -> images_builder_t&
         {
-            m_alloc_info.flags |= flag;
+            m_alloc_info.flags |= vkflag(flag);
             return *this;
         }
 
@@ -151,8 +151,8 @@ namespace orb::vk
 
     void transition_layout(VkCommandBuffer       cmd,
                            VkImage               img,
-                           image_layouts::enum_t prev,
-                           image_layouts::enum_t next);
+                           image_layout prev,
+                           image_layout next);
 
     void copy_img(VkCommandBuffer cmd,
                   VkImage         src,

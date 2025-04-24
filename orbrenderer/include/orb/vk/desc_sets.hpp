@@ -87,14 +87,14 @@ namespace orb::vk
             sets.handles.resize(m_count);
             sets.layouts.resize(m_count, m_layout);
 
-            auto alloc_info               = vk::structs::create::desc_sets(m_pool);
+            auto alloc_info               = structs::create::desc_sets(m_pool);
             alloc_info.descriptorSetCount = m_count;
             alloc_info.pSetLayouts        = sets.layouts.data();
 
             if (auto r = vkAllocateDescriptorSets(m_device->handle, &alloc_info, sets.handles.data());
-                r != vk::vkres::ok)
+                r != vkres::ok)
             {
-                return error_t { "Could not create descriptor sets: {}", vk::vkres::get_repr(r) };
+                return error_t { "Could not create descriptor sets: {}", vkres::get_repr(r) };
             }
 
             return sets;
@@ -123,7 +123,7 @@ namespace orb::vk
             d.m_write.dstSet           = set;
             d.m_write.dstBinding       = binding;
             d.m_write.dstArrayElement  = 0;
-            d.m_write.descriptorType   = desc_types::uniform_buffer;
+            d.m_write.descriptorType   = vkenum(descriptor_type::uniform_buffer);
             d.m_write.descriptorCount  = 1;
             d.m_write.pImageInfo       = nullptr;
             d.m_write.pTexelBufferView = nullptr;

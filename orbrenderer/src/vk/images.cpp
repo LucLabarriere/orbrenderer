@@ -17,15 +17,15 @@ namespace orb::vk
         b.m_info.extent.depth  = 1;
         b.m_info.mipLevels     = 1;
         b.m_info.arrayLayers   = 1;
-        b.m_info.format        = vk::formats::b8g8r8a8_srgb;
-        b.m_info.tiling        = vk::image_tilings::optimal;
-        b.m_info.initialLayout = vk::image_layouts::undefined;
-        b.m_info.usage         = vk::image_usage_flags::color_attachment;
-        b.m_info.samples       = vk::sample_count_flags::_1;
-        b.m_info.sharingMode   = vk::sharing_modes::exclusive;
+        b.m_info.format        = vkenum(format::b8g8r8a8_srgb);
+        b.m_info.tiling        = vkenum(image_tiling::optimal);
+        b.m_info.initialLayout = vkenum(image_layout::undefined);
+        b.m_info.usage         = vkenum(image_usage_flag::color_attachment);
+        b.m_info.samples       = vkenum(sample_count_flag::_1);
+        b.m_info.sharingMode   = vkenum(sharing_mode::exclusive);
 
-        b.m_alloc_info.usage = vk::memory_usages::automatic;
-        b.m_alloc_info.flags = vk::memory_flags::dedicated_memory;
+        b.m_alloc_info.usage = vkenum(memory_usage::usage_auto);
+        b.m_alloc_info.flags = vkenum(memory_flag::dedicated_memory);
 
         return std::move(b);
     }
@@ -45,24 +45,24 @@ namespace orb::vk
         return images;
     }
     void transition_layout(
-        VkCommandBuffer cmd, VkImage img, image_layouts::enum_t prev, image_layouts::enum_t next)
+        VkCommandBuffer cmd, VkImage img, image_layout prev, image_layout next)
     {
         VkImageMemoryBarrier barrier {
             .sType         = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             .pNext         = nullptr,
-            .srcAccessMask = vk::access_flags::memory_write,
-            .dstAccessMask = vk::access_flags::memory_read | vk::access_flags::memory_write,
-            .oldLayout     = prev,
-            .newLayout     = next,
+            .srcAccessMask = vkflag(access_flag::memory_write),
+            .dstAccessMask = vkflag(access_flag::memory_read | access_flag::memory_write),
+            .oldLayout     = vkenum(prev),
+            .newLayout     = vkenum(next),
             .image         = img,
         };
 
-        VkImageAspectFlags aspect = (next == vk::image_layouts::depth_attachment_optimal)
-                                      ? vk::image_aspect_flags::depth
-                                      : vk::image_aspect_flags::color;
+        auto aspect = (next == image_layout::depth_attachment_optimal)
+                                      ? image_aspect_flag::depth
+                                      : image_aspect_flag::color;
 
         barrier.subresourceRange = {
-            .aspectMask     = aspect,
+            .aspectMask     = vkflag(aspect),
             .baseMipLevel   = 0,
             .levelCount     = 1,
             .baseArrayLayer = 0,
@@ -70,8 +70,8 @@ namespace orb::vk
         };
 
         vkCmdPipelineBarrier(cmd,
-                             vk::pipeline_stage_flags::top_of_pipe,
-                             vk::pipeline_stage_flags::top_of_pipe,
+                             vkenum(pipeline_stage_flag::top_of_pipe),
+                             vkenum(pipeline_stage_flag::top_of_pipe),
                              0,
                              0,
                              nullptr,
@@ -86,7 +86,7 @@ namespace orb::vk
         VkImageCopy region {};
 
         region.srcSubresource = {
-            .aspectMask     = image_aspect_flags::color,
+            .aspectMask     = vkflag(image_aspect_flag::color),
             .mipLevel       = 0,
             .baseArrayLayer = 0,
             .layerCount     = 1,
@@ -99,7 +99,7 @@ namespace orb::vk
         };
 
         region.dstSubresource = {
-            .aspectMask     = image_aspect_flags::color,
+            .aspectMask     = vkflag(image_aspect_flag::color),
             .mipLevel       = 0,
             .baseArrayLayer = 0,
             .layerCount     = 1,
@@ -118,14 +118,14 @@ namespace orb::vk
         };
 
         region.srcSubresource = {
-            .aspectMask     = image_aspect_flags::color,
+            .aspectMask     = vkflag(image_aspect_flag::color),
             .mipLevel       = 0,
             .baseArrayLayer = 0,
             .layerCount     = 1,
         };
 
         region.dstSubresource = {
-            .aspectMask     = image_aspect_flags::color,
+            .aspectMask     = vkflag(image_aspect_flag::color),
             .mipLevel       = 0,
             .baseArrayLayer = 0,
             .layerCount     = 1,
@@ -133,9 +133,9 @@ namespace orb::vk
 
         vkCmdCopyImage(cmd,
                        src,
-                       image_layouts::transfer_src_optimal,
+                       vkenum(image_layout::transfer_src_optimal),
                        dst,
-                       image_layouts::transfer_dst_optimal,
+                       vkenum(image_layout::transfer_dst_optimal),
                        1,
                        &region);
     } // namespace orb::vk

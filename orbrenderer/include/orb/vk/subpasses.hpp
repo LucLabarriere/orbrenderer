@@ -14,22 +14,22 @@ namespace orb::vk
 
         struct subpass_args_t
         {
-            vk::pipeline_bind_points::enum_t bind_point = vk::pipeline_bind_points::graphics;
+            pipeline_bind_point bind_point = pipeline_bind_point::graphics;
 
             std::span<VkAttachmentReference> color_refs;
             std::span<VkAttachmentReference> resolve_refs;
             std::span<VkAttachmentReference> input_refs;
             std::span<VkAttachmentReference> depth_stencil_ref;
 
-            vk::subpass_description_flags::enum_t flags {};
+            subpass_description_flag flags {};
         };
 
         void add_subpass(subpass_args_t&& args)
         {
             auto& desc = descriptions.emplace_back();
 
-            desc.flags                = args.flags;
-            desc.pipelineBindPoint    = args.bind_point;
+            desc.flags                = vkenum(args.flags);
+            desc.pipelineBindPoint    = vkenum(args.bind_point);
             desc.colorAttachmentCount = args.color_refs.size();
 
             desc.pColorAttachments       = args.color_refs.data();
@@ -42,14 +42,14 @@ namespace orb::vk
 
         struct dependency_args_t
         {
-            ui32 src = vk::subpass_external;
+            ui32 src = subpass_external;
             ui32 dst = 0;
 
-            ui32 src_stage = vk::pipeline_stage_flags::color_attachment_output;
-            ui32 dst_stage = vk::pipeline_stage_flags::color_attachment_output;
+            pipeline_stage_flag src_stage = pipeline_stage_flag::color_attachment_output;
+            pipeline_stage_flag dst_stage = pipeline_stage_flag::color_attachment_output;
 
             ui32 src_access = 0;
-            ui32 dst_access = vk::access_flags::color_attachment_write;
+            access_flag dst_access = access_flag::color_attachment_write;
         };
 
         void add_dependency(dependency_args_t&& args)
@@ -59,11 +59,11 @@ namespace orb::vk
             dep.srcSubpass = args.src;
             dep.dstSubpass = args.dst;
 
-            dep.srcStageMask = args.src_stage;
-            dep.dstStageMask = args.dst_stage;
+            dep.srcStageMask = vkenum(args.src_stage);
+            dep.dstStageMask = vkenum(args.dst_stage);
 
             dep.srcAccessMask = args.src_access;
-            dep.dstAccessMask = args.dst_access;
+            dep.dstAccessMask = vkenum(args.dst_access);
         }
     };
 } // namespace orb::vk

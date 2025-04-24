@@ -85,28 +85,28 @@ namespace orb::vk
             return *this;
         }
 
-        auto sharing_mode(sharing_modes::enum_t mode)
+        auto sharing_mode(sharing_mode mode)
             -> vertex_buffer_builder_t&
         {
-            m_create_info.sharingMode = mode;
+            m_create_info.sharingMode = vkenum(mode);
             return *this;
         }
 
-        auto buffer_usage_flag(buffer_usage_flags::enum_t flag) -> vertex_buffer_builder_t&
+        auto buffer_usage_flag(buffer_usage_flag flag) -> vertex_buffer_builder_t&
         {
-            m_create_info.usage |= flag;
+            m_create_info.usage |= vkenum(flag);
             return *this;
         }
 
-        auto memory_usage(vma_mem_usages::enum_t usage) -> vertex_buffer_builder_t&
+        auto memory_usage(memory_usage usage) -> vertex_buffer_builder_t&
         {
-            m_alloc_info.usage = usage;
+            m_alloc_info.usage = vkenum(usage);
             return *this;
         }
 
-        auto memory_flags(vma_alloc_flags::enum_t flags) -> vertex_buffer_builder_t&
+        auto memory_flags(memory_flag flags) -> vertex_buffer_builder_t&
         {
-            m_alloc_info.flags |= flags;
+            m_alloc_info.flags |= vkenum(flags);
             return *this;
         }
 

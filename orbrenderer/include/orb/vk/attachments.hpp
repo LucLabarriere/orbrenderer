@@ -22,14 +22,14 @@ namespace orb::vk
         {
             VkFormat img_format {};
 
-            vk::sample_count_flags::enum_t   samples           = vk::sample_count_flags::_1;
-            vk::attachment_load_ops::enum_t  load_ops          = vk::attachment_load_ops::dont_care;
-            vk::attachment_store_ops::enum_t store_ops         = vk::attachment_store_ops::store;
-            vk::attachment_load_ops::enum_t  stencil_load_ops  = vk::attachment_load_ops::dont_care;
-            vk::attachment_store_ops::enum_t stencil_store_ops = vk::attachment_store_ops::dont_care;
-            vk::image_layouts::enum_t        initial_layout    = vk::image_layouts::undefined;
-            vk::image_layouts::enum_t        final_layout      = vk::image_layouts::present_src_khr;
-            vk::image_layouts::enum_t        attachment_layout = vk::image_layouts::color_attachment_optimal;
+            sample_count_flag   samples           = sample_count_flag::_1;
+            attachment_load_op  load_ops          = attachment_load_op::dont_care;
+            attachment_store_op store_ops         = attachment_store_op::store;
+            attachment_load_op  stencil_load_ops  = attachment_load_op::dont_care;
+            attachment_store_op stencil_store_ops = attachment_store_op::dont_care;
+            image_layout        initial_layout    = image_layout::undefined;
+            image_layout        final_layout      = image_layout::present_src_khr;
+            image_layout        attachment_layout = image_layout::color_attachment_optimal;
         };
 
         void add(attachment_args_t&& args)
@@ -40,15 +40,15 @@ namespace orb::vk
             auto& ref  = references.emplace_back();
 
             desc.format         = args.img_format;
-            desc.samples        = args.samples;
-            desc.loadOp         = args.load_ops;
-            desc.storeOp        = args.store_ops;
-            desc.stencilLoadOp  = args.stencil_load_ops;
-            desc.stencilStoreOp = args.stencil_store_ops;
-            desc.initialLayout  = args.initial_layout;
-            desc.finalLayout    = args.final_layout;
+            desc.samples        = vkenum(args.samples);
+            desc.loadOp         = vkenum(args.load_ops);
+            desc.storeOp        = vkenum(args.store_ops);
+            desc.stencilLoadOp  = vkenum(args.stencil_load_ops);
+            desc.stencilStoreOp = vkenum(args.stencil_store_ops);
+            desc.initialLayout  = vkenum(args.initial_layout);
+            desc.finalLayout    = vkenum(args.final_layout);
             ref.attachment      = index;
-            ref.layout          = args.attachment_layout;
+            ref.layout          = vkenum(args.attachment_layout);
         }
 
         auto spans(size_t offset, size_t count) -> std::tuple<std::span<VkAttachmentDescription>,

@@ -69,15 +69,15 @@ namespace orb::vk
 
             b.m_device = device;
 
-            b.m_info.viewType = vk::image_view_types::type_2d;
-            b.m_info.format   = vk::formats::b8g8r8a8_srgb;
+            b.m_info.viewType = vkenum(image_view_type::_2d);
+            b.m_info.format   = vkenum(format::b8g8r8a8_srgb);
 
-            b.m_info.components.r = vk::component_swizzles::r;
-            b.m_info.components.g = vk::component_swizzles::g;
-            b.m_info.components.b = vk::component_swizzles::b;
-            b.m_info.components.a = vk::component_swizzles::a;
+            b.m_info.components.r = vkenum(component_swizzle::r);
+            b.m_info.components.g = vkenum(component_swizzle::g);
+            b.m_info.components.b = vkenum(component_swizzle::b);
+            b.m_info.components.a = vkenum(component_swizzle::a);
 
-            b.m_info.subresourceRange.aspectMask     = vk::image_aspect_flags::none;
+            b.m_info.subresourceRange.aspectMask     = vkenum(image_aspect_flag::none);
             b.m_info.subresourceRange.baseMipLevel   = 0;
             b.m_info.subresourceRange.levelCount     = 1;
             b.m_info.subresourceRange.baseArrayLayer = 0;
@@ -119,45 +119,45 @@ namespace orb::vk
             return *this;
         }
 
-        auto type(vk::image_view_types::enum_t type) -> views_builder_t&
+        auto type(image_view_type type) -> views_builder_t&
         {
-            m_info.viewType = type;
+            m_info.viewType = vkenum(type);
             return *this;
         }
 
-        auto format(vk::formats::enum_t format) -> views_builder_t&
+        auto format(format format) -> views_builder_t&
         {
-            m_info.format = format;
+            m_info.format = vkenum(format);
             return *this;
         }
 
-        auto r(vk::component_swizzles::enum_t r) -> views_builder_t&
+        auto r(component_swizzle r) -> views_builder_t&
         {
-            m_info.components.r = r;
+            m_info.components.r = vkenum(r);
             return *this;
         }
 
-        auto g(vk::component_swizzles::enum_t g) -> views_builder_t&
+        auto g(component_swizzle g) -> views_builder_t&
         {
-            m_info.components.g = g;
+            m_info.components.g = vkenum(g);
             return *this;
         }
 
-        auto b(vk::component_swizzles::enum_t b) -> views_builder_t&
+        auto b(component_swizzle b) -> views_builder_t&
         {
-            m_info.components.b = b;
+            m_info.components.b = vkenum(b);
             return *this;
         }
 
-        auto a(vk::component_swizzles::enum_t a) -> views_builder_t&
+        auto a(component_swizzle a) -> views_builder_t&
         {
-            m_info.components.a = a;
+            m_info.components.a = vkenum(a);
             return *this;
         }
 
-        auto aspect_mask(vk::image_aspect_flags::enum_t mask) -> views_builder_t&
+        auto aspect_mask(image_aspect_flag mask) -> views_builder_t&
         {
-            m_info.subresourceRange.aspectMask |= mask;
+            m_info.subresourceRange.aspectMask |= vkenum(mask);
             return *this;
         }
 
@@ -188,7 +188,7 @@ namespace orb::vk
     private:
         VkDevice m_device = nullptr;
 
-        VkImageViewCreateInfo        m_info = vk::structs::create::image_view();
+        VkImageViewCreateInfo        m_info = structs::create::image_view();
         std::vector<img_view_pair_t> m_handles;
     };
 } // namespace orb::vk

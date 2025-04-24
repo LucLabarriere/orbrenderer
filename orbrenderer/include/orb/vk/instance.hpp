@@ -87,7 +87,7 @@ namespace orb::vk
             if (enable && is_ext_available(ext))
             {
                 add_extension(ext);
-                create_info.flags |= vk::instance_create::portability;
+                create_info.flags |= vkenum(instance_create::portability);
             }
 
             return *this;

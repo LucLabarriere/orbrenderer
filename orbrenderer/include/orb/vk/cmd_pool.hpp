@@ -31,7 +31,7 @@ namespace orb::vk
         auto begin_one_time() -> result<void>
         {
             auto info  = structs::cmd_buffer_begin();
-            info.flags = command_buffer_usage_flags::one_time_submit;
+            info.flags = vkenum(command_buffer_usage_flag::one_time_submit);
 
             // Resetting cmd buffer
             if (auto res = vkResetCommandBuffer(handle, 0); res != vkres::ok)
@@ -135,8 +135,8 @@ namespace orb::vk
             handle = nullptr;
         }
 
-        [[nodiscard]] auto alloc_cmds(size_t                    count,
-                        cmd_buffer_levels::enum_t level = cmd_buffer_levels::primary)
+        [[nodiscard]] auto alloc_cmds(size_t           count,
+                                      cmd_buffer_level level = cmd_buffer_level::primary)
             -> result<cmd_buffers_t>
         {
             std::vector<VkCommandBuffer> cmds;
@@ -145,7 +145,7 @@ namespace orb::vk
             auto cmd_info               = structs::create::cmd_buffer();
             cmd_info.commandBufferCount = cmds.size();
             cmd_info.commandPool        = handle;
-            cmd_info.level              = level;
+            cmd_info.level              = vkenum(level);
 
             if (auto res = vkAllocateCommandBuffers(device, &cmd_info, cmds.data());
                 res != vkres::ok)
@@ -188,7 +188,7 @@ namespace orb::vk
             return pool;
         }
 
-        auto flag(command_pool_create_flags::enum_t flag) -> cmd_pool_builder_t&
+        auto flag(command_pool_create_flag flag) -> cmd_pool_builder_t&
         {
             m_flags |= static_cast<ui32>(flag);
             return *this;
@@ -234,7 +234,7 @@ namespace orb::vk
             return *this;
         }
 
-        auto wait_stage(vk::pipeline_stage_flags::enum_t stage) -> submit_helper_t&
+        auto wait_stage(pipeline_stage_flag stage) -> submit_helper_t&
         {
             m_wait_stage |= (ui32)stage;
             return *this;

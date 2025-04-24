@@ -15,25 +15,25 @@ namespace
         void* /*user_data*/)
         -> VkBool32
     {
-        namespace flags = orb::vk::debug_utils_message_severity_flags;
-        namespace col   = orb::colors;
+        using severity_t = orb::vk::debug_utils_message_severity_flag;
+        namespace col    = orb::colors;
 
-        orb::ui32 severity = orb::eval | [&] {
-            if ((msg_sev & flags::error) == flags::error) return flags::error;
-            if ((msg_sev & flags::warning) == flags::warning) return flags::warning;
-            if ((msg_sev & flags::info) == flags::info) return flags::info;
-            if ((msg_sev & flags::verbose) == flags::verbose) return flags::verbose;
-            return flags::verbose;
+        auto severity = orb::eval | [&] {
+            if ((msg_sev & vkflag(severity_t::error)) == vkflag(severity_t::error)) return severity_t::error;
+            if ((msg_sev & vkflag(severity_t::warning)) == vkflag(severity_t::warning)) return severity_t::warning;
+            if ((msg_sev & vkflag(severity_t::info)) == vkflag(severity_t::info)) return severity_t::info;
+            if ((msg_sev & vkflag(severity_t::verbose)) == vkflag(severity_t::verbose)) return severity_t::verbose;
+            return severity_t::verbose;
         };
 
         switch (severity)
         {
-        case orb::vk::debug_utils_message_severity_flags::verbose:
-        case orb::vk::debug_utils_message_severity_flags::info:
+        case severity_t::verbose:
+        case severity_t::info:
         {
             break;
         }
-        case orb::vk::debug_utils_message_severity_flags::warning:
+        case severity_t::warning:
         {
             fmt::println("{}Vk warning:{} {} ({})", col::yellow, col::reset, data->pMessageIdName, data->messageIdNumber);
             for (auto obj : std::span { data->pObjects, data->objectCount })
@@ -46,7 +46,7 @@ namespace
             fmt::println("{}", data->pMessage);
             break;
         }
-        case orb::vk::debug_utils_message_severity_flags::error:
+        case severity_t::error:
         {
             fmt::println("{}Vk error:{} {} ({})", col::red, col::reset, data->pMessageIdName, data->messageIdNumber);
             for (auto obj : std::span { data->pObjects, data->objectCount })
@@ -97,7 +97,7 @@ namespace
 
 namespace orb::vk
 {
-    auto vk::instance_builder_t::is_ext_available(std::string_view extension) -> bool
+    auto instance_builder_t::is_ext_available(std::string_view extension) -> bool
     {
         for (const VkExtensionProperties& p : ext_properties)
         {
@@ -107,7 +107,7 @@ namespace orb::vk
         return false;
     }
 
-    auto vk::instance_builder_t::add_glfw_required_extensions() -> instance_builder_t&
+    auto instance_builder_t::add_glfw_required_extensions() -> instance_builder_t&
     {
         ui32         count     = 0;
         const char** glfw_exts = glfwGetRequiredInstanceExtensions(&count);
@@ -121,7 +121,7 @@ namespace orb::vk
         return *this;
     }
 
-    auto vk::instance_builder_t::prepare() -> result<instance_builder_t>
+    auto instance_builder_t::prepare() -> result<instance_builder_t>
     {
         instance_builder_t b;
         b.create_info = structs::create::instance();
@@ -133,7 +133,7 @@ namespace orb::vk
         return b;
     }
 
-    auto vk::instance_builder_t::build() -> result<box<instance_t>>
+    auto instance_builder_t::build() -> result<box<instance_t>>
     {
         auto instance = make_box<instance_t>();
 

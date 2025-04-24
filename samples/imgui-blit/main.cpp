@@ -28,30 +28,30 @@ namespace
 
         attachments.add({
             .img_format        = sc_img_format,
-            .samples           = vk::sample_count_flags::_1,
-            .load_ops          = vk::attachment_load_ops::clear,
-            .store_ops         = vk::attachment_store_ops::store,
-            .stencil_load_ops  = vk::attachment_load_ops::dont_care,
-            .stencil_store_ops = vk::attachment_store_ops::dont_care,
-            .initial_layout    = vk::image_layouts::undefined,
-            .final_layout      = vk::image_layouts::present_src_khr,
-            .attachment_layout = vk::image_layouts::color_attachment_optimal,
+            .samples           = vk::sample_count_flag::_1,
+            .load_ops          = vk::attachment_load_op::clear,
+            .store_ops         = vk::attachment_store_op::store,
+            .stencil_load_ops  = vk::attachment_load_op::dont_care,
+            .stencil_store_ops = vk::attachment_store_op::dont_care,
+            .initial_layout    = vk::image_layout::undefined,
+            .final_layout      = vk::image_layout::present_src_khr,
+            .attachment_layout = vk::image_layout::color_attachment_optimal,
         });
 
         const auto [color_descs, color_refs] = attachments.spans(0, 1);
 
         subpasses.add_subpass({
-            .bind_point = vk::pipeline_bind_points::graphics,
+            .bind_point = vk::pipeline_bind_point::graphics,
             .color_refs = color_refs,
         });
 
         subpasses.add_dependency({
             .src        = vk::subpass_external,
             .dst        = 0,
-            .src_stage  = vk::pipeline_stage_flags::color_attachment_output,
-            .dst_stage  = vk::pipeline_stage_flags::color_attachment_output,
+            .src_stage  = vk::pipeline_stage_flag::color_attachment_output,
+            .dst_stage  = vk::pipeline_stage_flag::color_attachment_output,
             .src_access = 0,
-            .dst_access = vk::access_flags::color_attachment_write,
+            .dst_access = vk::access_flag::color_attachment_write,
         });
 
         auto imgui_pass = vk::render_pass_builder_t::prepare(device)
@@ -89,8 +89,8 @@ auto main() -> int
 
         box<vk::gpu_t> gpu = vk::gpu_selector_t::prepare(instance->handle)
                                  .unwrap()
-                                 .prefer_type(vk::gpu_types::discrete)
-                                 .prefer_type(vk::gpu_types::integrated)
+                                 .prefer_type(vk::gpu_type::discrete)
+                                 .prefer_type(vk::gpu_type::integrated)
                                  .select()
                                  .unwrap();
 
@@ -152,17 +152,17 @@ auto main() -> int
                                              .fb_dimensions_from_window()
                                              .present_queue_family_index(graphics_qf->index)
 
-                                             .usage(vk::image_usage_flags::transfer_dst)
-                                             .usage(vk::image_usage_flags::color_attachment)
-                                             .color_space(vk::color_spaces::srgb_nonlinear_khr)
-                                             .format(vk::formats::b8g8r8a8_unorm)
-                                             .format(vk::formats::r8g8b8a8_unorm)
-                                             .format(vk::formats::b8g8r8_unorm)
-                                             .format(vk::formats::r8g8b8_unorm)
+                                             .usage(vk::image_usage_flag::transfer_dst)
+                                             .usage(vk::image_usage_flag::color_attachment)
+                                             .color_space(vk::color_space::srgb_nonlinear_khr)
+                                             .format(vk::format::b8g8r8a8_unorm)
+                                             .format(vk::format::r8g8b8a8_unorm)
+                                             .format(vk::format::b8g8r8_unorm)
+                                             .format(vk::format::r8g8b8_unorm)
 
-                                             .present_mode(vk::present_modes::mailbox_khr)
-                                             .present_mode(vk::present_modes::immediate_khr)
-                                             .present_mode(vk::present_modes::fifo_khr)
+                                             .present_mode(vk::present_mode::mailbox_khr)
+                                             .present_mode(vk::present_mode::immediate_khr)
+                                             .present_mode(vk::present_mode::fifo_khr)
 
                                              .build()
                                              .unwrap();
@@ -173,12 +173,12 @@ auto main() -> int
             return vk::images_builder_t::prepare(device->allocator)
                 .unwrap()
                 .count(max_frames_in_flight)
-                .usage(vk::image_usage_flags::color_attachment)
-                .usage(vk::image_usage_flags::transfer_src)
+                .usage(vk::image_usage_flag::color_attachment)
+                .usage(vk::image_usage_flag::transfer_src)
                 .size(swapchain->width, swapchain->height)
-                .format(vk::formats::b8g8r8a8_unorm)
-                .mem_usage(vk::memory_usages::automatic)
-                .mem_flags(vk::memory_flags::dedicated_memory)
+                .format(vk::format::b8g8r8a8_unorm)
+                .mem_usage(vk::memory_usage::usage_auto)
+                .mem_flags(vk::memory_flag::dedicated_memory)
                 .build()
                 .unwrap();
         };
@@ -189,8 +189,8 @@ auto main() -> int
             return vk::views_builder_t::prepare(device->handle)
                 .unwrap()
                 .images(imgui_images.handles)
-                .aspect_mask(vk::image_aspect_flags::color)
-                .format(vk::formats::b8g8r8a8_unorm)
+                .aspect_mask(vk::image_aspect_flag::color)
+                .format(vk::format::b8g8r8a8_unorm)
                 .build()
                 .unwrap();
         };
@@ -210,8 +210,8 @@ auto main() -> int
 
         auto desc_pool = vk::desc_pool_builder_t::prepare(device.getmut())
                              .unwrap()
-                             .pool(vk::desc_types::combined_image_sampler, 100)
-                             .flag(vk::descriptor_pool_create_flags::free_descriptor_set_bit)
+                             .pool(vk::descriptor_type::combined_image_sampler, 100)
+                             .flag(vk::descriptor_pool_create_flag::free_descriptor_set)
                              .build()
                              .unwrap();
 
@@ -225,13 +225,13 @@ auto main() -> int
 
         auto graphics_cmd_pool = vk::cmd_pool_builder_t::prepare(device.getmut(), graphics_qf->index)
                                      .unwrap()
-                                     .flag(vk::command_pool_create_flags::reset_command_buffer_bit)
+                                     .flag(vk::command_pool_create_flag::reset_command_buffer)
                                      .build()
                                      .unwrap();
 
         auto transfer_cmd_pool = vk::cmd_pool_builder_t::prepare(device.getmut(), transfer_qf->index)
                                      .unwrap()
-                                     .flag(vk::command_pool_create_flags::reset_command_buffer_bit)
+                                     .flag(vk::command_pool_create_flag::reset_command_buffer)
                                      .build()
                                      .unwrap();
 
@@ -332,7 +332,7 @@ auto main() -> int
                 .wait_semaphores(img_avail.handles)
                 .signal_semaphores(render_finished.handles)
                 .cmd_buffer(&cmd.handle)
-                .wait_stage(vk::pipeline_stage_flags::color_attachment_output)
+                .wait_stage(vk::pipeline_stage_flag::color_attachment_output)
                 .submit(graphics_qf->queues.front(), nullptr)
                 .unwrap();
 
@@ -344,19 +344,19 @@ auto main() -> int
 
             vk::transition_layout(copy_cmd.handle,
                                   rendered_img,
-                                  vk::image_layouts::undefined,
-                                  vk::image_layouts::transfer_src_optimal);
+                                  vk::image_layout::undefined,
+                                  vk::image_layout::transfer_src_optimal);
             vk::transition_layout(copy_cmd.handle,
                                   swapchain_img,
-                                  vk::image_layouts::undefined,
-                                  vk::image_layouts::transfer_dst_optimal);
+                                  vk::image_layout::undefined,
+                                  vk::image_layout::transfer_dst_optimal);
 
             vk::copy_img(copy_cmd.handle, rendered_img, swapchain_img, swapchain->extent);
 
             vk::transition_layout(copy_cmd.handle,
                                   swapchain_img,
-                                  vk::image_layouts::transfer_dst_optimal,
-                                  vk::image_layouts::present_src_khr);
+                                  vk::image_layout::transfer_dst_optimal,
+                                  vk::image_layout::present_src_khr);
             copy_cmd.end();
 
             // Submit copy
@@ -364,7 +364,7 @@ auto main() -> int
                 .wait_semaphores(render_finished.handles)
                 .signal_semaphores(copy_finished.handles)
                 .cmd_buffer(&copy_cmd.handle)
-                .wait_stage(vk::pipeline_stage_flags::transfer)
+                .wait_stage(vk::pipeline_stage_flag::transfer)
                 .submit(transfer_qf->queues.front(), fence.handles.back())
                 .unwrap();
 

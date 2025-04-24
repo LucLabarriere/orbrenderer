@@ -92,7 +92,7 @@ namespace orb::vk
         builder.m_info.Subpass         = 0;
         builder.m_info.MinImageCount   = sc->info.minImageCount;
         builder.m_info.ImageCount      = sc->img_count;
-        builder.m_info.MSAASamples     = vk::sample_count_flags::_1;
+        builder.m_info.MSAASamples     = vkenum(sample_count_flag::_1);
         builder.m_info.Allocator       = nullptr;
         builder.m_info.CheckVkResultFn = nullptr;
 

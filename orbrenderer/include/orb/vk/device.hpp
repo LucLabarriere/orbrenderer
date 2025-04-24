@@ -86,7 +86,7 @@ namespace orb::vk
             }
         }
 
-        template <vk::vk_type T>
+        template <vk_type T>
         void set_name(T obj, const char* name)
         {
             VkDebugUtilsObjectNameInfoEXT name_info {
@@ -135,11 +135,11 @@ namespace orb::vk
 
         struct queue_info_t
         {
-            size_t create_info_index = 0;
-            std::vector<priority_t>  priorities {};
+            size_t                  create_info_index = 0;
+            std::vector<priority_t> priorities {};
         };
 
-        std::vector<VkDeviceQueueCreateInfo>                    m_queue_infos_raw;
+        std::vector<VkDeviceQueueCreateInfo>              m_queue_infos_raw;
         std::unordered_map<queue_family_t*, queue_info_t> m_queue_infos;
     };
 } // namespace orb::vk

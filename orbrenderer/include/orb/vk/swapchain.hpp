@@ -31,7 +31,7 @@ namespace orb::vk
         VkSwapchainKHR           handle {};
         VkSurfaceKHR             surface {};
         VkInstance               instance {};
-        VkSurfaceFormatKHR       format { .colorSpace = color_spaces::srgb_nonlinear_khr };
+        VkSurfaceFormatKHR       format { .colorSpace = vkenum(color_space::srgb_nonlinear_khr) };
         VkCommandBuffer          cmd {};
         VkPresentModeKHR         present_mode {};
         VkExtent2D               extent {};
@@ -116,8 +116,8 @@ namespace orb::vk
         ui32 present_qf_index {};
         ui32 semaphore_count {};
 
-        std::vector<formats::enum_t>       formats;
-        std::vector<present_modes::enum_t> present_modes;
+        std::vector<format>       formats;
+        std::vector<present_mode> present_modes;
 
         [[nodiscard]] static auto prepare(weak<instance_t>     instance,
                                           weak<gpu_t>          gpu,
@@ -130,17 +130,17 @@ namespace orb::vk
         auto fb_dimensions_from_window() -> swapchain_builder_t&;
         auto present_queue_family_index(ui32 index) -> swapchain_builder_t&;
 
-        auto format(formats::enum_t v) -> swapchain_builder_t&
+        auto format(format v) -> swapchain_builder_t&
         {
             formats.push_back(v);
             return *this;
         }
-        auto color_space(color_spaces::enum_t v) -> swapchain_builder_t&
+        auto color_space(color_space v) -> swapchain_builder_t&
         {
-            sc->format.colorSpace = v;
+            sc->format.colorSpace = vkenum(v);
             return *this;
         }
-        auto present_mode(present_modes::enum_t v) -> swapchain_builder_t&
+        auto present_mode(present_mode v) -> swapchain_builder_t&
         {
             present_modes.push_back(v);
             return *this;
@@ -150,9 +150,9 @@ namespace orb::vk
             sc->info.minImageCount = count;
             return *this;
         }
-        auto usage(vk::image_usage_flags::enum_t flag) -> swapchain_builder_t&
+        auto usage(image_usage_flag flag) -> swapchain_builder_t&
         {
-            sc->info.imageUsage |= flag;
+            sc->info.imageUsage |= vkenum(flag);
             return *this;
         }
 
@@ -178,6 +178,7 @@ namespace orb::vk
             if (is_valid()) return false;
 
             const auto res = std::get<vkres::enum_t>(content);
+
             if (res == vkres::err_out_of_date_khr || res == vkres::suboptimal_khr) { return true; }
 
             throw orb::exception("Error encountered during vkAcquireNextImageKHR: {}", vkres::get_repr(res));
@@ -243,6 +244,6 @@ namespace orb::vk
         }
 
     private:
-        VkPresentInfoKHR m_info = vk::structs::present();
+        VkPresentInfoKHR m_info = structs::present();
     };
 } // namespace orb::vk
