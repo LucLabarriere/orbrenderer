@@ -60,13 +60,13 @@ auto main() -> int
             return std::make_tuple(graphics_qf, transfer_qf);
         };
 
-        println("- Selected graphics queue family {} with {} queues",
-                graphics_qf->index,
-                graphics_qf->properties.queueCount);
+        fmt::println("- Selected graphics queue family {} with {} queues",
+                     graphics_qf->index,
+                     graphics_qf->properties.queueCount);
 
-        println("- Selected transfer queue family {} with {} queues",
-                transfer_qf->index,
-                transfer_qf->properties.queueCount);
+        fmt::println("- Selected transfer queue family {} with {} queues",
+                     transfer_qf->index,
+                     transfer_qf->properties.queueCount);
 
         auto device = vk::device_builder_t::prepare(instance->handle)
                           .unwrap()
@@ -170,11 +170,11 @@ auto main() -> int
             .option_optimization_level(shaderc_optimization_level_zero)
             .option_warnings_as_errors();
 
-        println("- Reading shader files");
+        fmt::println("- Reading shader files");
         auto vs_content = vs_path.read_file().unwrap();
         auto fs_content = fs_path.read_file().unwrap();
 
-        println("- Creating shader modules");
+        fmt::println("- Creating shader modules");
         auto vs_shader_module = vk::shader_module_builder_t::prepare(device.getmut(), &compiler)
                                     .unwrap()
                                     .kind(vk::shader_kinds::glsl_vertex)
@@ -197,7 +197,7 @@ auto main() -> int
             std::array<float, 3> col;
         };
 
-        println("- Creating graphics pipeline");
+        fmt::println("- Creating graphics pipeline");
         auto pipeline = vk::pipeline_builder_t ::prepare(device.getmut())
                             .unwrap()
                             ->shader_stages()
@@ -226,7 +226,7 @@ auto main() -> int
                             .build()
                             .unwrap();
 
-        println("- Creating descriptor pool");
+        fmt::println("- Creating descriptor pool");
         auto desc_pool = vk::desc_pool_builder_t::prepare(device.getmut())
                              .unwrap()
                              .pool(vk::desc_types::sampler, 100)
@@ -234,7 +234,7 @@ auto main() -> int
                              .build()
                              .unwrap();
 
-        println("- Creating synchronization objects");
+        fmt::println("- Creating synchronization objects");
         // Synchronization
         auto sync_objects = vk::sync_objects_builder_t::prepare(device.getmut())
                                 .unwrap()
@@ -243,7 +243,7 @@ auto main() -> int
                                 .build()
                                 .unwrap();
 
-        println("- Creating command pool and command buffers");
+        fmt::println("- Creating command pool and command buffers");
         auto graphics_cmd_pool = vk::cmd_pool_builder_t::prepare(device.getmut(), graphics_qf->index)
                                      .unwrap()
                                      .flag(vk::command_pool_create_flags::reset_command_buffer_bit)
@@ -256,7 +256,7 @@ auto main() -> int
                                      .build()
                                      .unwrap();
 
-        println("- Creating command buffers");
+        fmt::println("- Creating command buffers");
         auto draw_cmds = graphics_cmd_pool->alloc_cmds(max_frames_in_flight).unwrap();
 
         std::vector<Vertex> vertices = {
@@ -265,7 +265,7 @@ auto main() -> int
             { { -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f } },
         };
 
-        println("- Creating vertex buffer");
+        fmt::println("- Creating vertex buffer");
         auto vertex_buffer = vk::vertex_buffer_builder_t::prepare(device.getmut())
                                  .unwrap()
                                  .vertices<Vertex>(vertices)
@@ -274,23 +274,23 @@ auto main() -> int
                                  .build()
                                  .unwrap();
 
-        println("- Creating staging buffer");
+        fmt::println("- Creating staging buffer");
         auto staging_buffer = vk::staging_buffer_builder_t::prepare(device.getmut(), vertex_buffer.size)
                                   .unwrap()
                                   .build()
                                   .unwrap();
 
-        println("- Copying vertices to staging buffer");
+        fmt::println("- Copying vertices to staging buffer");
         staging_buffer.transfer(vertices.data(), sizeof(Vertex) * vertices.size()).unwrap();
 
-        println("- Copying staging buffer to vertex buffer");
+        fmt::println("- Copying staging buffer to vertex buffer");
         auto cpy_cmd = transfer_cmd_pool->alloc_cmds(1).unwrap().get(0).unwrap();
 
         cpy_cmd.begin_one_time().unwrap();
         cpy_cmd.copy_buffer(staging_buffer.buffer, vertex_buffer.buffer, vertex_buffer.size);
         cpy_cmd.end().unwrap();
 
-        println("- Submitting copy command buffer");
+        fmt::println("- Submitting copy command buffer");
         vk::submit_helper_t::prepare()
             .cmd_buffer(&cpy_cmd.handle)
             .wait_stage(vk::pipeline_stage_flags::transfer)
@@ -301,7 +301,7 @@ auto main() -> int
 
         ui32 frame = 0;
 
-        println("- Main loop");
+        fmt::println("- Main loop");
         while (!window->should_close())
         {
             glfw_driver->poll_events();
@@ -334,7 +334,7 @@ auto main() -> int
             }
             else if (res.is_error())
             {
-                println("Acquire img error");
+                fmt::println("Acquire img error");
                 return 1;
             }
 
@@ -400,7 +400,7 @@ auto main() -> int
             }
             else if (present_res.is_error())
             {
-                println("Frame present error: {}", vk::vkres::get_repr(present_res.error()));
+                fmt::println("Frame present error: {}", vk::vkres::get_repr(present_res.error()));
                 return 1;
             }
 
@@ -411,7 +411,7 @@ auto main() -> int
     }
     catch (const orb::exception& e)
     {
-        println("Fatal error: {}", e.what());
+        fmt::println("Fatal error: {}", e.what());
         return 1;
     }
 

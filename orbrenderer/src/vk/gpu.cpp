@@ -11,7 +11,7 @@ namespace orb::vk
     {
         auto family_map = make_box<queue_family_map_t>();
 
-        for (auto[i, qf] : flux::enumerate_mut(queues))
+        for (auto [i, qf] : flux::enumerate_mut(queues))
         {
             if (qf->properties.queueFlags & vk::queue_families::graphics)
             {
@@ -100,22 +100,22 @@ namespace orb::vk
 
     void gpu_t::describe()
     {
-        println("- GPU description");
-        println("  * GPU {}: {}", device_id, name);
-        println("  * Driver: {}", driver_version);
-        println("  * Vulkan handle: {}", orb::ptr(handle));
-        println("  * GPU type: {}", gpu_types::strings[(size_t)device_type]);
-        println("  * Available queue families");
+        fmt::println("- GPU description");
+        fmt::println("  * GPU {}: {}", device_id, name);
+        fmt::println("  * Driver: {}", driver_version);
+        fmt::println("  * Vulkan handle: {}", fmt::ptr(handle));
+        fmt::println("  * GPU type: {}", gpu_types::strings[(size_t)device_type]);
+        fmt::println("  * Available queue families");
 
         for (const auto& [i, qf] : flux::enumerate(queue_families))
         {
-            print("    - Queue family {}:", i);
-            if (qf->properties.queueFlags & vk::queue_families::graphics) { print(" Graphics"); }
-            if (qf->properties.queueFlags & vk::queue_families::transfer) { print(" Transfer"); }
-            if (qf->properties.queueFlags & vk::queue_families::compute) { print(" Compute"); }
+            fmt::print("    - Queue family {}:", i);
+            if (qf->properties.queueFlags & vk::queue_families::graphics) { fmt::print(" Graphics"); }
+            if (qf->properties.queueFlags & vk::queue_families::transfer) { fmt::print(" Transfer"); }
+            if (qf->properties.queueFlags & vk::queue_families::compute) { fmt::print(" Compute"); }
 
-            println("");
-            println("       Count: {}", qf->properties.queueCount);
+            fmt::println("");
+            fmt::println("       Count: {}", qf->properties.queueCount);
         }
     };
 

@@ -117,13 +117,13 @@ auto main() -> int
             return std::make_tuple(graphics_qf, transfer_qf);
         };
 
-        println("- Selected graphics queue family {} with {} queues",
-                graphics_qf->index,
-                graphics_qf->properties.queueCount);
+        fmt::println("- Selected graphics queue family {} with {} queues",
+                     graphics_qf->index,
+                     graphics_qf->properties.queueCount);
 
-        println("- Selected transfer queue family {} with {} queues",
-                transfer_qf->index,
-                transfer_qf->properties.queueCount);
+        fmt::println("- Selected transfer queue family {} with {} queues",
+                     transfer_qf->index,
+                     transfer_qf->properties.queueCount);
 
         auto device = vk::device_builder_t::prepare(instance->handle)
                           .unwrap()
@@ -298,7 +298,7 @@ auto main() -> int
             }
             else if (res.is_error())
             {
-                println("Acquire img error");
+                fmt::println("Acquire img error");
                 return 1;
             }
 
@@ -381,7 +381,7 @@ auto main() -> int
             }
             else if (present_res.is_error())
             {
-                println("Frame present error: {}", vk::vkres::get_repr(present_res.error()));
+                fmt::println("Frame present error: {}", vk::vkres::get_repr(present_res.error()));
                 return 1;
             }
 
@@ -392,7 +392,7 @@ auto main() -> int
     }
     catch (const orb::exception& e)
     {
-        println("Fatal error: {}", e.what());
+        fmt::println("Fatal error: {}", e.what());
         return 1;
     }
 

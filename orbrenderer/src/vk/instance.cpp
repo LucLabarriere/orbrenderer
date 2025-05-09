@@ -35,25 +35,25 @@ namespace
         }
         case orb::vk::debug_utils_message_severity_flags::warning:
         {
-            orb::println("WARNING: {}", (uint32_t)msg_sev);
+            fmt::println("WARNING: {}", (uint32_t)msg_sev);
             break;
         }
         case orb::vk::debug_utils_message_severity_flags::error:
         {
-            orb::println("{}Vk error:{} {} ({})", col::red, col::reset, data->pMessageIdName, data->messageIdNumber);
+            fmt::println("{}Vk error:{} {} ({})", col::red, col::reset, data->pMessageIdName, data->messageIdNumber);
             for (auto obj : std::span { data->pObjects, data->objectCount })
             {
                 if (obj.pObjectName)
                 {
-                    orb::println("Obj: {}{}{}", col::red, obj.pObjectName, col::reset);
+                    fmt::println("Obj: {}{}{}", col::red, obj.pObjectName, col::reset);
                 }
             }
-            orb::println("{}", data->pMessage);
+            fmt::println("{}", data->pMessage);
             break;
         }
         default:
         {
-            orb::println("DEBUG: {}", (uint32_t)msg_sev);
+            fmt::println("DEBUG: {}", (uint32_t)msg_sev);
             break;
         }
         }
@@ -127,7 +127,7 @@ namespace orb::vk
         println("- Vulkan instance extensions:");
         for (const char* ext : extensions)
         {
-            orb::println("  * {}", ext);
+            fmt::println("  * {}", ext);
         }
 
         ui32 layer_count {};
