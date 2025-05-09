@@ -258,7 +258,7 @@ auto main() -> int
         // Synchronization
         auto sync_objects = vk::sync_objects_builder_t::prepare(device.getmut())
                                 .unwrap()
-                                .semaphores(max_frames_in_flight * 2)
+                                .semaphores(max_frames_in_flight + swapchain->images.size())
                                 .fences(max_frames_in_flight)
                                 .build()
                                 .unwrap();
@@ -408,7 +408,6 @@ auto main() -> int
 
             auto fences               = sync_objects.fences(frame, 1);
             auto img_avail_sems       = sync_objects.semaphores(frame, 1);
-            auto render_finished_sems = sync_objects.semaphores(frame + max_frames_in_flight, 1);
 
             // Wait fences
             fences.wait().unwrap();
@@ -441,6 +440,7 @@ auto main() -> int
             ubo_writer.update_sets().unwrap();
 
             uint32_t img_index = res.img_index();
+            auto render_finished_sems = sync_objects.semaphores(img_index + max_frames_in_flight, 1);
 
             // Render to the framebuffer
             render_pass->begin_info.framebuffer       = fbs.handles[img_index];
