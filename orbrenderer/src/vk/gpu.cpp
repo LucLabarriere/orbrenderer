@@ -98,13 +98,20 @@ namespace orb::vk
         return d;
     }
 
-    void gpu_t::describe()
+    void gpu_t::describe() const
     {
         fmt::println("- GPU description");
         fmt::println("  * GPU {}: {}", device_id, name);
-        fmt::println("  * Driver: {}", driver_version);
+        fmt::println("  * Driver: {}.{}.{}",
+                     VK_VERSION_MAJOR(driver_version),
+                     VK_VERSION_MINOR(driver_version),
+                     VK_VERSION_PATCH(driver_version));
         fmt::println("  * Vulkan handle: {}", fmt::ptr(handle));
         fmt::println("  * GPU type: {}", gpu_types::strings[(size_t)device_type]);
+        fmt::println("  * Vulkan version: {}.{}.{}",
+                     VK_VERSION_MAJOR(api_version),
+                     VK_VERSION_MINOR(api_version),
+                     VK_VERSION_PATCH(api_version));
         fmt::println("  * Available queue families");
 
         for (const auto& [i, qf] : flux::enumerate(queue_families))

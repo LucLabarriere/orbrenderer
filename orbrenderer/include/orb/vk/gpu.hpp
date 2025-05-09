@@ -74,7 +74,7 @@ namespace orb::vk
         box<queue_family_map_t>          queue_family_map;
         std::vector<box<queue_family_t>> queue_families;
 
-        void describe();
+        void describe() const;
     };
 
     class gpu_selector_t

@@ -238,7 +238,7 @@ auto main() -> int
         // Synchronization
         auto sync_objects = vk::sync_objects_builder_t::prepare(device.getmut())
                                 .unwrap()
-                                .semaphores(max_frames_in_flight * 2)
+                                .semaphores(max_frames_in_flight + swapchain->images.size())
                                 .fences(max_frames_in_flight)
                                 .build()
                                 .unwrap();
@@ -318,7 +318,6 @@ auto main() -> int
         cpy_cmd = transfer_cmd_pool->alloc_cmds(1).unwrap().get(0).unwrap();
 
         cpy_cmd.begin_one_time().unwrap();
-        fmt::println("Index buffer size: {}", index_buffer.size);
         cpy_cmd.copy_buffer(staging_buffer.buffer, index_buffer.buffer, index_buffer.size);
         cpy_cmd.end().unwrap();
 
@@ -347,7 +346,6 @@ auto main() -> int
 
             auto fences               = sync_objects.fences(frame, 1);
             auto img_avail_sems       = sync_objects.semaphores(frame, 1);
-            auto render_finished_sems = sync_objects.semaphores(frame + max_frames_in_flight, 1);
 
             // Wait fences
             fences.wait().unwrap();
@@ -374,6 +372,8 @@ auto main() -> int
             fences.reset().unwrap();
 
             uint32_t img_index = res.img_index();
+
+            auto render_finished_sems = sync_objects.semaphores(img_index + max_frames_in_flight, 1);
 
             // Render to the framebuffer
             render_pass->begin_info.framebuffer       = fbs.handles[img_index];

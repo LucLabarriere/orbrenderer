@@ -163,9 +163,9 @@ auto main() -> int
         const path fs_path { SAMPLE_DIR "main.fs.glsl" };
 
         vk::spirv_compiler_t compiler;
-        compiler.option_target_env(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2)
+        compiler.option_target_env(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_4)
             .option_generate_debug_info()
-            .option_target_spirv(shaderc_spirv_version_1_3)
+            .option_target_spirv(shaderc_spirv_version_1_4)
             .option_source_language(shaderc_source_language_glsl)
             .option_optimization_level(shaderc_optimization_level_zero)
             .option_warnings_as_errors();
@@ -238,7 +238,7 @@ auto main() -> int
         // Synchronization
         auto sync_objects = vk::sync_objects_builder_t::prepare(device.getmut())
                                 .unwrap()
-                                .semaphores(max_frames_in_flight * 2)
+                                .semaphores(max_frames_in_flight + swapchain->images.size())
                                 .fences(max_frames_in_flight)
                                 .build()
                                 .unwrap();
@@ -315,7 +315,6 @@ auto main() -> int
 
             auto fences               = sync_objects.fences(frame, 1);
             auto img_avail_sems       = sync_objects.semaphores(frame, 1);
-            auto render_finished_sems = sync_objects.semaphores(frame + max_frames_in_flight, 1);
 
             // Wait fences
             fences.wait().unwrap();
@@ -342,6 +341,8 @@ auto main() -> int
             fences.reset().unwrap();
 
             uint32_t img_index = res.img_index();
+
+            auto render_finished_sems = sync_objects.semaphores(img_index + max_frames_in_flight, 1);
 
             // Render to the framebuffer
             render_pass->begin_info.framebuffer       = fbs.handles[img_index];

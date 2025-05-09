@@ -35,7 +35,15 @@ namespace
         }
         case orb::vk::debug_utils_message_severity_flags::warning:
         {
-            fmt::println("WARNING: {}", (uint32_t)msg_sev);
+            fmt::println("{}Vk warning:{} {} ({})", col::yellow, col::reset, data->pMessageIdName, data->messageIdNumber);
+            for (auto obj : std::span { data->pObjects, data->objectCount })
+            {
+                if (obj.pObjectName)
+                {
+                    fmt::println("Obj: {}{}{}", col::red, obj.pObjectName, col::reset);
+                }
+            }
+            fmt::println("{}", data->pMessage);
             break;
         }
         case orb::vk::debug_utils_message_severity_flags::error:
@@ -53,7 +61,15 @@ namespace
         }
         default:
         {
-            fmt::println("DEBUG: {}", (uint32_t)msg_sev);
+            fmt::println("{}Vk debug:{} {} ({})", col::green, col::reset, data->pMessageIdName, data->messageIdNumber);
+            for (auto obj : std::span { data->pObjects, data->objectCount })
+            {
+                if (obj.pObjectName)
+                {
+                    fmt::println("Obj: {}{}{}", col::red, obj.pObjectName, col::reset);
+                }
+            }
+            fmt::println("{}", data->pMessage);
             break;
         }
         }
@@ -121,6 +137,10 @@ namespace orb::vk
     {
         auto instance = make_box<instance_t>();
 
+        auto app_info = structs::create::application_info();
+        app_info.apiVersion = VK_MAKE_VERSION(1, 4, 0);
+
+        create_info.pApplicationInfo = &app_info;
         create_info.enabledExtensionCount   = (ui32)extensions.size();
         create_info.ppEnabledExtensionNames = extensions.data();
 

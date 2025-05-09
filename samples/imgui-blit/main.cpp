@@ -210,7 +210,7 @@ auto main() -> int
 
         auto desc_pool = vk::desc_pool_builder_t::prepare(device.getmut())
                              .unwrap()
-                             .pool(vk::desc_types::sampler, 100)
+                             .pool(vk::desc_types::combined_image_sampler, 100)
                              .flag(vk::descriptor_pool_create_flags::free_descriptor_set_bit)
                              .build()
                              .unwrap();
@@ -218,7 +218,7 @@ auto main() -> int
         // Synchronization
         auto sync_objects = vk::sync_objects_builder_t::prepare(device.getmut())
                                 .unwrap()
-                                .semaphores(max_frames_in_flight * 3)
+                                .semaphores(max_frames_in_flight * (size_t)2 + swapchain->images.size())
                                 .fences(max_frames_in_flight)
                                 .build()
                                 .unwrap();
@@ -268,7 +268,6 @@ auto main() -> int
             auto fence           = sync_objects.fences(frame, 1);
             auto img_avail       = sync_objects.semaphores(frame, 1);
             auto render_finished = sync_objects.semaphores(frame + max_frames_in_flight, 1);
-            auto copy_finished   = sync_objects.semaphores(frame + max_frames_in_flight * 2, 1);
 
             // Start a new ImGui frame
             imgui_driver.new_frame();
@@ -306,6 +305,7 @@ auto main() -> int
             fence.reset().unwrap();
 
             uint32_t img_index = res.img_index();
+            auto copy_finished   = sync_objects.semaphores(img_index + max_frames_in_flight * 2, 1);
 
             // Render to the imgui pass framebuffer
             imgui_pass->begin_info.framebuffer       = imgui_fbs.handles[frame];

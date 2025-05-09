@@ -29,8 +29,17 @@ namespace orb::vk
             create_info.queueCount       = 0;
         }
 
-        auto& info = infoIt->second;
+        auto& info        = infoIt->second;
         auto& create_info = m_queue_infos_raw.at(info.create_info_index);
+
+        if (qf->properties.queueCount == create_info.queueCount)
+        {
+            fmt::println("Warning: Requested {} queues from queue family {}, but only {} queue(s) available",
+                         create_info.queueCount + 1,
+                         qf->index,
+                         qf->properties.queueCount);
+            return *this;
+        }
 
         info.priorities.push_back(priority);
 

@@ -1909,6 +1909,14 @@ namespace orb::vk
                 };
             }
 
+            [[nodiscard]] inline auto application_info() -> VkApplicationInfo
+            {
+                return {
+                    .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+                    .pNext = nullptr,
+                };
+            }
+
             [[nodiscard]] inline auto debug_report_callback() -> VkDebugReportCallbackCreateInfoEXT
             {
                 return {
@@ -1932,7 +1940,6 @@ namespace orb::vk
 
                     .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
                                  | VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
-                                 | VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT
                                  | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
 
                     .pUserData = nullptr,
