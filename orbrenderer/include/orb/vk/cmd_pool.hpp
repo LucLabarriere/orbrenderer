@@ -6,6 +6,7 @@
 #include <orb/result.hpp>
 #include <orb/utility.hpp>
 
+#include <orb/vk/semaphores.hpp>
 #include <span>
 #include <vector>
 
@@ -206,10 +207,19 @@ namespace orb::vk
     public:
         [[nodiscard]] static auto prepare() -> submit_helper_t { return {}; }
 
-        auto wait_semaphores(std::span<VkSemaphore> semaphores) -> submit_helper_t&
+        auto wait_semaphores(const vk::semaphores_t& semaphores) -> submit_helper_t&
         {
-            m_info.waitSemaphoreCount = semaphores.size();
-            m_info.pWaitSemaphores    = semaphores.data();
+            m_info.waitSemaphoreCount = semaphores.handles.size();
+            m_info.pWaitSemaphores    = semaphores.handles.data();
+            m_info.pWaitDstStageMask  = semaphores.wait_stages.data();
+            return *this;
+        }
+
+        auto wait_semaphores(const vk::semaphores_view_t& semaphores) -> submit_helper_t&
+        {
+            m_info.waitSemaphoreCount = semaphores.handles.size();
+            m_info.pWaitSemaphores    = semaphores.handles.data();
+            m_info.pWaitDstStageMask  = semaphores.wait_stages.data();
             return *this;
         }
 
@@ -234,16 +244,9 @@ namespace orb::vk
             return *this;
         }
 
-        auto wait_stage(pipeline_stage_flag stage) -> submit_helper_t&
-        {
-            m_wait_stage |= (ui32)stage;
-            return *this;
-        }
 
         [[nodiscard]] auto submit(VkQueue queue, VkFence fence = nullptr) -> result<void>
         {
-            m_info.pWaitDstStageMask = &m_wait_stage;
-
             if (auto res = vkQueueSubmit(queue, 1, &m_info, fence); res != vkres::ok)
             {
                 return error_t { "Failed to submit command buffer: {}", vkres::get_repr(res) };
@@ -253,7 +256,6 @@ namespace orb::vk
         }
 
     private:
-        VkSubmitInfo         m_info = structs::submit();
-        VkPipelineStageFlags m_wait_stage {};
+        VkSubmitInfo m_info = structs::submit();
     };
 } // namespace orb::vk
