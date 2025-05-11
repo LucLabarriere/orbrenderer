@@ -85,6 +85,14 @@ namespace orb::vk
             return *this;
         }
 
+        template <typename TVertexStruct>
+        auto vertices(const std::vector<TVertexStruct>& vertices)
+            -> vertex_buffer_builder_t&
+        {
+            m_create_info.size = vertices.size() * sizeof(TVertexStruct);
+            return *this;
+        }
+
         auto sharing_mode(sharing_mode mode)
             -> vertex_buffer_builder_t&
         {
