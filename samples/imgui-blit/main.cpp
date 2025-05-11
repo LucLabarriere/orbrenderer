@@ -216,12 +216,29 @@ auto main() -> int
                              .unwrap();
 
         // Synchronization
-        auto sync_objects = vk::sync_objects_builder_t::prepare(device.getmut())
-                                .unwrap()
-                                .semaphores(max_frames_in_flight * (size_t)2 + swapchain->images.size())
-                                .fences(max_frames_in_flight)
-                                .build()
-                                .unwrap();
+        auto fences = vk::fences_builder_t::create(device.getmut(), max_frames_in_flight)
+                          .unwrap();
+
+        auto img_avail_sems = vk::semaphores_builder_t::prepare(device.getmut())
+                                  .unwrap()
+                                  .count(max_frames_in_flight)
+                                  .stage(vk::pipeline_stage_flag::color_attachment_output)
+                                  .build()
+                                  .unwrap();
+
+        auto render_finished_sems = vk::semaphores_builder_t::prepare(device.getmut())
+                                        .unwrap()
+                                        .count(swapchain->images.size())
+                                        .stage(vk::pipeline_stage_flag::transfer)
+                                        .build()
+                                        .unwrap();
+
+        auto blit_finished_sems = vk::semaphores_builder_t::prepare(device.getmut())
+                                        .unwrap()
+                                        .count(swapchain->images.size())
+                                        .stage(vk::pipeline_stage_flag::color_attachment_output)
+                                        .build()
+                                        .unwrap();
 
         auto graphics_cmd_pool = vk::cmd_pool_builder_t::prepare(device.getmut(), graphics_qf->index)
                                      .unwrap()
@@ -265,9 +282,9 @@ auto main() -> int
                 continue;
             }
 
-            auto fence           = sync_objects.fences(frame, 1);
-            auto img_avail       = sync_objects.semaphores(frame, 1);
-            auto render_finished = sync_objects.semaphores(frame + max_frames_in_flight, 1);
+            auto fence           = fences[frame];
+            auto img_avail       = img_avail_sems.view(frame, 1);
+            auto render_finished = render_finished_sems.view(frame, 1);
 
             // Start a new ImGui frame
             imgui_driver.new_frame();
@@ -305,7 +322,7 @@ auto main() -> int
             fence.reset().unwrap();
 
             uint32_t img_index = res.img_index();
-            auto copy_finished   = sync_objects.semaphores(img_index + max_frames_in_flight * 2, 1);
+            auto blit_finished   = blit_finished_sems.view(img_index, 1);
 
             // Render to the imgui pass framebuffer
             imgui_pass->begin_info.framebuffer       = imgui_fbs.handles[frame];
@@ -329,10 +346,9 @@ auto main() -> int
 
             // Submit render
             vk::submit_helper_t::prepare()
-                .wait_semaphores(img_avail.handles)
+                .wait_semaphores(img_avail)
                 .signal_semaphores(render_finished.handles)
                 .cmd_buffer(&cmd.handle)
-                .wait_stage(vk::pipeline_stage_flag::color_attachment_output)
                 .submit(graphics_qf->queues.front(), nullptr)
                 .unwrap();
 
@@ -361,17 +377,16 @@ auto main() -> int
 
             // Submit copy
             vk::submit_helper_t::prepare()
-                .wait_semaphores(render_finished.handles)
-                .signal_semaphores(copy_finished.handles)
+                .wait_semaphores(render_finished)
+                .signal_semaphores(blit_finished.handles)
                 .cmd_buffer(&copy_cmd.handle)
-                .wait_stage(vk::pipeline_stage_flag::transfer)
-                .submit(transfer_qf->queues.front(), fence.handles.back())
+                .submit(transfer_qf->queues.front(), fence.handle)
                 .unwrap();
 
             // Present the rendered image
             auto present_res = vk::present_helper_t::prepare()
                                    .swapchain(*swapchain)
-                                   .wait_semaphores(copy_finished.handles)
+                                   .wait_semaphores(blit_finished.handles)
                                    .img_index(img_index)
                                    .present(graphics_qf->queues.front());
 

@@ -256,12 +256,22 @@ auto main() -> int
 
         println("- Creating synchronization objects");
         // Synchronization
-        auto sync_objects = vk::sync_objects_builder_t::prepare(device.getmut())
-                                .unwrap()
-                                .semaphores(max_frames_in_flight + swapchain->images.size())
-                                .fences(max_frames_in_flight)
-                                .build()
-                                .unwrap();
+        auto fences = vk::fences_builder_t::create(device.getmut(), max_frames_in_flight)
+                          .unwrap();
+
+        auto img_avail_sems = vk::semaphores_builder_t::prepare(device.getmut())
+                                  .unwrap()
+                                  .count(max_frames_in_flight)
+                                  .stage(vk::pipeline_stage_flag::color_attachment_output)
+                                  .build()
+                                  .unwrap();
+
+        auto render_finished_sems = vk::semaphores_builder_t::prepare(device.getmut())
+                                        .unwrap()
+                                        .count(swapchain->images.size())
+                                        .stage(vk::pipeline_stage_flag::color_attachment_output)
+                                        .build()
+                                        .unwrap();
 
         println("- Creating command pool and command buffers");
         auto graphics_cmd_pool = vk::cmd_pool_builder_t::prepare(device.getmut(), graphics_qf->index)
@@ -349,7 +359,6 @@ auto main() -> int
         println("- Submitting copy command buffer");
         vk::submit_helper_t::prepare()
             .cmd_buffer(&cpy_cmd.handle)
-            .wait_stage(vk::pipeline_stage_flag::transfer)
             .submit(transfer_qf->queues.front())
             .unwrap();
 
@@ -368,7 +377,6 @@ auto main() -> int
         println("- Submitting copy command buffer");
         vk::submit_helper_t::prepare()
             .cmd_buffer(&cpy_cmd.handle)
-            .wait_stage(vk::pipeline_stage_flag::transfer)
             .submit(transfer_qf->queues.front())
             .unwrap();
 
@@ -406,14 +414,14 @@ auto main() -> int
                                              10.0f);
             ubo_data.proj[1][1] *= -1;
 
-            auto fences               = sync_objects.fences(frame, 1);
-            auto img_avail_sems       = sync_objects.semaphores(frame, 1);
+            auto fence     = fences[frame];
+            auto img_avail = img_avail_sems.view(frame, 1);
 
             // Wait fences
-            fences.wait().unwrap();
+            fence.wait().unwrap();
 
             // Acquire the next swapchain image
-            auto res = vk::acquire_img(*swapchain, img_avail_sems.handles.back(), nullptr);
+            auto res = vk::acquire_img(*swapchain, img_avail.handles.back(), nullptr);
 
             if (res.require_sc_rebuild())
             {
@@ -431,7 +439,7 @@ auto main() -> int
             }
 
             // Reset fences
-            fences.reset().unwrap();
+            fence.reset().unwrap();
 
             auto& ubo        = uniform_buffers.at(frame);
             auto& ubo_writer = desc_set_writers.at(frame);
@@ -439,8 +447,8 @@ auto main() -> int
             ubo.transfer(&ubo_data, sizeof(ubo_data)).unwrap();
             ubo_writer.update_sets().unwrap();
 
-            uint32_t img_index = res.img_index();
-            auto render_finished_sems = sync_objects.semaphores(img_index + max_frames_in_flight, 1);
+            uint32_t img_index       = res.img_index();
+            auto     render_finished = render_finished_sems.view(img_index, 1);
 
             // Render to the framebuffer
             render_pass->begin_info.framebuffer       = fbs.handles[img_index];
@@ -489,17 +497,16 @@ auto main() -> int
 
             // Submit render
             vk::submit_helper_t::prepare()
-                .wait_semaphores(img_avail_sems.handles)
-                .signal_semaphores(render_finished_sems.handles)
+                .wait_semaphores(img_avail)
+                .signal_semaphores(render_finished.handles)
                 .cmd_buffer(&cmd.handle)
-                .wait_stage(vk::pipeline_stage_flag::color_attachment_output)
-                .submit(graphics_qf->queues.front(), fences.handles.back())
+                .submit(graphics_qf->queues.front(), fence.handle)
                 .unwrap();
 
             // Present the rendered image
             auto present_res = vk::present_helper_t::prepare()
                                    .swapchain(*swapchain)
-                                   .wait_semaphores(render_finished_sems.handles)
+                                   .wait_semaphores(render_finished.handles)
                                    .img_index(img_index)
                                    .present(graphics_qf->queues.front());
 
